@@ -46,3 +46,8 @@
 ## 참고 자료
 
 단축키 표·하드웨어 정보는 각 제조사 공식 도움말에서 사실만 옮겼고 출처는 `docs/research/*.md` 에 있다. USB HID Usage Tables 1.5(usb.org)의 사용 코드 값을 `shared/hid-usage.json` 에 썼다.
+
+## 에스코어 드림(S-Core Dream) — 따라 하기 안내서 글꼴
+
+- 굵기 3 Light·4 Regular·5 Medium 만 사용. 글꼴 파일은 이 저장소에 포함하지 않고 jsDelivr 의 눈누(projectnoonnu/noonfonts_six@1.2) 사본을 웹에서 읽는다.
+- 라이선스: 에스코어 제공 무료 글꼴(상업 이용 가능). 재배포·판매 조건은 에스코어 공식 안내를 따른다(https://s-core.co.kr/company/font/ — 공개 전 최신 조건 확인).

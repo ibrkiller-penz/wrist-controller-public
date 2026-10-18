@@ -1,6 +1,15 @@
 /* 따라 하기 안내서 스타일 — 클래스 접두사 .gd-*  색은 tokens.css 의 --sim-*·--wc-mode-* 만 쓴다(라이트/다크 자동). */
+/* 안내서 글꼴: 에스코어 드림 3 Light(본문)·4 Regular(표·안내)·5 Medium(제목·강조). 글꼴 파일은 배포하지 않고 CDN(눈누 projectnoonnu, jsDelivr)에서 읽는다.
+   오프라인·로딩 실패 시에는 기존 시스템 글꼴로 대체된다. 에스코어 드림 라이선스: 에스코어(S-Core) 무료 글꼴 — THIRD_PARTY.md 참고 */
+@font-face { font-family: 'S-CoreDream'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-3Light.woff') format('woff'); font-weight: 300; font-display: swap; }
+@font-face { font-family: 'S-CoreDream'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-4Regular.woff') format('woff'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'S-CoreDream'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-5Medium.woff') format('woff'); font-weight: 500; font-display: swap; }
+body { font-family: 'S-CoreDream', var(--sim-font, system-ui), sans-serif; font-weight: 300; }
+body svg text { font-family: 'S-CoreDream', sans-serif; }
+body h1, body h2, body h3, body strong, body b, body th, body summary { font-weight: 500; }
+body button, body .gd-nav, body .gd-sub, body td, body .gd-n { font-weight: 400; }
 .gd-main { max-width: 760px; margin: 0 auto; padding: 20px 16px 64px; display: flex; flex-direction: column; gap: 16px; font-size: 16px; line-height: 1.65; }
-.gd-main a { color: var(--sim-focus); font-weight: 600; text-decoration: none; }
+.gd-main a { color: var(--sim-focus); font-weight: 500; text-decoration: none; }
 .gd-main a:hover { text-decoration: underline; }
 .gd-nav { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px; margin: 0; }
 .gd-title { margin: 4px 0 0; font-size: 28px; line-height: 1.25; }
@@ -16,7 +25,7 @@
 .gd-card h3 { margin: 8px 0 0; font-size: 17px; }
 .gd-card p, .gd-card ul, .gd-card ol { margin: 0; }
 .gd-card ul, .gd-card ol { padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
-.gd-n { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; padding: 0 8px; flex: none; border-radius: 15px; background: var(--sim-surface-2); color: var(--sim-text-2); font-size: 14px; font-weight: 700; }
+.gd-n { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; padding: 0 8px; flex: none; border-radius: 15px; background: var(--sim-surface-2); color: var(--sim-text-2); font-size: 14px; font-weight: 500; }
 .gd-sub { color: var(--sim-text-2); font-size: 14px; }
 
 .gd-warn, .gd-tip { padding: 10px 14px; border-radius: 10px; font-size: 15px; }
@@ -33,8 +42,8 @@ pre.gd-cmd code { background: none; padding: 0; overflow-wrap: normal; white-spa
 .gd-tablewrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
 .gd-table { width: 100%; border-collapse: collapse; font-size: 15px; }
 .gd-table th, .gd-table td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--sim-border); }
-.gd-table th { font-size: 13px; color: var(--sim-text-2); font-weight: 700; background: var(--sim-surface-2); }
-.gd-table td:first-child { font-weight: 600; white-space: nowrap; }
+.gd-table th { font-size: 13px; color: var(--sim-text-2); font-weight: 500; background: var(--sim-surface-2); }
+.gd-table td:first-child { font-weight: 500; white-space: nowrap; }
 
 .gd-figure { margin: 0; }
 .gd-figure svg { display: block; width: 100%; height: auto; }
@@ -50,7 +59,7 @@ pre.gd-cmd code { background: none; padding: 0; overflow-wrap: normal; white-spa
 
 .gd-faq details { border-top: 1px solid var(--sim-border); padding: 10px 0; }
 .gd-faq details:first-of-type { border-top: 0; }
-.gd-faq summary { cursor: pointer; font-weight: 700; }
+.gd-faq summary { cursor: pointer; font-weight: 500; }
 .gd-faq details > *:not(summary) { margin-top: 8px; }
 .gd-foot { font-size: 13px; color: var(--sim-text-3); margin: 0; }
 
