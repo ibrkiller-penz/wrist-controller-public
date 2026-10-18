@@ -1,0 +1,86 @@
+/* 설치 페이지 스타일 — 담당: settings 모듈. 클래스 접두사: .inst-*  명세: design/settings-install.md 3장 */
+.inst-main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; display: flex; flex-direction: column; gap: var(--sim-gap, 16px); }
+.inst-back { margin: 0; }
+.inst-back a, .inst-main a { color: var(--sim-focus); font-weight: 600; text-decoration: none; }
+.inst-back a:hover, .inst-main a:hover { text-decoration: underline; }
+.inst-title { margin: 0; font-size: 28px; line-height: 1.2; }
+.inst-lead { margin: 0; color: var(--sim-text-2); }
+.inst-ok { margin: 0; font-size: 12px; color: var(--sim-text-3); }
+.inst-notice {
+  display: block; padding: 10px 14px; border-radius: var(--sim-radius, 10px);
+  background: var(--sim-notice-bg); color: var(--sim-notice-text); font-size: 13px;
+}
+.inst-notice[hidden] { display: none; }
+.inst-notice--example { border: 1px solid var(--sim-notice-text); }
+
+.inst-card {
+  background: var(--sim-surface); border: 1px solid var(--sim-border); border-radius: var(--sim-radius-lg, 16px);
+  padding: 24px; display: flex; flex-direction: column; gap: 12px; min-width: 0;
+}
+.inst-card h2, .inst-card summary { margin: 0; font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.inst-card summary { cursor: pointer; list-style: none; }
+.inst-card summary::-webkit-details-marker { display: none; }
+.inst-card summary::after { content: "▸"; margin-left: auto; color: var(--sim-text-3); }
+.inst-card details[open] summary::after { content: "▾"; }
+.inst-card details[open] summary { margin-bottom: 12px; }
+.inst-card p { margin: 0; }
+.inst-n {
+  display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; flex: none;
+  border-radius: 50%; background: var(--sim-surface-2); color: var(--sim-text-2); font-size: 13px; font-weight: 700;
+}
+.inst-sub { font-size: 12px; color: var(--sim-text-3); }
+.inst-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; }
+.inst-main code { font-family: var(--sim-font-mono); font-size: 13px; }
+
+.inst-code { display: flex; align-items: stretch; gap: 8px; margin-top: 6px; min-width: 0; }
+.inst-code pre {
+  flex: 1; min-width: 0; margin: 0; padding: 10px 12px; overflow-x: auto;
+  background: var(--sim-surface-2); border-radius: var(--sim-radius, 10px);
+  font-family: var(--sim-font-mono); font-size: 13px; line-height: 1.5;
+}
+.inst-btn {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 0 12px;
+  border: 1px solid var(--sim-border); border-radius: var(--sim-radius, 10px);
+  background: var(--sim-surface); color: var(--sim-text-1); cursor: pointer; font-size: 13px; white-space: nowrap;
+}
+.inst-btn:hover { background: var(--sim-surface-2); }
+
+.inst-checkrow {
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 0; font-size: 14px; cursor: pointer;
+}
+.inst-checkrow input { width: 20px; height: 20px; flex: none; accent-color: var(--sim-focus); }
+
+.inst-versions { display: flex; flex-direction: column; gap: 6px; }
+.inst-version {
+  display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: center; column-gap: 10px;
+  min-height: 56px; padding: 8px 12px; border: 1px solid var(--sim-border); border-radius: var(--sim-radius, 10px); cursor: pointer;
+}
+.inst-version:has(input:checked) { border-color: var(--sim-focus); }
+.inst-version input { width: 18px; height: 18px; accent-color: var(--sim-focus); grid-row: span 2; }
+.inst-version__main { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.inst-version__name { font-weight: 700; font-size: 14px; }
+.inst-version__date, .inst-version__sub { font-size: 12px; color: var(--sim-text-3); }
+.inst-version__sub { grid-column: 2; }
+.inst-badge { padding: 2px 8px; border-radius: 999px; background: var(--sim-surface-2); color: var(--sim-text-2); font-size: 12px; }
+.inst-badge--example { background: var(--sim-notice-bg); color: var(--sim-notice-text); }
+
+.inst-install { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.inst-installbtn {
+  min-height: 48px; min-width: 200px; padding: 0 20px; border: 0; border-radius: var(--sim-radius, 10px);
+  background: var(--sim-mode-coding); color: var(--sim-surface); font-size: 16px; font-weight: 700; cursor: pointer;
+}
+:root[data-theme="dark"] .inst-installbtn { color: var(--wc-text-on-accent, #000); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .inst-installbtn { color: var(--wc-text-on-accent, #000); } }
+.inst-installbtn:active:not(:disabled) { filter: brightness(0.9); }
+.inst-installbtn:focus-visible { outline: 2px solid var(--sim-focus); outline-offset: 2px; }
+.inst-installbtn:disabled { background: var(--sim-surface-2); color: var(--sim-text-3); cursor: not-allowed; }
+/* 스크립트를 불러오기 전(또는 미지원)에는 ESP Web Tools 안내 슬롯을 숨긴다 — 위쪽 브라우저 안내 띠가 대신한다 */
+esp-web-install-button:not(:defined) [slot="unsupported"],
+esp-web-install-button:not(:defined) [slot="not-allowed"] { display: none; }
+.inst-gate { margin: 0; min-height: 18px; font-size: 13px; color: var(--sim-text-2); }
+.inst-foot { margin: 0; font-size: 12px; color: var(--sim-text-3); text-align: center; }
+
+@media (max-width: 767px) {
+  .inst-card { padding: 16px; }
+  .inst-installbtn { width: 100%; min-width: 0; }
+}

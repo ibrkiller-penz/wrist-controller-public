@@ -1,0 +1,83 @@
+# 손목 컨트롤러 기본 설정 — 근거: docs/research/firmware-stack.md(ESP32-C6 기준 재작성본), docs/research/hardware.md
+# 값을 바꾸면 'idf.py fullclean' 후 다시 빌드한다. target 을 바꿀 때는 'idf.py set-target esp32c6'.
+
+# ---- 칩·메모리: ESP32-C6 (싱글코어 RISC-V 160MHz, HP SRAM 512KB, PSRAM 없음 — C6 는 PSRAM 을 지원하지 않는다)
+# Waveshare 02_lvgl_demo_v9(ESP32-C6-Touch-AMOLED-2.06) sdkconfig.defaults 와 같은 플래시 설정
+CONFIG_IDF_TARGET="esp32c6"
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# ---- CPU (C6 최대 160MHz)
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_160=y
+CONFIG_FREERTOS_HZ=1000
+
+# ---- 블루투스: NimBLE + BLE HID 장치 + 본드 NVS 저장 (firmware-stack.md 2장, STEP3)
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_BT_NIMBLE_NVS_PERSIST=y
+CONFIG_BT_NIMBLE_MAX_BONDS=4
+# 주변기기(HID) 역할만 쓴다 → 센트럴·옵저버 끄고 연결 1개로 RAM 절약(firmware-stack.md 4장)
+CONFIG_BT_NIMBLE_ROLE_CENTRAL=n
+CONFIG_BT_NIMBLE_ROLE_OBSERVER=n
+CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1
+# 보안(SM): 레거시 + Secure Connections 둘 다 허용. IO 없음(Just Works)·본딩은 ble_hid.c 의 ble_hs_cfg 에서 정한다.
+CONFIG_BT_NIMBLE_SECURITY_ENABLE=y
+CONFIG_BT_NIMBLE_SM_LEGACY=y
+CONFIG_BT_NIMBLE_SM_SC=y
+# macOS/iOS 문제가 생기면 2(암호화 필수)부터 시험(firmware-stack.md 2.6). Kconfig 기본값은 0.
+# CONFIG_BT_NIMBLE_SM_LVL=2
+# NimBLE HID 서비스(esp_hid 의 nimble_hidd.c 가 이 설정일 때만 컴파일된다 — IDF 예제는 Kconfig select 로 켠다)
+CONFIG_BT_NIMBLE_HID_SERVICE=y
+CONFIG_BT_NIMBLE_SVC_HID_MAX_INSTANCES=1
+# 복합 맵 하나의 report 모드 보고서: 키보드 입력(1)·키보드 LED 출력(1)·마우스 입력(2)·컨슈머 입력(3) = 4개
+CONFIG_BT_NIMBLE_SVC_HID_MAX_RPTS=4
+CONFIG_BT_NIMBLE_SVC_GAP_DEVICE_NAME="wrist-controller"
+# GAP 외형 = 키보드(0x03C1). 실제 장치 이름은 실행 중 ble_svc_gap_device_name_set 으로 바꾼다(NVS 이름 우선)
+CONFIG_BT_NIMBLE_SVC_GAP_APPEARANCE=0x03C1
+
+# esp_hidd 초기화(create_hid_db)가 큰 구조체(ble_svc_hid_params, 약 1.6KB)를 값으로 넘겨 main 태스크 스택을 많이 쓴다.
+# 기본 3584 로는 모자랄 수 있어 늘린다. main 태스크는 app_main 이 끝나면 지워져 스택이 돌아온다.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# ---- C++ (코어 로직은 예외·RTTI 를 쓰지 않는다)
+CONFIG_COMPILER_CXX_EXCEPTIONS=n
+CONFIG_COMPILER_CXX_RTTI=n
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+# ---- 로그 / USB 직렬(IMU 녹화 CSV 출력) — C6 내장 USB-Serial/JTAG
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# ---- 화면: Waveshare BSP (STEP2)
+# BSP 의 LVGL 그리기 버퍼 줄 수(기본 100줄 = 82KB). PSRAM 이 없어 40줄로 줄인다(hardware.md 4장).
+# display_ui.c 가 이 값으로 410×40 × 2(이중 버퍼) = 65,600B 를 DMA 가능 내부 RAM 에 잡는다.
+# 메모리가 모자라면 20 으로 줄이고 main/board_pins.h LVGL_BUF_LINES 도 같이 바꾼다(main.cpp static_assert). 짝수만.
+CONFIG_BSP_DISPLAY_LVGL_BUF_HEIGHT=40
+CONFIG_BSP_I2C_NUM=0
+
+# ---- LVGL 9 (Waveshare C6 02_lvgl_demo_v9 sdkconfig.defaults 기준, 메모리 절약 쪽으로 조정)
+# 객체 힙은 IDF 힙을 같이 쓴다(별도 64KB 풀을 잡지 않는다, firmware-stack.md 3.2)
+CONFIG_LV_COLOR_DEPTH_16=y
+CONFIG_LV_USE_CLIB_MALLOC=y
+CONFIG_LV_USE_CLIB_STRING=y
+CONFIG_LV_USE_CLIB_SPRINTF=y
+CONFIG_LV_DEF_REFR_PERIOD=15
+# 예제는 LV_OS_FREERTOS + 그리기 유닛 2개지만, C6 는 싱글코어라 그리기 스레드(태스크 스택)를 따로 두지 않는다.
+# (esp_lvgl_port 가 자체 뮤텍스로 LVGL 을 잠근다)
+CONFIG_LV_OS_NONE=y
+CONFIG_LV_DRAW_SW_DRAW_UNIT_CNT=1
+# 글꼴(design/v2/README.md 1.2): 한글·숫자는 Pretendard 서브셋(firmware/main/fonts, tools/gen_fonts.py).
+# Montserrat 은 기호용 20(kr_* fallback: 블루투스·배터리·경고)과 48(화살표·블루투스·회의 기호·페어링 끝자리)만 남긴다. 14·28·40 삭제.
+CONFIG_LV_FONT_MONTSERRAT_20=y
+CONFIG_LV_FONT_MONTSERRAT_48=y
+# kr_20/24/28/32 는 4bpp RLE 압축(글리프가 작다). num_128 은 비압축(그릴 때 힙 임시 버퍼·해제 CPU 없음)
+CONFIG_LV_USE_FONT_COMPRESSED=y
+CONFIG_LV_FONT_DEFAULT_MONTSERRAT_20=y
+
+# ---- 음성(STEP8)은 2026-10-17 에 뺐다(esp-sr·마이크 없음). 나중 계획: docs/research/gemini-later.md
+
+# ---- BLE 배터리 서비스(BAS): esp_hidd 가 HID 와 함께 등록. 잔량이 바뀌면 PC 에 알리도록 notify 를 켠다(기본 꺼짐)
+CONFIG_BT_NIMBLE_BAS_SERVICE=y
+CONFIG_BT_NIMBLE_SVC_BAS_BATTERY_LEVEL_NOTIFY=y

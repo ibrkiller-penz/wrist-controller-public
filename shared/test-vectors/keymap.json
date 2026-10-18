@@ -1,0 +1,497 @@
+{
+  "suite": "keymap",
+  "description": "키맵 해석: (모드, 앱, OS, 동작) → 키 조합·표시 문자열·HID 수정자 바이트·사용 코드. 근거: docs/research/shortcuts.md 3장.",
+  "cases": [
+    {
+      "mode": "present",
+      "app": "powerpoint",
+      "os": "win",
+      "action": "next",
+      "expect": {
+        "chord": {
+          "mods": [],
+          "key": "RIGHT"
+        },
+        "label": "→",
+        "modifier": "0x00",
+        "usage": "0x4F"
+      }
+    },
+    {
+      "mode": "present",
+      "app": "powerpoint",
+      "os": "win",
+      "action": "prev",
+      "expect": {
+        "chord": {
+          "mods": [],
+          "key": "LEFT"
+        },
+        "label": "←",
+        "modifier": "0x00",
+        "usage": "0x50"
+      }
+    },
+    {
+      "mode": "present",
+      "app": "powerpoint",
+      "os": "win",
+      "action": "blackout",
+      "expect": {
+        "chord": {
+          "mods": [],
+          "key": "PERIOD"
+        },
+        "label": ".",
+        "modifier": "0x00",
+        "usage": "0x37"
+      }
+    },
+    {
+      "mode": "present",
+      "app": "powerpoint",
+      "os": "win",
+      "action": "showStart",
+      "expect": {
+        "chord": {
+          "mods": [],
+          "key": "F5"
+        },
+        "label": "F5",
+        "modifier": "0x00",
+        "usage": "0x3E"
+      }
+    },
+    {
+      "mode": "present",
+      "app": "powerpoint",
+      "os": "mac",
+      "action": "showStart",
+      "expect": {
+        "chord": {
+          "mods": [
+            "gui",
+            "shift"
+          ],
+          "key": "ENTER"
+        },
+        "label": "Cmd+Shift+Return",
+        "modifier": "0x0A",
+        "usage": "0x28"
+      }
+    },
+    {
+      "mode": "present",
+      "app": "powerpoint",
+      "os": "win",
+      "action": "showEnd",
+      "expect": {
+        "chord": {
+          "mods": [],
+          "key": "ESCAPE"
+        },
+        "label": "Esc",
+        "modifier": "0x00",
+        "usage": "0x29"
+      }
+    },
+    {
+      "mode": "present",
+      "app": "slides",
+      "os": "win",
+      "action": "showStart",
+      "expect": {
+        "chord": {
+          "mods": [
+            "ctrl"
+          ],
+          "key": "F5"
+        },
+        "label": "Ctrl+F5",
+        "modifier": "0x01",
+        "usage": "0x3E"
+      }
+    },
+    {
+      "mode": "present",
+      "app": "slides",
+      "os": "mac",
+      "action": "showStart",
+      "expect": {
+        "chord": {
+          "mods": [
+            "gui"
+          ],
+          "key": "ENTER"
+        },
+        "label": "Cmd+Return",
+        "modifier": "0x08",
+        "usage": "0x28"
+      }
+    },
+    {
+      "mode": "launch",
+      "app": "launcher",
+      "os": "win",
+      "action": "claude",
+      "expect": {
+        "chord": {
+          "mods": [
+            "ctrl",
+            "alt"
+          ],
+          "key": "1"
+        },
+        "label": "Ctrl+Alt+1",
+        "modifier": "0x05",
+        "usage": "0x1E"
+      }
+    },
+    {
+      "mode": "launch",
+      "app": "launcher",
+      "os": "win",
+      "action": "hwp",
+      "expect": {
+        "chord": {
+          "mods": [
+            "ctrl",
+            "alt"
+          ],
+          "key": "6"
+        },
+        "label": "Ctrl+Alt+6",
+        "modifier": "0x05",
+        "usage": "0x23"
+      }
+    },
+    {
+      "mode": "launch",
+      "app": "launcher",
+      "os": "win",
+      "action": "capture",
+      "expect": {
+        "chord": {
+          "mods": [
+            "gui",
+            "shift"
+          ],
+          "key": "S"
+        },
+        "label": "Shift+Win+S",
+        "modifier": "0x0A",
+        "usage": "0x16"
+      }
+    },
+    {
+      "mode": "launch",
+      "app": "launcher",
+      "os": "mac",
+      "action": "capture",
+      "expect": {
+        "chord": {
+          "mods": [
+            "gui",
+            "shift"
+          ],
+          "key": "5"
+        },
+        "label": "Cmd+Shift+5",
+        "modifier": "0x0A",
+        "usage": "0x22"
+      }
+    },
+    {
+      "mode": "launch",
+      "app": "launcher",
+      "os": "win",
+      "action": "lock",
+      "expect": {
+        "chord": {
+          "mods": [
+            "gui"
+          ],
+          "key": "L"
+        },
+        "label": "Win+L",
+        "modifier": "0x08",
+        "usage": "0x0F"
+      }
+    },
+    {
+      "mode": "launch",
+      "app": "launcher",
+      "os": "mac",
+      "action": "lock",
+      "expect": {
+        "chord": {
+          "mods": [
+            "ctrl",
+            "gui"
+          ],
+          "key": "Q"
+        },
+        "label": "Ctrl+Cmd+Q",
+        "modifier": "0x09",
+        "usage": "0x14"
+      }
+    },
+    {
+      "mode": "launch",
+      "app": "launcher",
+      "os": "win",
+      "action": "desktop",
+      "expect": {
+        "chord": {
+          "mods": [
+            "gui"
+          ],
+          "key": "D"
+        },
+        "label": "Win+D",
+        "modifier": "0x08",
+        "usage": "0x07"
+      }
+    },
+    {
+      "mode": "launch",
+      "app": "launcher",
+      "os": "mac",
+      "action": "desktop",
+      "expect": {
+        "chord": null,
+        "label": ""
+      }
+    },
+    {
+      "mode": "launch",
+      "app": "launcher",
+      "os": "win",
+      "action": "display",
+      "expect": {
+        "chord": {
+          "mods": [
+            "gui"
+          ],
+          "key": "P"
+        },
+        "label": "Win+P",
+        "modifier": "0x08",
+        "usage": "0x13"
+      }
+    },
+    {
+      "mode": "launch",
+      "app": "launcher",
+      "os": "win",
+      "action": "mute",
+      "expect": {
+        "chord": null,
+        "label": ""
+      }
+    },
+    {
+      "mode": "meeting",
+      "app": "zoom",
+      "os": "win",
+      "action": "mic",
+      "expect": {
+        "chord": {
+          "mods": [
+            "alt"
+          ],
+          "key": "A"
+        },
+        "label": "Alt+A",
+        "modifier": "0x04",
+        "usage": "0x04"
+      }
+    },
+    {
+      "mode": "meeting",
+      "app": "zoom",
+      "os": "mac",
+      "action": "mic",
+      "expect": {
+        "chord": {
+          "mods": [
+            "gui",
+            "shift"
+          ],
+          "key": "A"
+        },
+        "label": "Cmd+Shift+A",
+        "modifier": "0x0A",
+        "usage": "0x04"
+      }
+    },
+    {
+      "mode": "meeting",
+      "app": "zoom",
+      "os": "win",
+      "action": "camera",
+      "expect": {
+        "chord": {
+          "mods": [
+            "alt"
+          ],
+          "key": "V"
+        },
+        "label": "Alt+V",
+        "modifier": "0x04",
+        "usage": "0x19"
+      }
+    },
+    {
+      "mode": "meeting",
+      "app": "zoom",
+      "os": "mac",
+      "action": "hand",
+      "expect": {
+        "chord": {
+          "mods": [
+            "alt"
+          ],
+          "key": "Y"
+        },
+        "label": "Option+Y",
+        "modifier": "0x04",
+        "usage": "0x1C"
+      }
+    },
+    {
+      "mode": "meeting",
+      "app": "teams",
+      "os": "win",
+      "action": "mic",
+      "expect": {
+        "chord": {
+          "mods": [
+            "ctrl",
+            "shift"
+          ],
+          "key": "M"
+        },
+        "label": "Ctrl+Shift+M",
+        "modifier": "0x03",
+        "usage": "0x10"
+      }
+    },
+    {
+      "mode": "meeting",
+      "app": "teams",
+      "os": "win",
+      "action": "camera",
+      "expect": {
+        "chord": {
+          "mods": [
+            "ctrl",
+            "shift"
+          ],
+          "key": "O"
+        },
+        "label": "Ctrl+Shift+O",
+        "modifier": "0x03",
+        "usage": "0x12"
+      }
+    },
+    {
+      "mode": "meeting",
+      "app": "teams",
+      "os": "mac",
+      "action": "hand",
+      "expect": {
+        "chord": {
+          "mods": [
+            "gui",
+            "shift"
+          ],
+          "key": "K"
+        },
+        "label": "Cmd+Shift+K",
+        "modifier": "0x0A",
+        "usage": "0x0E"
+      }
+    },
+    {
+      "mode": "meeting",
+      "app": "meet",
+      "os": "win",
+      "action": "mic",
+      "expect": {
+        "chord": {
+          "mods": [
+            "ctrl"
+          ],
+          "key": "D"
+        },
+        "label": "Ctrl+D",
+        "modifier": "0x01",
+        "usage": "0x07"
+      }
+    },
+    {
+      "mode": "meeting",
+      "app": "meet",
+      "os": "win",
+      "action": "camera",
+      "expect": {
+        "chord": {
+          "mods": [
+            "ctrl"
+          ],
+          "key": "E"
+        },
+        "label": "Ctrl+E",
+        "modifier": "0x01",
+        "usage": "0x08"
+      }
+    },
+    {
+      "mode": "meeting",
+      "app": "meet",
+      "os": "win",
+      "action": "hand",
+      "expect": {
+        "chord": {
+          "mods": [
+            "ctrl",
+            "alt"
+          ],
+          "key": "H"
+        },
+        "label": "Ctrl+Alt+H",
+        "modifier": "0x05",
+        "usage": "0x0B"
+      }
+    },
+    {
+      "mode": "meeting",
+      "app": "meet",
+      "os": "mac",
+      "action": "hand",
+      "expect": {
+        "chord": {
+          "mods": [
+            "ctrl",
+            "gui"
+          ],
+          "key": "H"
+        },
+        "label": "Ctrl+Cmd+H",
+        "modifier": "0x09",
+        "usage": "0x0B"
+      }
+    },
+    {
+      "mode": "meeting",
+      "app": "zoom",
+      "os": "win",
+      "action": "claude",
+      "expect": {
+        "chord": null,
+        "label": ""
+      }
+    }
+  ]
+}

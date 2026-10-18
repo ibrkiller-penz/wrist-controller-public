@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="손목 컨트롤러(ESP32-S3 AMOLED 시계) 웹 시뮬레이터 — 시계 화면, 가상 PC, HID 로그" />
+    <title>손목 컨트롤러 시뮬레이터</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#000000" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="손목컨트롤러" />
+  </head>
+  <body>
+    <!-- 배치: design/simulator-layout.md 2장. 각 자리는 담당 모듈이 채운다(sim/ARCHITECTURE.md). -->
+    <header id="toolbar"></header>
+    <div id="notice-root" class="sim-notice-slot" aria-live="polite"></div>
+    <main class="sim-layout">
+      <section class="sim-col-watch" aria-label="시계">
+        <div id="watch-root"></div>
+        <div id="input-root"></div>
+      </section>
+      <section class="sim-col-pc" id="pc-root" aria-label="가상 PC"></section>
+      <aside class="sim-col-log" id="log-root" aria-label="HID 로그"></aside>
+    </main>
+    <div id="settings-root"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

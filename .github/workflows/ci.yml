@@ -1,0 +1,246 @@
+# 손목 컨트롤러 CI — 작업지시서 '빌드·배포 파이프라인'
+#
+#  push / PR 마다
+#    1. sim        : npm ci → npm test(공유 테스트 벡터 TS) → npm run build
+#    2. tools      : keymap.json·strings.ko.json → C 헤더가 최신인지(--check), 문구 커버리지(check_strings), tools 단위 테스트
+#    3. firmware   : 펌웨어 로직 호스트 테스트(C++, CMake) — 같은 공유 테스트 벡터
+#    → 하나라도 실패하면 아래 단계는 돌지 않는다.
+#  태그 v*.*.* 를 올리면
+#    4. firmware-build : ESP-IDF 빌드(espressif/esp-idf-ci-action) → merge-bin → 매니페스트
+#    5. release        : GitHub Release 에 .bin·manifest.json·SHA256SUMS 첨부(보관용)
+#    6. site           : sim/dist + firmware/vX.Y.Z/ 사본 + versions.json 묶음(같은 출처 → CORS 문제 없음)
+#    7. deploy         : Cloudflare Pages 배포 — 시크릿 필요, 기본 비활성(맨 아래 주석)
+#
+# 시계에 펌웨어를 올리는 일은 CI 가 하지 않는다. 사용자가 설치 페이지에서 직접 누른다.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # 수동 실행(펌웨어 빌드)이 같은 브랜치의 push 실행에 취소되지 않도록 이벤트 종류도 그룹에 넣는다
+  group: ci-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  # docs/research/firmware-stack.md 8장: IDF 5.5 계열 고정 권장(Waveshare 예제 검증 버전 v5.5.5)
+  ESP_IDF_VERSION: v5.5.5
+  NODE_VERSION: "24"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # ---------------------------------------------------------------- 1. 시뮬레이션
+  sim:
+    name: 시뮬레이션 테스트·빌드
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sim
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: sim/package-lock.json
+      - run: npm ci
+      - name: 테스트(공유 테스트 벡터 포함)
+        run: npm test
+      - name: 빌드(tsc --noEmit + vite build)
+        run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sim-dist
+          path: sim/dist
+          retention-days: 14
+
+  # ---------------------------------------------------------------- 2. 생성 스크립트
+  tools:
+    name: 키맵·문구 헤더·글꼴 커버리지 검증
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: keymap_gen.h 가 shared/*.json 과 맞는지
+        run: python tools/gen_keymap_header.py --check
+      - name: strings_gen.h 가 shared/strings.ko.json 과 맞는지
+        run: python tools/gen_strings_header.py --check
+      - name: 문구 커버리지(화면 글자가 kr_20/24/28/32·시뮬레이터 woff2 에 모두 있는지)
+        run: |
+          pip install "fonttools==4.65.0" "brotli==1.2.0"
+          python tools/check_strings.py
+      - name: tools 단위 테스트
+        run: python -m unittest discover -s tools -p "test_*.py" -v
+
+  # ---------------------------------------------------------------- 3. 펌웨어 로직(호스트)
+  firmware-logic:
+    name: 펌웨어 로직 호스트 테스트(C++)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: CMake 구성
+        run: cmake -S firmware/test -B build/fwtest -DCMAKE_BUILD_TYPE=Debug
+      - name: 빌드
+        run: cmake --build build/fwtest --parallel
+      - name: 공유 테스트 벡터 실행
+        run: ctest --test-dir build/fwtest --output-on-failure
+
+  # ---------------------------------------------------------------- 4. 펌웨어 빌드(태그, 또는 수동 실행 = 개발판 .bin 만 아티팩트로)
+  firmware-build:
+    name: 펌웨어 빌드(ESP-IDF)
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: [sim, tools, firmware-logic]
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: ver
+        name: 버전(태그)
+        run: |
+          # 태그가 아니면(수동 실행) 개발판 버전 v0.0.0-dev.<커밋 7자리>
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then V="$GITHUB_REF_NAME"; else V="v0.0.0-dev.${GITHUB_SHA::7}"; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          # IDF 는 프로젝트 폴더의 version.txt 를 PROJECT_VER 로 쓴다 → 설정 화면 펌웨어 버전
+          echo "${V#v}" > firmware/version.txt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: 키맵·문구 헤더 확인
+        run: |
+          python tools/gen_keymap_header.py --check
+          python tools/gen_strings_header.py --check
+      - name: ESP-IDF 빌드
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: ${{ env.ESP_IDF_VERSION }}
+          target: esp32c6
+          path: firmware
+          # idf.py size = 정적 RAM(DRAM/IRAM)·플래시 사용량 요약(PSRAM 없는 C6 메모리 예산 확인용)
+          command: idf.py build && idf.py size
+      - name: 합친 이미지(merge-bin)·매니페스트
+        env:
+          VER: ${{ steps.ver.outputs.version }}
+        run: |
+          pip install "esptool>=5,<6"
+          O="out/${VER}"
+          mkdir -p "$O"
+          P="wrist-controller-${VER}"
+          # 나눠 쓰기용 3파일(NVS 보존): 부트로더 0x0 · 파티션 표 0x8000 · 앱 0x10000 + IDF flash_args
+          cp firmware/build/bootloader/bootloader.bin "$O/${P}-bootloader.bin"
+          cp firmware/build/partition_table/partition-table.bin "$O/${P}-partition-table.bin"
+          cp firmware/build/wrist_controller.bin "$O/${P}-app.bin"
+          cp firmware/build/flash_args "$O/flash_args"
+          # 합친 이미지 = 처음 설치·완전 초기화용(0x8C00~0x10000 을 0xFF 로 채워 NVS·페어링을 지운다)
+          BIN="${P}-merged-full-erase.bin"
+          # shellcheck disable=SC2046 # flash_args 는 공백으로 나눠 인자로 넘겨야 한다
+          (cd firmware/build && esptool --chip esp32c6 merge-bin -o "../../${O}/${BIN}" $(cat flash_args))
+          # 웹 설치(ESP Web Tools) 매니페스트 = 3파일(지우기는 새 설치 때 사용자가 고른다)
+          python tools/firmware_site.py manifest --version "$VER" \
+            --part "${P}-bootloader.bin@0x0" --part "${P}-partition-table.bin@0x8000" --part "${P}-app.bin@0x10000" \
+            --out "$O/manifest.json" --date "$(date -u +%F)"
+          {
+            echo "# 손목 컨트롤러 ${VER} — 나눠 쓰기(NVS·페어링 보존). 포트는 바꿔서"
+            echo "esptool --chip esp32c6 -p COM7 -b 460800 write-flash 0x0 ${P}-bootloader.bin 0x8000 ${P}-partition-table.bin 0x10000 ${P}-app.bin"
+            echo "# 처음 설치·완전 초기화(페어링 지워짐): esptool --chip esp32c6 -p COM7 -b 460800 write-flash 0x0 ${BIN}"
+          } > "$O/FLASH.txt"
+          (cd "$O" && sha256sum ./*.bin manifest.json flash_args > SHA256SUMS)
+          cp firmware/build/wrist_controller.elf "out/${VER}/wrist-controller-${VER}.elf"
+          ls -l "out/${VER}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ steps.ver.outputs.version }}
+          path: out/${{ steps.ver.outputs.version }}
+
+  # ---------------------------------------------------------------- 5. GitHub Release(보관용)
+  release:
+    name: GitHub Release 업로드
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [firmware-build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: firmware-${{ needs.firmware-build.outputs.version }}
+          path: out
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.firmware-build.outputs.version }}
+          name: 손목 컨트롤러 ${{ needs.firmware-build.outputs.version }}
+          body: |
+            시계에 설치: 시뮬레이션 사이트의 '시계에 설치' 페이지(Chrome·Edge, USB)에서 이 버전을 고른다.
+            이 Release 의 파일은 보관용이다(GitHub Release 주소는 CORS 때문에 브라우저 설치기가 직접 받지 못한다).
+            처음 설치하기 전에 README 의 '원래 펌웨어 백업' 을 먼저 한다.
+          files: |
+            out/*.bin
+            out/*.elf
+            out/manifest.json
+            out/flash_args
+            out/FLASH.txt
+            out/SHA256SUMS
+
+  # ---------------------------------------------------------------- 6. 사이트 묶음(시뮬레이션 + 펌웨어 사본)
+  site:
+    name: 사이트 묶음(sim + firmware 사본 + versions.json)
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [firmware-build, release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: sim-dist
+          path: site
+      - name: 모든 Release 의 펌웨어를 site/firmware/vX.Y.Z/ 로 모으기(이전 버전 설치용)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p site/firmware
+          for tag in $(gh release list --repo "$GITHUB_REPOSITORY" --limit 50 --json tagName --jq '.[].tagName'); do
+            case "$tag" in v*.*.*) ;; *) continue ;; esac
+            gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir "site/firmware/$tag" \
+              --pattern '*.bin' --pattern 'manifest.json' --pattern 'flash_args' --pattern 'SHA256SUMS' || echo "건너뜀: $tag"
+          done
+          python3 tools/firmware_site.py versions --dir site/firmware --repo "$GITHUB_REPOSITORY"
+          cat site/firmware/versions.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: site
+          retention-days: 30
+
+  # ---------------------------------------------------------------- 7. 배포(기본 비활성)
+  # Cloudflare Pages 배포. 켜려면
+  #   1) 저장소 Settings → Secrets 에 CLOUDFLARE_API_TOKEN(Pages 편집 권한), CLOUDFLARE_ACCOUNT_ID 를 넣고
+  #   2) Cloudflare 에 Pages 프로젝트(예: wrist-controller-sim)를 만든 뒤
+  #   3) 아래 주석을 푼다. main 브랜치 push 때 시뮬레이션만 배포하려면 needs 를 [sim] 으로, if 를 바꾼다.
+  # 배포는 외부로 나가는 작업이므로 사용자 확인 뒤에만 켠다.
+  #
+  # deploy:
+  #   name: Cloudflare Pages 배포
+  #   needs: [site]
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #     deployments: write
+  #   steps:
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         name: site
+  #         path: site
+  #     - uses: cloudflare/wrangler-action@v3
+  #       with:
+  #         apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  #         accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+  #         command: pages deploy site --project-name=wrist-controller-sim --branch=main

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="손목 컨트롤러 펌웨어를 브라우저(Chrome·Edge)에서 USB 로 시계에 설치" />
+    <title>시계에 설치</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#000000" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="손목컨트롤러" />
+  </head>
+  <body>
+    <!-- 담당: settings 모듈 개발자 (src/install/install.ts). 명세: design/settings-install.md 3장 -->
+    <div id="install-root"></div>
+    <script type="module" src="/src/install/install.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>설정 · 설치 목업</title>
+<!--
+  손목 컨트롤러 — 설정 화면 / 시뮬레이터 설정 패널 / 시계에 설치 / 음성 고지 목업
+  담당: 디자인팀 5번. 명세: design/settings-install.md
+  - 외부 의존 없음. tokens.css 와 icons.svg 만 쓴다.
+  - 아이콘 <use> 는 file:// 에서 막히므로 로컬 서버로 연다:
+      (프로젝트 루트에서) python -m http.server 8000  →  http://localhost:8000/design/mockups/settings.html
+  - 시계 화면 안의 좌표는 410×502 실제 px. style 의 left/top/width/height 가 곧 명세 값이다.
+-->
+<link rel="stylesheet" href="../tokens.css">
+<style>
+  /* ---------- 페이지(시뮬레이터 바깥 UI) : --sim-* 만 사용 ---------- */
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--sim-bg); color: var(--sim-text-1);
+    font-family: var(--sim-font-family); font-size: var(--sim-text-size); line-height: 1.5;
+  }
+  .page { max-width: 1320px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: var(--sim-text-size-lg); margin: 48px 0 8px; padding-top: 16px; border-top: 1px solid var(--sim-border); }
+  h3 { font-size: var(--sim-text-size); margin: 0 0 8px; color: var(--sim-text-2); font-weight: 600; }
+  p.lead { color: var(--sim-text-2); margin: 0 0 16px; max-width: 760px; }
+  .muted { color: var(--sim-text-3); font-size: var(--sim-text-size-sm); }
+  code, .mono { font-family: var(--sim-font-mono); }
+  .row { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
+  .cell { display: flex; flex-direction: column; gap: 8px; }
+  .cell figcaption { font-size: var(--sim-text-size-sm); color: var(--sim-text-2); max-width: 430px; }
+
+  /* 시계 베젤(시뮬레이터 모양 그대로) */
+  .bezel { padding: 10px; background: var(--sim-bezel); border: 2px solid var(--sim-bezel-edge); border-radius: 76px; width: max-content; }
+
+  /* ---------- 시계 화면 내부 : --wc-* 만 사용 ---------- */
+  .wc-screen .abs { position: absolute; }
+  .sb-dot { border-radius: 50%; background: var(--wc-accent); }
+  .t-heading { font-size: var(--wc-type-heading-size); line-height: var(--wc-type-heading-line); font-weight: var(--wc-type-heading-weight); }
+  .t-body    { font-size: var(--wc-type-body-size);    line-height: var(--wc-type-body-line);    font-weight: var(--wc-type-body-weight); }
+  .t-label   { font-size: var(--wc-type-label-size);   line-height: var(--wc-type-label-line);   font-weight: var(--wc-type-label-weight); }
+  .t-caption { font-size: var(--wc-type-caption-size); line-height: var(--wc-type-caption-line); font-weight: var(--wc-type-caption-weight); }
+  .c2 { color: var(--wc-text-2); } .c3 { color: var(--wc-text-3); }
+
+  .viewport { position: absolute; left: 0; top: 56px; width: 410px; height: 446px; overflow: hidden; }
+  .content  { position: absolute; left: 0; top: -56px; width: 410px; height: 960px;
+              transition: transform var(--wc-motion-base) var(--wc-ease-out); }
+
+  /* 누를 수 있는 요소 공통 (세그먼트·행·버튼) */
+  .wc-btn {
+    position: absolute; display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: var(--wc-surface-1); border-radius: var(--wc-radius-md); color: var(--wc-text-2);
+    border: 0 solid transparent; cursor: pointer; font-family: inherit;
+    transition: transform var(--wc-motion-release) var(--wc-ease-out), background-color var(--wc-motion-release);
+  }
+  .wc-btn:active, .wc-btn.is-pressed {
+    background: var(--wc-surface-2); transform: scale(var(--wc-press-scale));
+    transition-duration: var(--wc-motion-press);
+  }
+  .wc-btn.is-selected {
+    background: var(--wc-accent-dim); color: var(--wc-text-1); font-weight: 700;
+    box-shadow: inset 0 0 0 var(--wc-focus-ring) var(--wc-accent);
+  }
+  .wc-btn.is-selected::before {           /* 색 + 모양: 앞에 10px 점 */
+    content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--wc-accent); flex: none;
+  }
+  .wc-btn.is-selected.is-pressed { box-shadow: inset 0 0 0 var(--wc-focus-ring) var(--wc-accent-strong); }
+  .wc-btn.is-disabled {
+    background: var(--wc-bg); box-shadow: inset 0 0 0 1px var(--wc-border); color: var(--wc-text-disabled); cursor: not-allowed;
+  }
+  .wc-btn.row-btn { justify-content: flex-start; padding: 0 24px; color: var(--wc-text-1); }
+  .wc-btn.row-btn .chev { margin-left: auto; color: var(--wc-text-3); }
+  .wc-btn.plain { color: var(--wc-text-1); }
+  .wc-btn.accent-cta { background: var(--wc-accent-dim); box-shadow: inset 0 0 0 2px var(--wc-accent); color: var(--wc-text-1); }
+  .wc-btn.surface3 { background: var(--wc-surface-3); color: var(--wc-text-1); }
+
+  .scrollthumb { position: absolute; left: 400px; width: 4px; border-radius: var(--wc-radius-pill); background: var(--wc-text-3); }
+  .scrim { position: absolute; inset: 0; background: var(--wc-scrim); }
+  .toast { position: absolute; left: 40px; width: 330px; top: 400px; height: 64px; border-radius: var(--wc-radius-md);
+           background: var(--wc-surface-2); display: flex; align-items: center; justify-content: center; }
+  .banner { position: absolute; left: 16px; top: 414px; width: 378px; height: 72px; border-radius: var(--wc-radius-md);
+            background: var(--wc-disconnected-dim); box-shadow: inset 0 0 0 2px var(--wc-disconnected);
+            display: flex; align-items: center; justify-content: center; }
+  .blink { animation: blink var(--wc-motion-blink) steps(1, end) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ---------- 시뮬레이터 설정 패널 ---------- */
+  .sim-btn { height: 32px; padding: 0 12px; border-radius: var(--sim-radius); border: 1px solid var(--sim-border);
+             background: var(--sim-surface); color: var(--sim-text-1); font: inherit; font-size: 13px; cursor: pointer; }
+  .sim-btn:hover { background: var(--sim-surface-2); }
+  .sim-btn:focus-visible, .seg button:focus-visible, .keyfield:focus-visible, textarea:focus-visible, .tab:focus-visible {
+    outline: 2px solid var(--sim-focus); outline-offset: 2px; }
+  .sim-btn[disabled] { color: var(--sim-text-3); background: var(--sim-surface-2); cursor: not-allowed; }
+
+  .panel { width: 560px; background: var(--sim-surface); border: 1px solid var(--sim-border); box-shadow: var(--sim-shadow);
+           border-radius: var(--sim-radius-lg); overflow: hidden; }
+  .p-head { height: 56px; display: flex; align-items: center; padding: 0 16px; font-size: var(--sim-text-size-lg); font-weight: 700; }
+  .p-head .x { margin-left: auto; width: 40px; height: 40px; border: 0; background: none; color: var(--sim-text-2); font-size: 18px; cursor: pointer; border-radius: var(--sim-radius); }
+  .tabs { height: 44px; display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--sim-border); }
+  .tab { border: 0; background: none; color: var(--sim-text-2); font: inherit; font-family: var(--sim-font-mono); font-size: 13px;
+         padding: 0 12px; cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab[aria-selected="true"] { color: var(--sim-text-1); font-weight: 700; border-bottom-color: var(--sim-focus); }
+  .toolbar { height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 16px; }
+  .toolbar .sp { flex: 1; }
+  .seg { display: inline-flex; border: 1px solid var(--sim-border); border-radius: var(--sim-radius); overflow: hidden; }
+  .seg button { height: 30px; padding: 0 12px; border: 0; background: var(--sim-surface); color: var(--sim-text-2); font: inherit; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .seg button + button { border-left: 1px solid var(--sim-border); }
+  .seg button[aria-pressed="true"] { background: var(--sim-surface-2); color: var(--sim-text-1); font-weight: 700; }
+  .seg .mdot { width: 8px; height: 8px; border-radius: 50%; }
+  .status { height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 16px; font-size: var(--sim-text-size-sm);
+            border-top: 1px solid var(--sim-border); border-bottom: 1px solid var(--sim-border); }
+  .status.ok   { color: var(--sim-log-media); }
+  .status.err  { color: var(--sim-log-dropped); }
+  .status.warn { color: var(--sim-notice-text); background: var(--sim-notice-bg); }
+  .status .badge { margin-left: auto; padding: 0 8px; border-radius: 999px; background: var(--sim-surface-2); color: var(--sim-text-2); }
+  .p-body { padding: 16px; max-height: 720px; overflow: auto; }
+
+  table.km { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.km th { text-align: left; color: var(--sim-text-3); font-weight: 600; font-size: 12px; padding: 0 6px 6px; }
+  table.km td { padding: 4px 6px; height: 48px; vertical-align: top; }
+  .field, .keyfield { width: 100%; height: 36px; border: 1px solid var(--sim-border); border-radius: var(--sim-radius);
+                      background: var(--sim-surface-2); color: var(--sim-text-1); font: inherit; font-size: 13px; padding: 0 8px; }
+  .keyfield { font-family: var(--sim-font-mono); }
+  .keyfield.is-capturing { box-shadow: 0 0 0 2px var(--sim-focus); }
+  .is-error { border: 2px solid var(--sim-log-dropped) !important; }
+  .msg-err  { color: var(--sim-log-dropped); font-size: 12px; margin-top: 2px; }
+  .msg-warn { color: var(--sim-notice-text); font-size: 12px; margin-top: 2px; }
+  .hint { color: var(--sim-text-3); font-size: 12px; }
+
+  .editor { display: flex; border: 1px solid var(--sim-border); border-radius: var(--sim-radius); background: var(--sim-surface-2); overflow: hidden; }
+  .gutter { width: 44px; flex: none; padding: 8px 6px; text-align: right; color: var(--sim-text-3);
+            font: 13px/20px var(--sim-font-mono); white-space: pre; user-select: none; }
+  .gutter .bad { color: var(--sim-log-dropped); }
+  .editor textarea { flex: 1; height: 360px; border: 0; resize: vertical; padding: 8px; background: transparent; color: var(--sim-text-1);
+                     font: 13px/20px var(--sim-font-mono); tab-size: 2; white-space: pre; overflow: auto; }
+  .errlist { margin-top: 8px; max-height: 160px; overflow: auto; border: 1px solid var(--sim-border); border-radius: var(--sim-radius); }
+  .errlist button { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--sim-border);
+                    background: none; color: var(--sim-log-dropped); font: 12px/1.4 var(--sim-font-mono); padding: 8px 10px; cursor: pointer; }
+  .errlist button.warn { color: var(--sim-notice-text); }
+  .errlist .empty { padding: 8px 10px; color: var(--sim-text-3); font-size: 12px; }
+
+  /* 제스처 그래프 */
+  .graph-wrap { border: 1px solid var(--sim-border); border-radius: var(--sim-radius); padding: 8px 0 0; margin-bottom: 16px; }
+  .graph-top { display: flex; align-items: center; gap: 8px; padding: 0 8px 8px; flex-wrap: wrap; }
+  .readout { font-size: 12px; color: var(--sim-text-2); padding: 0 8px 8px; font-variant-numeric: tabular-nums; }
+  svg.graph { display: block; width: 528px; height: 240px; touch-action: none; }
+  .thr-hit { cursor: ns-resize; }
+  .legend { display: flex; gap: 12px; font-size: 12px; color: var(--sim-text-2); padding: 0 8px 8px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 16px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 4px; }
+  .grid-form { display: grid; grid-template-columns: 150px 1fr 88px; gap: 10px 12px; align-items: center; font-size: 13px; }
+  .grid-form input[type=range] { width: 100%; accent-color: var(--sim-focus); }
+  .grid-form input[type=number] { width: 88px; }
+  .grid-form .note { grid-column: 2 / 4; margin-top: -8px; }
+
+  /* 설치 페이지 */
+  .install { max-width: 720px; display: flex; flex-direction: column; gap: var(--sim-gap); }
+  .card { background: var(--sim-surface); border: 1px solid var(--sim-border); border-radius: var(--sim-radius-lg); padding: 24px; }
+  .card h4 { margin: 0 0 8px; font-size: 16px; }
+  .card h4 .n { display: inline-flex; width: 24px; height: 24px; border-radius: 50%; background: var(--sim-surface-2);
+                align-items: center; justify-content: center; font-size: 12px; margin-right: 8px; color: var(--sim-text-2); }
+  .notice { display: flex; gap: 10px; align-items: flex-start; background: var(--sim-notice-bg); color: var(--sim-notice-text);
+            border-radius: var(--sim-radius); padding: 8px 12px; font-size: 13px; min-height: 40px; }
+  .notice svg { width: 16px; height: 16px; flex: none; margin-top: 2px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  pre.cmd { position: relative; margin: 8px 0; background: var(--sim-surface-2); border-radius: var(--sim-radius); padding: 12px 80px 12px 12px;
+            font: 13px/1.5 var(--sim-font-mono); white-space: pre-wrap; word-break: break-all; }
+  pre.cmd button { position: absolute; right: 8px; top: 8px; }
+  .check { display: flex; gap: 10px; align-items: center; min-height: 44px; font-size: 14px; cursor: pointer; }
+  .check input { width: 20px; height: 20px; accent-color: var(--sim-focus); }
+  .ver { display: flex; align-items: center; gap: 10px; height: 56px; border-bottom: 1px solid var(--sim-border); cursor: pointer; }
+  .ver:last-of-type { border-bottom: 0; }
+  .ver input { accent-color: var(--sim-focus); width: 18px; height: 18px; }
+  .ver b { font-family: var(--sim-font-mono); }
+  .ver .tag { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--sim-surface-2); color: var(--sim-text-2); }
+  .ver .d { color: var(--sim-text-3); font-size: 12px; margin-left: auto; }
+  .install-btn { height: 48px; min-width: 200px; padding: 0 24px; border: 0; border-radius: var(--sim-radius);
+                 background: var(--sim-mode-coding); color: var(--sim-surface); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+                 transition: filter var(--wc-motion-press); }
+  :root[data-theme="dark"] .install-btn { color: var(--wc-text-on-accent); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .install-btn { color: var(--wc-text-on-accent); } }
+  .install-btn:active { filter: brightness(.9); }
+  .install-btn:focus-visible { outline: 2px solid var(--sim-focus); outline-offset: 2px; }
+  .install-btn[disabled] { background: var(--sim-surface-2); color: var(--sim-text-3); cursor: not-allowed; }
+  details summary { cursor: pointer; font-weight: 700; }
+  .ok-line { color: var(--sim-text-3); font-size: 12px; }
+
+  /* 음성 카드 (시뮬레이터 왼쪽 열 축소판) */
+  .voicecard { width: 430px; background: var(--sim-surface); border: 1px solid var(--sim-border); border-radius: var(--sim-radius-lg); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .micbtn { height: 44px; border-radius: var(--sim-radius); border: 1px solid var(--sim-border); background: var(--sim-surface-2); color: var(--sim-text-1); font: inherit; font-weight: 700; cursor: pointer; }
+  .log { font: 12px/1.6 var(--sim-font-mono); border: 1px solid var(--sim-border); border-radius: var(--sim-radius); padding: 8px 10px; }
+  .log .sys { color: var(--sim-log-system); } .log .key { color: var(--sim-log-key); }
+
+  .themebar { position: fixed; right: 16px; top: 16px; z-index: 5; }
+  @media (max-width: 640px) { .panel, svg.graph { width: 100%; } }
+</style>
+</head>
+<body>
+<div class="themebar seg" role="group" aria-label="테마">
+  <button type="button" data-theme-set="" aria-pressed="true">OS</button>
+  <button type="button" data-theme-set="light" aria-pressed="false">라이트</button>
+  <button type="button" data-theme-set="dark" aria-pressed="false">다크</button>
+</div>
+
+<main class="page">
+  <h1>설정 · 시계에 설치 목업</h1>
+  <p class="lead">디자인팀 5번. 치수·상태·시간 명세는 <code>design/settings-install.md</code>. 시계 화면 안의 숫자(left/top/width/height)는 410×502 실제 좌표다. 첫 화면의 세그먼트는 눌러 볼 수 있고, 마우스 휠로 스크롤된다.</p>
+
+  <!-- ================================================================
+       1. 시계 설정 화면
+       ================================================================ -->
+  <h2>1. 시계 안 설정 화면</h2>
+  <div class="row" id="watchRow"></div>
+
+  <!-- ================================================================
+       2. 시뮬레이터 설정 패널
+       ================================================================ -->
+  <h2>2. 시뮬레이터 설정 패널 (오른쪽 서랍 560px)</h2>
+  <p class="lead">값을 고치면 300ms 뒤 검증하고, 오류가 0개일 때만 시계 에뮬레이터에 반영한다. 키맵 표의 <code>Ctrll+S</code>는 일부러 넣은 오류 예시다.</p>
+  <div class="row">
+    <section class="panel" aria-label="설정 패널">
+      <div class="p-head">설정 <button class="x" type="button" aria-label="닫기">✕</button></div>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-file="keymap">keymap.json</button>
+        <button class="tab" role="tab" aria-selected="false" data-file="gesture">gesture.json</button>
+      </div>
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="보기">
+          <button type="button" aria-pressed="true" data-view="form">폼</button>
+          <button type="button" aria-pressed="false" data-view="raw">JSON 원문</button>
+        </div>
+        <span class="sp"></span>
+        <button class="sim-btn" type="button" id="btnImport">가져오기</button>
+        <button class="sim-btn" type="button" id="btnExport">내보내기</button>
+        <button class="sim-btn" type="button">기본값으로</button>
+      </div>
+      <div class="status err" id="applyStatus" role="status"></div>
+      <div class="p-body" id="panelBody">
+
+        <!-- keymap 폼 -->
+        <div data-pane="keymap-form">
+          <div class="seg" role="group" aria-label="모드" style="margin-bottom:12px">
+            <button type="button" aria-pressed="false"><span class="mdot" style="background:var(--sim-mode-present)"></span>발표</button>
+            <button type="button" aria-pressed="true"><span class="mdot" style="background:var(--sim-mode-coding)"></span>코딩</button>
+            <button type="button" aria-pressed="false"><span class="mdot" style="background:var(--sim-mode-meeting)"></span>회의</button>
+          </div>
+          <table class="km">
+            <thead><tr><th style="width:140px">기능(타일 라벨)</th><th style="width:150px">Windows</th><th style="width:150px">macOS</th><th></th></tr></thead>
+            <tbody id="kmBody"></tbody>
+          </table>
+          <p class="hint">단축키 칸을 클릭하고 키를 누르면 입력된다. Backspace = 비우기, Esc = 취소. 비운 칸은 시계에서 비활성 타일로 그려진다.</p>
+        </div>
+
+        <!-- gesture 폼 + 그래프 -->
+        <div data-pane="gesture-form" hidden>
+          <div class="graph-wrap">
+            <div class="graph-top">
+              <div class="seg" role="group" aria-label="입력원">
+                <button type="button" aria-pressed="false">마우스 드래그</button>
+                <button type="button" aria-pressed="false">폰 센서</button>
+                <button type="button" aria-pressed="true">녹화 재생</button>
+              </div>
+              <button class="sim-btn" type="button" id="btnPause">일시정지</button>
+              <div class="seg" role="group" aria-label="재생 속도">
+                <button type="button" aria-pressed="false">0.5×</button><button type="button" aria-pressed="true">1×</button><button type="button" aria-pressed="false">2×</button>
+              </div>
+            </div>
+            <div class="readout" id="readout">—</div>
+            <svg class="graph" id="graph" viewBox="0 0 528 240" role="img" aria-label="각속도 파형, 임계값 선, 인식 마커"></svg>
+            <div class="legend">
+              <span><i style="border-color:var(--sim-text-1)"></i>판정 축(roll)</span>
+              <span><i style="border-color:var(--sim-log-key);border-top-style:dashed"></i>임계값 ±(끌어서 변경)</span>
+              <span style="color:var(--sim-log-key)">▲▼ 인식</span>
+              <span style="color:var(--sim-log-system)">○ 무시(쿨다운·느림)</span>
+              <span><i style="border-top:8px solid var(--sim-surface-2);height:8px"></i>쿨다운 구간</span>
+            </div>
+          </div>
+          <div class="grid-form">
+            <label for="gThr">튕김 임계값</label><input id="gThr" type="range" min="100" max="1500" step="10" value="400"><span><input class="field" id="gThrN" type="number" min="100" max="1500" step="10" value="400"> </span>
+            <span></span><span class="hint note">°/s · 그래프 점선과 연동</span>
+            <label for="gWin">시간창</label><input id="gWin" type="range" min="40" max="300" step="10" value="150"><span><input class="field" id="gWinN" type="number" min="40" max="300" step="10" value="150"></span>
+            <span></span><span class="hint note">ms · 이 안에 임계값을 넘었다 돌아와야 튕김</span>
+            <label for="gCool">재인식 금지</label><span class="hint">지시서 기준 800ms. 바꾸면 경고</span><input class="field" id="gCool" type="number" min="200" max="3000" step="50" value="800">
+            <label>에어마우스 감도</label><span class="hint">느림 · 보통 · 빠름 (시계 설정 3단계와 1:1)</span><span></span>
+            <span></span><span style="display:flex;gap:8px;grid-column:2/4"><input class="field" type="number" value="0.6" step="0.1" style="width:88px"><input class="field" type="number" value="1.0" step="0.1" style="width:88px"><input class="field" type="number" value="1.6" step="0.1" style="width:88px"></span>
+            <label>데드존 / 저역 필터</label><span style="display:flex;gap:8px;grid-column:2/4"><input class="field" type="number" value="3" style="width:88px"> <span class="hint" style="align-self:center">°/s</span><input class="field" type="number" value="8" style="width:88px"> <span class="hint" style="align-self:center">Hz</span></span>
+          </div>
+          <p class="hint">필드 이름(flick.thresholdDps 등)은 가정이며 /shared 스키마 담당 결정을 따른다.</p>
+        </div>
+
+        <!-- JSON 원문 -->
+        <div data-pane="raw" hidden>
+          <div class="editor"><div class="gutter" id="gutter"></div><textarea id="raw" spellcheck="false" aria-label="JSON 원문"></textarea></div>
+          <div class="errlist" id="errlist" aria-label="오류 목록"></div>
+        </div>
+      </div>
+    </section>
+
+    <figure class="cell" style="margin:0;max-width:420px">
+      <h3>상태 정리</h3>
+      <div class="status ok" style="border:1px solid var(--sim-border);border-radius:var(--sim-radius)">✓ 적용됨 · 11:42:05 <span class="badge">내보내기 전</span></div>
+      <div class="status err" style="border:1px solid var(--sim-border);border-radius:var(--sim-radius)">● 오류 2개 — 마지막 정상 설정 사용 중</div>
+      <div class="status warn" style="border-radius:var(--sim-radius)">▲ 경고 1개 · 적용됨</div>
+      <figcaption>오류는 반영을 막고, 경고는 반영한다. 색만 쓰지 않고 ✓ ● ▲ 글자를 함께 쓴다. 내보내기는 오류가 있으면 비활성.</figcaption>
+    </figure>
+  </div>
+
+  <!-- ================================================================
+       3. 시계에 설치
+       ================================================================ -->
+  <h2>3. "시계에 설치" 페이지</h2>
+  <div class="install">
+    <div class="notice" id="browserNotice"><svg viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg>
+      <span>이 페이지는 <b>데스크톱 Chrome 또는 Edge</b>에서만 설치할 수 있습니다(Web Serial 필요). Safari·Firefox·모바일은 지원하지 않습니다.</span></div>
+
+    <section class="card">
+      <h4><span class="n">1</span>시계 연결</h4>
+      <p class="muted" style="margin:0">USB-C <b>데이터</b> 케이블로 시계를 PC에 연결합니다. 인식이 안 될 때의 방법은 Waveshare 위키 확인 후 문구를 확정합니다.</p>
+    </section>
+
+    <section class="card">
+      <h4><span class="n">2</span>원래 펌웨어 백업</h4>
+      <p class="muted" style="margin:0">처음 설치라면 지금 시계에 있는 펌웨어(샤오즈)를 먼저 통째로 백업하세요. 되돌릴 수 있는 유일한 방법입니다.</p>
+      <pre class="cmd">python -m esptool --chip esp32s3 --port COM5 read_flash 0 0x1000000 xiaozhi_backup.bin<button class="sim-btn" type="button">복사</button></pre>
+      <label class="check"><input type="checkbox" id="backupOk"> 원래 펌웨어(샤오즈)를 백업했습니다. 또는 이미 손목 컨트롤러 펌웨어가 설치되어 있습니다.</label>
+    </section>
+
+    <section class="card">
+      <h4><span class="n">3</span>버전 선택</h4>
+      <label class="ver"><input type="radio" name="ver" value="v0.3.0" checked><b>v0.3.0</b><span class="tag">최신 · 권장</span><span class="d">2026-10-30 · <a href="#">변경 내역</a></span></label>
+      <label class="ver"><input type="radio" name="ver" value="v0.2.1"><b>v0.2.1</b><span class="d">2026-10-22 · <a href="#">변경 내역</a></span></label>
+      <label class="ver"><input type="radio" name="ver" value="v0.1.0"><b>v0.1.0</b><span class="d">2026-10-16 · <a href="#">변경 내역</a></span></label>
+      <div class="notice" id="oldWarn" hidden style="margin-top:8px"><svg viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg><span>이전 버전입니다. 설정이 초기화되고 PC와 다시 페어링해야 할 수 있습니다.</span></div>
+    </section>
+
+    <section class="card">
+      <h4><span class="n">4</span>설치</h4>
+      <p class="muted" style="margin:0 0 12px">설치 창에서 "장치 지우기"를 고르면 설정과 페어링 정보도 지워집니다.</p>
+      <!-- 실제 구현: <esp-web-install-button manifest="/firmware/v0.3.0/manifest.json"> 의 slot="activate" 로 이 버튼을 넣는다 -->
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <button class="install-btn" id="installBtn" type="button" disabled>시계에 설치</button>
+        <span class="muted" id="installHint">백업 확인을 체크하면 설치할 수 있습니다.</span>
+      </div>
+      <p class="muted" style="margin:12px 0 0">설치 중에는 USB를 뽑지 마세요. 약 1분 걸립니다. <span class="mono" id="manifestUrl">manifest: /firmware/v0.3.0/manifest.json</span></p>
+    </section>
+
+    <section class="card">
+      <details>
+        <summary>원래 펌웨어(샤오즈)로 되돌리기</summary>
+        <ol class="muted" style="padding-left:20px">
+          <li>백업 파일 <code>xiaozhi_backup.bin</code> 위치를 확인합니다.</li>
+          <li>아래 명령으로 다시 씁니다. (이 페이지는 로컬 파일을 직접 올리지 못합니다)</li>
+        </ol>
+        <pre class="cmd">python -m esptool --chip esp32s3 --port COM5 write_flash 0x0 xiaozhi_backup.bin<button class="sim-btn" type="button">복사</button></pre>
+        <p class="muted" style="margin:0">자세한 방법: 저장소 README의 "원래 펌웨어 복원"</p>
+      </details>
+    </section>
+  </div>
+
+  <!-- ================================================================
+       4. 음성 고지
+       ================================================================ -->
+  <h2>4. 음성 시뮬레이션 고지 위치</h2>
+  <p class="lead">시뮬레이터 왼쪽 열, 시계 에뮬레이터 바로 아래 "음성" 카드. 마이크 버튼 위에 상시 표시하며 닫을 수 없다. 시계 화면(.wc-screen) 안에는 넣지 않는다.</p>
+  <div class="row">
+    <div class="voicecard">
+      <h3 style="margin:0">음성</h3>
+      <div class="notice"><svg viewBox="0 0 24 24"><use href="../icons.svg#i-voice"/></svg>
+        <span>음성 시뮬레이션은 브라우저 음성 인식을 씁니다. 흐름 확인용이며, 실제 시계 음성 인식 정확도와는 관계없습니다.</span></div>
+      <button class="micbtn" type="button">듣기 시작 ("키트, 다음")</button>
+      <div class="log">
+        <div><span class="sys">[음성·브라우저]</span> "키트, 다음" → 넘김 <span class="key">→</span></div>
+        <div><span class="sys">[음성·브라우저]</span> "다음" → 무시(호출어 없음)</div>
+      </div>
+    </div>
+    <div class="voicecard">
+      <h3 style="margin:0">Web Speech 미지원 브라우저</h3>
+      <div class="notice"><svg viewBox="0 0 24 24"><use href="../icons.svg#i-voice"/></svg>
+        <span>이 브라우저는 음성 인식을 지원하지 않아 음성 시뮬레이션을 쓸 수 없습니다. Chrome·Edge에서 열어 주세요.</span></div>
+      <button class="micbtn" type="button" disabled style="color:var(--sim-text-3);cursor:not-allowed">듣기 시작</button>
+    </div>
+  </div>
+</main>
+
+<script>
+/* =====================================================================
+   1. 시계 설정 화면 — 좌표는 design/settings-install.md 1.2 표 그대로
+   ===================================================================== */
+const ICON = (id, size, color, extra = '') =>
+  `<svg class="wc-icon" style="width:${size}px;height:${size}px;color:${color}" aria-hidden="true" ${extra}><use href="../icons.svg#${id}"/></svg>`;
+const box = (x, y, w, h) => `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
+
+/* 상태줄 (system.md 3.1) */
+function statusbar({ disconnected = false, locked = false } = {}) {
+  const dim = disconnected ? 'color:var(--wc-text-3)' : 'color:var(--wc-accent)';
+  return `
+  <div class="abs sb-dot" style="${box(40, 23, 10, 10)};${disconnected ? 'background:var(--wc-text-3)' : ''}"></div>
+  <div class="abs t-label" style="${box(58, 14, 100, 28)};${dim}">코딩</div>
+  <div class="abs t-label" style="${box(170, 14, 70, 28)};text-align:center">10:24</div>
+  ${locked ? `<div class="abs" style="${box(244, 14, 28, 28)}">${ICON('i-lock', 28, 'var(--wc-locked)')}</div>` : ''}
+  <div class="abs ${disconnected ? 'blink' : ''}" style="${box(274, 14, 28, 28)}">${
+    disconnected ? ICON('i-ble-off', 28, 'var(--wc-disconnected)') : ICON('i-ble', 28, 'var(--wc-text-2)')}</div>
+  <div class="abs" style="${box(306, 14, 28, 28)}">${ICON('i-battery', 28, 'var(--wc-text-2)')}</div>
+  <div class="abs" style="left:310.7px;top:24.8px;width:9.4px;height:5.8px;background:var(--wc-text-2);border-radius:1px"></div>
+  <div class="abs t-caption c2" style="${box(336, 16, 40, 24)}">72%</div>`;
+}
+
+/* 설정 목록 콘텐츠 (스크롤 0 기준 좌표) */
+function settingsContent({ sens = 1, os = 0, nameState = 'normal', bottomPad = 0 } = {}) {
+  const segS = ['느림', '보통', '빠름'].map((t, i) =>
+    `<button class="wc-btn t-body ${i === sens ? 'is-selected' : ''}" data-group="sens" style="${box(16 + i * 130, 156, 118, 88)}">${t}</button>`).join('');
+  const segO = ['Windows', 'macOS'].map((t, i) =>
+    `<button class="wc-btn t-body ${i === os ? 'is-selected' : ''}" data-group="os" style="${box(16 + i * 195, 336, 183, 88)}">${t}</button>`).join('');
+  const nameDisabled = nameState === 'applying';
+  return `
+  <div class="abs" style="${box(24, 70, 28, 28)}">${ICON('i-gear', 28, 'var(--wc-accent)')}</div>
+  <div class="abs t-heading" style="${box(60, 64, 200, 40)}">설정</div>
+
+  <div class="abs t-label c2" style="${box(24, 120, 362, 28)}">에어마우스 감도</div>
+  ${segS}
+  <div class="abs t-caption c3" style="${box(24, 252, 362, 24)}">포인터 속도 · 바로 적용</div>
+
+  <div class="abs t-label c2" style="${box(24, 300, 362, 28)}">컴퓨터 종류</div>
+  ${segO}
+  <div class="abs t-caption c3" style="${box(24, 432, 362, 24)}">보내는 단축키가 바뀜</div>
+
+  <div class="abs t-label c2" style="${box(24, 480, 362, 28)}">블루투스 이름</div>
+  <button class="wc-btn row-btn t-body ${nameDisabled ? 'is-disabled' : ''}" style="${box(16, 516, 378, 88)}">
+    <span>WristCtrl<span class="t-caption" style="font-family:var(--wc-font-mono);color:${nameDisabled ? 'inherit' : 'var(--wc-text-3)'}">-1A2B</span></span>
+    <span class="chev ${nameDisabled ? 't-caption' : ''}" style="${nameDisabled ? 'color:inherit' : ''}">${nameDisabled ? '적용 중…' : '›'}</span>
+  </button>
+
+  <div class="abs t-label c2" style="${box(24, 628, 362, 28)}">펌웨어</div>
+  <div class="abs t-body" style="${box(24, 664, 362, 32)}">v0.1.0</div>
+  <div class="abs t-caption c3" style="${box(24, 700, 362, 24)};font-family:var(--wc-font-mono)">2026-10-16 · a1b2c3d</div>
+
+  <button class="wc-btn plain t-body" data-close style="${box(16, 752 + bottomPad, 378, 88)}">닫기</button>`;
+}
+
+const MAX_SCROLL = 370; /* 콘텐츠 872 - 화면 502 */
+function thumb(scroll, visible = true) {
+  /* 손잡이 이동 범위 y 72~430 (358px). 손잡이 길이 = 358 × 446/816 ≈ 196 */
+  const len = 196, y = 72 + (358 - len) * (scroll / MAX_SCROLL);
+  return `<div class="scrollthumb" style="top:${y}px;height:${len}px;opacity:${visible ? 1 : 0}"></div>`;
+}
+
+function screen({ scroll = 0, overlay = '', sb = {}, content = {}, showThumb = true, extra = '' }) {
+  return `
+  <div class="wc-screen" data-mode="coding">
+    ${statusbar(sb)}
+    <div class="viewport"><div class="content" style="transform:translateY(${-scroll}px)">${settingsContent(content)}</div></div>
+    ${showThumb ? thumb(scroll) : ''}
+    ${extra}
+    ${overlay}
+  </div>`;
+}
+
+/* 이름 선택 화면 (1.4) */
+function namePicker() {
+  const names = ['WristCtrl', 'Kit Remote', '손목 리모컨'];
+  const rows = names.map((n, i) => {
+    const sel = i === 0;
+    return `<button class="wc-btn row-btn t-body ${sel ? 'is-selected' : ''}" style="${box(16, 108 + i * 92, 378, 88)};${sel ? '' : ''}">
+      <span>${n}<span class="t-caption" style="font-family:var(--wc-font-mono);color:var(--wc-text-3)">-1A2B</span></span>
+      ${sel ? '<span class="chev" style="color:var(--wc-accent)">✓</span>' : ''}</button>`;
+  }).join('');
+  return `
+  <div class="wc-screen" data-mode="coding">
+    ${statusbar()}
+    <div class="abs t-heading" style="${box(24, 64, 362, 40)}">블루투스 이름</div>
+    ${rows}
+    <button class="wc-btn plain t-body" style="${box(16, 392, 378, 88)}">취소</button>
+  </div>`;
+}
+/* 선택 행의 ::before 점과 ✓ 가 겹치지 않도록 행에서는 점을 숨긴다(이름 행은 ✓ 로 모양 표시) */
+const pickerStyle = document.createElement('style');
+pickerStyle.textContent = '.row-btn.is-selected::before{display:none}';
+document.head.appendChild(pickerStyle);
+
+/* 이름 바꾸기 확인 (1.5) */
+const confirmOverlay = `
+  <div class="scrim"></div>
+  <div class="abs" style="${box(16, 120, 378, 300)};background:var(--wc-surface-2);border-radius:var(--wc-radius-lg)"></div>
+  <div class="abs t-heading" style="${box(40, 144, 330, 40)}">이름을 바꿀까요?</div>
+  <div class="abs t-caption c2" style="${box(40, 192, 330, 72)}">연결이 끊기고, PC의 블루투스 설정에서 다시 페어링해야 할 수 있습니다.</div>
+  <button class="wc-btn surface3 t-body" style="${box(32, 316, 171, 88)}">취소</button>
+  <button class="wc-btn accent-cta t-body" style="${box(207, 316, 171, 88)}">바꾸기</button>`;
+
+/* 아래로 스와이프 시트 + 설정 행 제안 (1.1) */
+const sheetProposal = `
+  <div class="wc-screen" data-mode="present">
+    ${statusbar().replace('코딩', '발표')}
+    <div class="abs" style="${box(0, 0, 410, 344)};background:var(--wc-surface-2);border-radius:0 0 var(--wc-radius-lg) var(--wc-radius-lg)"></div>
+    <div class="abs t-label c2" style="${box(40, 14, 330, 28)};text-align:center">쇼 제어</div>
+    <button class="wc-btn t-body" style="${box(28, 104, 171, 120)};flex-direction:column;color:var(--wc-text-1)">${ICON('i-play', 48, 'var(--wc-accent)')}<span>쇼 시작 <span class="t-caption c3">F5</span></span></button>
+    <button class="wc-btn t-body" style="${box(211, 104, 171, 120)};flex-direction:column;color:var(--wc-text-1)">${ICON('i-stop', 48, 'var(--wc-accent)')}<span>쇼 종료 <span class="t-caption c3">Esc</span></span></button>
+    <button class="wc-btn row-btn t-body" style="${box(16, 248, 378, 88)}">${ICON('i-gear', 28, 'var(--wc-text-2)')}<span>설정</span><span class="chev">›</span></button>
+    <div class="abs" style="${box(120, 352, 170, 120)};display:flex;align-items:center;justify-content:center">
+      <span class="t-caption c3">(시트 아래는 발표 화면)</span></div>
+  </div>`;
+
+const cells = [
+  { html: screen({ scroll: 0, content: { sens: 1, os: 0 } }), id: 'live',
+    cap: '<b>A. 기본</b> — 스크롤 0. 감도 "보통", Windows 선택. 선택 = accent-dim 면 + 3px accent 테두리 + 10px 점. 눌러 보기·휠 스크롤 가능.' },
+  { html: screen({ scroll: MAX_SCROLL, content: { sens: 2, os: 1 } }),
+    cap: '<b>B. 스크롤 끝(370px)</b> — 버전 정보는 터치 대상이 아니라 면이 없다. 닫기 378×88. 스크롤 손잡이 x 400, 범위 y 72~430.' },
+  { html: namePicker(),
+    cap: '<b>C. 블루투스 이름 선택</b> — 후보 3개 + MAC 끝 4자리. 행 y 108/200/292, 취소 y 392. 선택은 ✓ + accent-dim 면 + 테두리.' },
+  { html: screen({ scroll: 0, overlay: confirmOverlay, showThumb: false }),
+    cap: '<b>D. 이름 바꾸기 확인</b> — BLE 연결 중일 때만. 덮개 wc-scrim, 카드 16,120,378×300. 등장 200ms(opacity + y 24→0).' },
+  { html: screen({ scroll: 300, sb: { disconnected: true, locked: true }, content: { nameState: 'applying', bottomPad: 88 },
+      extra: `<div class="banner t-body">연결 끊김 · 다시 연결 중</div>` }),
+    cap: '<b>E. 끊김 + 잠금 + 비활성</b> — 상태줄 i-ble-off 1초 점멸, i-lock 보라. 이름 행은 "적용 중…" 비활성. 끊김 배너 고정, 콘텐츠 아래 여백 +88. 설정 항목 자체는 계속 동작.' },
+  { html: sheetProposal,
+    cap: '<b>F. 진입 제안</b> — 아래로 스와이프 시트에 설정 행(16,248,378×88) 추가, 시트 높이 240→344. 시트 담당과 합의 필요.' },
+];
+document.getElementById('watchRow').innerHTML = cells.map(c =>
+  `<figure class="cell" style="margin:0"><div class="bezel" ${c.id ? `id="${c.id}"` : ''}>${c.html}</div><figcaption>${c.cap}</figcaption></figure>`).join('');
+
+/* A 화면: 세그먼트 선택·눌림, 휠 스크롤 */
+(function liveScreen() {
+  const root = document.getElementById('live');
+  const content = root.querySelector('.content');
+  const th = root.querySelector('.scrollthumb');
+  let scroll = 0, hideT;
+  th.style.transition = `opacity var(--wc-motion-base)`;
+  const setScroll = v => {
+    scroll = Math.max(0, Math.min(MAX_SCROLL, v));
+    content.style.transform = `translateY(${-scroll}px)`;
+    const len = 196; th.style.top = (72 + (358 - len) * (scroll / MAX_SCROLL)) + 'px';
+    th.style.opacity = 1; clearTimeout(hideT); hideT = setTimeout(() => th.style.opacity = 0, 800);
+  };
+  root.addEventListener('wheel', e => { e.preventDefault(); setScroll(scroll + e.deltaY * 0.6); }, { passive: false });
+  root.addEventListener('pointerdown', e => { const b = e.target.closest('.wc-btn'); if (b) b.classList.add('is-pressed'); });
+  root.addEventListener('pointerup', e => {
+    root.querySelectorAll('.is-pressed').forEach(b => b.classList.remove('is-pressed'));
+    const b = e.target.closest('.wc-btn[data-group]'); if (!b) return;   /* 손을 뗄 때 선택 */
+    root.querySelectorAll(`.wc-btn[data-group="${b.dataset.group}"]`).forEach(x => x.classList.toggle('is-selected', x === b));
+  });
+  root.addEventListener('pointerleave', () => root.querySelectorAll('.is-pressed').forEach(b => b.classList.remove('is-pressed')));
+  th.style.opacity = 0;
+})();
+
+/* =====================================================================
+   2. 설정 패널 — 탭·보기 전환, 키맵 검증, JSON 원문, 제스처 그래프
+   ===================================================================== */
+const keymap = {
+  version: 1,
+  modes: {
+    coding: {
+      actions: [
+        { id: 'save', label: '저장', win: 'Ctrll+S', mac: 'Cmd+S' },
+        { id: 'palette', label: '명령', win: 'Ctrl+Shift+P', mac: 'Cmd+Shift+P' },
+        { id: 'terminal', label: '터미널', win: 'Ctrl+`', mac: 'Ctrl+`' },
+        { id: 'debug', label: '디버그', win: 'F5', mac: 'F5' },
+        { id: 'comment', label: '주석 토글하기', win: 'Ctrl+/', mac: 'Win+/' },
+        { id: 'undo', label: '취소', win: 'Ctrl+Z', mac: '' }
+      ]
+    }
+  }
+};
+const MODS = ['Ctrl', 'Shift', 'Alt', 'Cmd', 'Win'];
+const KEYS = /^([A-Z0-9]|F([1-9]|1[0-9]|2[0-4])|Esc|Enter|Space|Tab|Backspace|Delete|Home|End|PageUp|PageDown|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|[`\/\\\-=\[\];',.])$/;
+
+function checkKey(s, os) {
+  if (s === '') return null;                                   /* 빈 칸 = 비활성 타일(오류 아님) */
+  const parts = s.split('+'); const key = parts.pop(); const seen = new Set();
+  for (const m of parts) {
+    if (!MODS.includes(m)) return { lv: 'err', msg: `알 수 없는 키 이름 "${m}"` };
+    if (seen.has(m)) return { lv: 'err', msg: `수식키 중복 "${m}"` };
+    if (os === 'mac' && m === 'Win') return { lv: 'err', msg: 'macOS 칸에 Win 사용 불가 (Cmd)' };
+    seen.add(m);
+  }
+  if (MODS.includes(key)) return { lv: 'err', msg: '수식키만 있는 조합' };
+  if (!KEYS.test(key)) return { lv: 'err', msg: `알 수 없는 키 이름 "${key}"` };
+  return null;
+}
+function validate(obj) {
+  const out = [];
+  const acts = obj?.modes?.coding?.actions;
+  if (!Array.isArray(acts)) { out.push({ lv: 'err', path: 'modes.coding.actions', msg: '필수 필드 누락' }); return out; }
+  acts.forEach((a, i) => {
+    ['win', 'mac'].forEach(os => { const r = checkKey(a[os] ?? '', os); if (r) out.push({ ...r, path: `actions[${i}].${os}`, row: i, col: os }); });
+    if ((a.label || '').length > 5) out.push({ lv: 'warn', path: `actions[${i}].label`, row: i, col: 'label', msg: '라벨 5글자 초과 — 타일 폭을 넘을 수 있음' });
+  });
+  return out;
+}
+
+const kmBody = document.getElementById('kmBody');
+function renderForm() {
+  const issues = validate(keymap);
+  kmBody.innerHTML = keymap.modes.coding.actions.map((a, i) => {
+    const f = col => issues.find(x => x.row === i && x.col === col);
+    const cellHtml = (col, cls) => {
+      const is = f(col);
+      return `<td><input class="${cls} ${is?.lv === 'err' ? 'is-error' : ''}" data-row="${i}" data-col="${col}" value="${(a[col] ?? '').replace(/"/g, '&quot;')}" ${cls === 'keyfield' ? 'placeholder="(비움)"' : ''}>
+        ${is ? `<div class="${is.lv === 'err' ? 'msg-err' : 'msg-warn'}">${is.lv === 'err' ? '●' : '▲'} ${is.msg}</div>` : ''}
+        ${col !== 'label' && (a[col] ?? '') === '' ? '<div class="hint">비어 있음 → 시계에서 비활성</div>' : ''}</td>`;
+    };
+    const row = issues.filter(x => x.row === i);
+    return `<tr>${cellHtml('label', 'field')}${cellHtml('win', 'keyfield')}${cellHtml('mac', 'keyfield')}
+      <td style="padding-top:14px">${row.some(x => x.lv === 'err') ? '<span style="color:var(--sim-log-dropped)">●</span>' : row.length ? '<span style="color:var(--sim-notice-text)">▲</span>' : ''}</td></tr>`;
+  }).join('');
+  setStatus(issues);
+}
+let lastApplied = '11:42:05';
+function setStatus(issues) {
+  const st = document.getElementById('applyStatus');
+  const errs = issues.filter(x => x.lv === 'err').length, warns = issues.length - errs;
+  const t = new Date().toTimeString().slice(0, 8);
+  st.className = 'status ' + (errs ? 'err' : warns ? 'warn' : 'ok');
+  if (!errs) lastApplied = t;
+  st.innerHTML = errs ? `● 오류 ${errs}개 — 마지막 정상 설정 사용 중` : warns ? `▲ 경고 ${warns}개 · 적용됨 ${t}` : `✓ 적용됨 · ${t}`;
+  st.innerHTML += '<span class="badge">내보내기 전</span>';
+  document.getElementById('btnExport').disabled = !!errs;
+  document.getElementById('btnExport').title = errs ? '오류를 고친 뒤 내보낼 수 있습니다' : '';
+}
+
+/* 입력: 300ms 디바운스 뒤 검증·반영 */
+let deb;
+kmBody.addEventListener('input', e => {
+  const el = e.target; keymap.modes.coding.actions[el.dataset.row][el.dataset.col] = el.value;
+  clearTimeout(deb); deb = setTimeout(() => { const f = document.activeElement?.dataset; renderForm(); refocus(f); }, 300);
+});
+function refocus(f) { if (!f || f.row == null) return; const el = kmBody.querySelector(`[data-row="${f.row}"][data-col="${f.col}"]`); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }
+
+/* 단축키 칸: 키 조합 잡기 */
+kmBody.addEventListener('focusin', e => { if (e.target.classList.contains('keyfield')) e.target.classList.add('is-capturing'); });
+kmBody.addEventListener('focusout', e => e.target.classList.remove('is-capturing'));
+kmBody.addEventListener('keydown', e => {
+  const el = e.target; if (!el.classList.contains('keyfield')) return;
+  if (e.key === 'Tab') return;
+  e.preventDefault();
+  if (e.key === 'Escape') { el.blur(); return; }
+  if (e.key === 'Backspace' && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) { el.value = ''; }
+  else {
+    if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+    const isMac = el.dataset.col === 'mac';
+    const mods = [];
+    if (e.ctrlKey) mods.push('Ctrl'); if (e.metaKey) mods.push(isMac ? 'Cmd' : 'Win'); if (e.shiftKey) mods.push('Shift'); if (e.altKey) mods.push('Alt');
+    const map = { Escape: 'Esc', ' ': 'Space', Backquote: '`' };
+    let k = e.code === 'Backquote' ? '`' : map[e.key] || (e.key.length === 1 ? e.key.toUpperCase() : e.key);
+    el.value = [...mods, k].join('+');
+  }
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+});
+
+/* JSON 원문 */
+const raw = document.getElementById('raw'), gutter = document.getElementById('gutter'), errlist = document.getElementById('errlist');
+function lineOf(text, needle) { const i = text.indexOf(needle); return i < 0 ? 1 : text.slice(0, i).split('\n').length; }
+function checkRaw() {
+  const text = raw.value; const lines = text.split('\n').length; const bad = new Map();
+  let items = [];
+  try {
+    const obj = JSON.parse(text);
+    items = validate(obj).map(x => {
+      const v = obj.modes.coding.actions[x.row]?.[x.col];
+      const ln = lineOf(text, `"${x.col}": ${JSON.stringify(v)}`);
+      return { ...x, ln, colN: 7 };
+    });
+  } catch (err) {
+    const m = /position (\d+)/.exec(err.message); const pos = m ? +m[1] : text.length;
+    const before = text.slice(0, pos).split('\n');
+    items = [{ lv: 'err', ln: before.length, colN: before.at(-1).length + 1, msg: 'JSON 문법 오류 — ' + err.message.replace(/ in JSON.*$/, '') }];
+  }
+  items.forEach(x => bad.set(x.ln, x.lv));
+  gutter.innerHTML = Array.from({ length: lines }, (_, i) => bad.has(i + 1) ? `<span class="bad">●${i + 1}</span>` : `${i + 1}`).join('\n');
+  errlist.innerHTML = items.length ? items.map(x =>
+    `<button class="${x.lv === 'warn' ? 'warn' : ''}" data-ln="${x.ln}">${x.lv === 'err' ? '●' : '▲'} 줄 ${x.ln}:${x.colN} · ${x.msg}</button>`).join('')
+    : '<div class="empty">✓ 오류 없음</div>';
+  setStatus(items);
+}
+raw.addEventListener('input', () => { clearTimeout(deb); deb = setTimeout(checkRaw, 300); });
+raw.addEventListener('scroll', () => gutter.scrollTop = raw.scrollTop);
+raw.addEventListener('keydown', e => { if (e.key === 'Tab') { e.preventDefault(); raw.setRangeText('  ', raw.selectionStart, raw.selectionEnd, 'end'); } });
+errlist.addEventListener('click', e => {
+  const b = e.target.closest('[data-ln]'); if (!b) return;
+  const ln = +b.dataset.ln; const idx = raw.value.split('\n').slice(0, ln - 1).join('\n').length + (ln > 1 ? 1 : 0);
+  raw.focus(); raw.setSelectionRange(idx, idx); raw.scrollTop = (ln - 3) * 20;
+});
+
+/* 탭·보기 전환 */
+let file = 'keymap', view = 'form';
+function showPane() {
+  document.querySelectorAll('[data-pane]').forEach(p => p.hidden = true);
+  if (view === 'raw') {
+    document.querySelector('[data-pane="raw"]').hidden = false;
+    raw.value = file === 'keymap' ? JSON.stringify(keymap, null, 2) + '\n'
+      : JSON.stringify({ version: 1, flick: { thresholdDps: G.thr, windowMs: G.win, cooldownMs: G.cool, axis: 'roll' }, airMouse: { gain: [0.6, 1.0, 1.6], deadzoneDps: 3, lowpassHz: 8 } }, null, 2) + '\n';
+    file === 'keymap' ? checkRaw() : (errlist.innerHTML = '<div class="empty">✓ 오류 없음</div>', gutter.textContent = raw.value.split('\n').map((_, i) => i + 1).join('\n'));
+  } else document.querySelector(`[data-pane="${file}-form"]`).hidden = false;
+  if (view === 'form' && file === 'keymap') renderForm();
+  if (view === 'form' && file === 'gesture') setStatus([]);   /* 적용 상태줄은 파일별 */
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t)); file = t.dataset.file; showPane();
+}));
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
+  if (view === 'raw' && b.dataset.view === 'form' && file === 'keymap') {
+    try { const o = JSON.parse(raw.value); Object.assign(keymap, o); }
+    catch { alert('JSON 오류를 먼저 고치세요.'); return; }
+  }
+  document.querySelectorAll('[data-view]').forEach(x => x.setAttribute('aria-pressed', x === b)); view = b.dataset.view; showPane();
+}));
+/* 세그먼트 공통 토글(모양만) */
+document.querySelectorAll('.seg:not(.themebar)').forEach(s => s.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.dataset.view) return;
+  s.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+}));
+
+/* ---------- 제스처 그래프 ---------- */
+const G = { thr: 400, win: 150, cool: 800, paused: false };
+const W = 528, H = 240, PX0 = 48, PX1 = 520, PY0 = 16, PY1 = 208, RATE = 100, SPAN = 5;  /* 5초, 100Hz */
+const N = RATE * SPAN;
+const buf = new Float32Array(N); let head = 0, tAbs = 0;
+const events = [];   /* {t, kind:'next'|'prev'|'cool'|'slow'} */
+let cand = null, lastHit = -1e9, stats = { hit: 0, miss: 0 };
+
+/* 녹화 재생 흉내: 잡음 + 가끔 튕김(짧고 강함) + 천천히 돌리기(길고 약간 강함) */
+let script = [];
+function synth(t) {
+  if (!script.length || script[0].end < t) {
+    const kinds = ['flick', 'flick', 'flick', 'slow', 'double'];
+    const k = kinds[Math.floor(Math.random() * kinds.length)], s = t + 0.9 + Math.random() * 1.5, sign = Math.random() < .5 ? 1 : -1;
+    if (k === 'flick') script.push({ s, w: .05, a: sign * (520 + Math.random() * 380), end: s + .3 });
+    if (k === 'slow') script.push({ s, w: .28, a: sign * (430 + Math.random() * 150), end: s + .9 });
+    if (k === 'double') { script.push({ s, w: .05, a: sign * 700, end: s + .3 }); script.push({ s: s + .45, w: .05, a: sign * 650, end: s + .8 }); }
+    script = script.filter(x => x.end >= t);
+  }
+  let v = (Math.random() - .5) * 20 + Math.sin(t * 2.1) * 20;
+  for (const p of script) v += p.a * Math.exp(-((t - p.s) ** 2) / (2 * p.w * p.w));
+  return v;
+}
+/* 판정(목업용 단순 구현 — 실제 판정은 공용 TS 모듈을 호출) */
+function judge(v, t) {
+  /* 잡음으로 임계값 근처에서 들락날락하는 것을 막으려고 히스테리시스(70%)를 둔다 */
+  const over = Math.abs(v) >= G.thr;
+  if (over && !cand) cand = { t0: t, tLast: t, sign: Math.sign(v) };
+  if (cand && over) cand.tLast = t;
+  if (cand && Math.abs(v) < G.thr * 0.7) {
+    const dur = (cand.tLast - cand.t0) * 1000;   /* 임계값 위에 머문 시간 */
+    if (dur > G.win) { events.push({ t: cand.t0, kind: 'slow', sign: cand.sign }); stats.miss++; }
+    else if ((cand.t0 - lastHit) * 1000 < G.cool) { events.push({ t: cand.t0, kind: 'cool', sign: cand.sign }); stats.miss++; }
+    else { events.push({ t: cand.t0, kind: cand.sign > 0 ? 'next' : 'prev', sign: cand.sign }); lastHit = cand.t0; stats.hit++; }
+    cand = null;
+  }
+}
+const svg = document.getElementById('graph');
+const range = () => Math.max(G.thr * 1.5, 600);
+const yOf = v => PY0 + (PY1 - PY0) * (0.5 - v / (2 * range()));
+const xOf = t => PX1 - (tAbs - t) / SPAN * (PX1 - PX0);
+function draw() {
+  const r = range(); let s = '';
+  /* 쿨다운 띠 */
+  for (const e of events) if (e.kind === 'next' || e.kind === 'prev') {
+    const x0 = Math.max(PX0, xOf(e.t)), x1 = Math.min(PX1, xOf(e.t + G.cool / 1000));
+    if (x1 > PX0) s += `<rect x="${x0}" y="${PY0}" width="${x1 - x0}" height="${PY1 - PY0}" fill="var(--sim-surface-2)"/>`;
+  }
+  /* 축 글자 */
+  for (const v of [r, r / 2, 0, -r / 2, -r]) s += `<text x="${PX0 - 6}" y="${yOf(v) + 4}" font-size="11" text-anchor="end" fill="var(--sim-text-3)">${Math.round(v)}</text>`;
+  for (let k = 0; k <= SPAN; k++) { const x = PX0 + k * (PX1 - PX0) / SPAN; s += `<text x="${x}" y="${PY1 + 18}" font-size="11" text-anchor="middle" fill="var(--sim-text-3)">${k === SPAN ? '지금' : `-${SPAN - k}s`}</text>`; }
+  s += `<text x="4" y="${PY0 - 4}" font-size="11" fill="var(--sim-text-3)">°/s</text>`;
+  s += `<line x1="${PX0}" x2="${PX1}" y1="${yOf(0)}" y2="${yOf(0)}" stroke="var(--sim-border)"/>`;
+  /* 파형 */
+  let d = '';
+  for (let i = 0; i < N; i++) { const v = buf[(head + i) % N]; d += (i ? 'L' : 'M') + (PX0 + i * (PX1 - PX0) / (N - 1)).toFixed(1) + ' ' + yOf(v).toFixed(1); }
+  s += `<path d="${d}" fill="none" stroke="var(--sim-text-1)" stroke-width="2" stroke-linejoin="round"/>`;
+  /* 시간창 괄호 (진행 중 후보) */
+  if (cand) { const x0 = xOf(cand.t0), x1 = xOf(cand.t0 + G.win / 1000), y = cand.sign > 0 ? PY0 + 4 : PY1 - 4, dy = cand.sign > 0 ? 6 : -6;
+    s += `<path d="M${x0} ${y + dy}V${y}H${x1}V${y + dy}" fill="none" stroke="var(--sim-text-2)"/>`; }
+  /* 임계값 ± */
+  for (const sg of [1, -1]) {
+    const y = yOf(sg * G.thr);
+    s += `<line x1="${PX0}" x2="${PX1}" y1="${y}" y2="${y}" stroke="var(--sim-log-key)" stroke-width="1.5" stroke-dasharray="6 4"/>`;
+    s += `<line class="thr-hit" data-sign="${sg}" x1="${PX0}" x2="${PX1}" y1="${y}" y2="${y}" stroke="transparent" stroke-width="12" tabindex="0" role="slider" aria-label="임계값" aria-valuenow="${G.thr}"/>`;
+    s += `<text x="${PX1 - 2}" y="${y + (sg > 0 ? -5 : 13)}" font-size="12" text-anchor="end" fill="var(--sim-log-key)">${sg > 0 ? '' : '-'}${G.thr}°/s</text>`;
+  }
+  /* 마커 */
+  for (const e of events) {
+    const x = xOf(e.t); if (x < PX0) continue;
+    const up = e.sign > 0, y = up ? yOf(G.thr) - 14 : yOf(-G.thr) + 14;
+    if (e.kind === 'next' || e.kind === 'prev') {
+      s += up ? `<path d="M${x - 6} ${y + 4}L${x} ${y - 6}L${x + 6} ${y + 4}Z" fill="var(--sim-log-key)"/>` : `<path d="M${x - 6} ${y - 4}L${x} ${y + 6}L${x + 6} ${y - 4}Z" fill="var(--sim-log-key)"/>`;
+      s += `<text x="${x + 9}" y="${y + 4}" font-size="11" fill="var(--sim-log-key)">${up ? '다음 →' : '← 이전'}</text>`;
+    } else {
+      s += `<circle cx="${x}" cy="${y}" r="5" fill="none" stroke="var(--sim-log-system)" stroke-width="1.5"/>`;
+      s += `<text x="${x + 9}" y="${y + 4}" font-size="11" fill="var(--sim-log-system)">${e.kind === 'cool' ? '쿨다운' : '느림'}</text>`;
+    }
+  }
+  svg.innerHTML = s;
+  const last = events.filter(e => e.kind === 'next' || e.kind === 'prev').at(-1);
+  document.getElementById('readout').textContent =
+    `현재 ${Math.round(Math.abs(buf[(head + N - 1) % N]))}°/s · 마지막 인식 ${last ? (tAbs - last.t).toFixed(1) + '초 전' : '—'} · 인식 ${stats.hit} / 무시 ${stats.miss}`;
+}
+let prev = performance.now(), acc = 0;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function tick(now) {
+  if (!G.paused) {
+    acc += Math.min(0.25, (now - prev) / 1000);
+    while (acc >= 1 / RATE) { acc -= 1 / RATE; tAbs += 1 / RATE; const v = synth(tAbs); buf[head] = v; head = (head + 1) % N; judge(v, tAbs); }
+    while (events.length && events[0].t < tAbs - SPAN - 1) events.shift();
+  }
+  prev = now;
+  if (!document.querySelector('[data-pane="gesture-form"]').hidden) draw();
+  reduced ? setTimeout(() => requestAnimationFrame(tick), 100) : requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+document.getElementById('btnPause').addEventListener('click', e => { G.paused = !G.paused; e.target.textContent = G.paused ? '재생' : '일시정지'; draw(); });
+
+/* 임계값 끌기 ↔ 슬라이더 양방향 */
+const thrR = document.getElementById('gThr'), thrN = document.getElementById('gThrN');
+function setThr(v) { G.thr = Math.round(Math.max(100, Math.min(1500, v)) / 10) * 10; thrR.value = thrN.value = G.thr; draw(); }
+thrR.addEventListener('input', () => setThr(+thrR.value)); thrN.addEventListener('change', () => setThr(+thrN.value));
+const winR = document.getElementById('gWin'), winN = document.getElementById('gWinN');
+winR.addEventListener('input', () => { G.win = winN.value = +winR.value; }); winN.addEventListener('change', () => { G.win = winR.value = +winN.value; });
+const cool = document.getElementById('gCool');
+cool.addEventListener('change', () => { G.cool = +cool.value; cool.classList.toggle('is-error', false);
+  const st = document.getElementById('applyStatus'); if (G.cool !== 800) { st.className = 'status warn'; st.innerHTML = `▲ 경고 1개 · 재인식 금지 ${G.cool}ms (지시서 기준 800ms) · 적용됨<span class="badge">내보내기 전</span>`; } else setStatus([]); });
+let drag = null;
+svg.addEventListener('pointerdown', e => { const h = e.target.closest('.thr-hit'); if (!h) return; drag = +h.dataset.sign; svg.setPointerCapture(e.pointerId); });
+svg.addEventListener('pointermove', e => {
+  if (!drag) return; const r = svg.getBoundingClientRect(); const y = (e.clientY - r.top) * (H / r.height);
+  const v = (0.5 - (y - PY0) / (PY1 - PY0)) * 2 * range(); setThr(Math.abs(v));
+});
+svg.addEventListener('pointerup', () => drag = null);
+svg.addEventListener('keydown', e => { if (!e.target.closest('.thr-hit')) return;
+  if (e.key === 'ArrowUp') { e.preventDefault(); setThr(G.thr + 10); } if (e.key === 'ArrowDown') { e.preventDefault(); setThr(G.thr - 10); } });
+
+/* 가져오기·내보내기(목업: 동작 설명만) */
+document.getElementById('btnExport').addEventListener('click', () => alert('keymap.json 내려받기 (들여쓰기 2칸, 키 순서 고정, 끝 줄바꿈 1개)\n\n저장소 /shared/keymap.json 에 덮어쓰고 커밋하면 펌웨어 빌드에 반영됩니다.'));
+document.getElementById('btnImport').addEventListener('click', () => alert('파일 선택 또는 끌어다 놓기 → 검증 → "변경 12곳 · 오류 0개 — 가져올까요?" 확인 후 반영'));
+
+renderForm();
+
+/* =====================================================================
+   3. 설치 페이지 — 브라우저 확인, 백업 체크, 버전 선택
+   ===================================================================== */
+const hasSerial = 'serial' in navigator;
+const bn = document.getElementById('browserNotice');
+if (hasSerial) { bn.outerHTML = '<p class="ok-line">✓ Chrome·Edge 확인됨 (Web Serial 사용 가능)</p>'; }
+const backupOk = document.getElementById('backupOk'), installBtn = document.getElementById('installBtn'), hint = document.getElementById('installHint');
+function syncInstall() {
+  installBtn.disabled = !(backupOk.checked && hasSerial);
+  hint.textContent = !hasSerial ? '이 브라우저에서는 설치할 수 없습니다.' : backupOk.checked ? '' : '백업 확인을 체크하면 설치할 수 있습니다.';
+}
+backupOk.addEventListener('change', syncInstall); syncInstall();
+document.querySelectorAll('input[name=ver]').forEach(r => r.addEventListener('change', () => {
+  document.getElementById('oldWarn').hidden = r.value === 'v0.3.0';
+  document.getElementById('manifestUrl').textContent = `manifest: /firmware/${r.value}/manifest.json`;
+}));
+installBtn.addEventListener('click', () => alert('목업입니다. 실제 페이지에서는 ESP Web Tools 설치 창이 열립니다.'));
+document.querySelectorAll('pre.cmd button').forEach(b => b.addEventListener('click', () => {
+  navigator.clipboard?.writeText(b.parentElement.firstChild.textContent); b.textContent = '복사됨'; setTimeout(() => b.textContent = '복사', 1600);
+}));
+
+/* 테마 전환 (페이지 바깥 UI 확인용) */
+document.querySelectorAll('[data-theme-set]').forEach(b => b.addEventListener('click', () => {
+  const v = b.dataset.themeSet; v ? document.documentElement.dataset.theme = v : delete document.documentElement.dataset.theme;
+  document.querySelectorAll('[data-theme-set]').forEach(x => x.setAttribute('aria-pressed', x === b));
+}));
+</script>
+</body>
+</html>

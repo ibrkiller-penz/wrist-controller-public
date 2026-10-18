@@ -1,0 +1,916 @@
+{
+  "$schema": "./schema/keymap.schema.json",
+  "$comment": "손목 컨트롤러 키맵 — 시뮬레이션(sim)과 펌웨어(tools/로 C 헤더 생성)가 함께 쓰는 유일한 키 배치 원본. 키 이름은 hid-usage.json 의 keys, 수정자는 ctrl/shift/alt/gui(mac Cmd=gui, Option=alt). 값이 null 이면 그 OS 에서 해당 동작이 없어 시계 타일이 비활성으로 그려진다. 근거: docs/research/shortcuts.md (2026-10-16 검증). 동작의 win/mac/winAlt/macAlt 는 키 조합 또는 매크로 {steps:[chord|wait|text|consumer]}(docs/research/launcher.md 3장). 실행 모드는 actions 0~5 = 1쪽, 6~11 = 2쪽. winAlt/macAlt = 타일 길게 누르기.",
+  "version": 1,
+  "settings": {
+    "deviceName": "손목 컨트롤러",
+    "deviceNameMaxBytes": 29,
+    "os": "win",
+    "mode": "clock",
+    "sensitivity": 1,
+    "primaryButton": "boot"
+  },
+  "modeOrder": [
+    "clock",
+    "present",
+    "launch",
+    "meeting"
+  ],
+  "modes": {
+    "clock": {
+      "name": "시계",
+      "defaultApp": "clock",
+      "appOrder": [
+        "clock"
+      ],
+      "apps": {
+        "clock": {
+          "name": "Clock",
+          "actions": []
+        }
+      }
+    },
+    "present": {
+      "name": "발표",
+      "defaultApp": "powerpoint",
+      "appOrder": [
+        "powerpoint",
+        "slides"
+      ],
+      "apps": {
+        "powerpoint": {
+          "name": "PowerPoint",
+          "source": "https://support.microsoft.com/en-us/office/use-keyboard-shortcuts-to-deliver-powerpoint-presentations-1524ffce-bd2a-45f4-9a7f-f18b992b93a0",
+          "actions": [
+            {
+              "id": "next",
+              "label": "다음",
+              "icon": null,
+              "win": {
+                "mods": [],
+                "key": "RIGHT"
+              },
+              "mac": {
+                "mods": [],
+                "key": "RIGHT"
+              }
+            },
+            {
+              "id": "prev",
+              "label": "이전",
+              "icon": null,
+              "win": {
+                "mods": [],
+                "key": "LEFT"
+              },
+              "mac": {
+                "mods": [],
+                "key": "LEFT"
+              }
+            },
+            {
+              "id": "blackout",
+              "label": "암전",
+              "icon": null,
+              "win": {
+                "mods": [],
+                "key": "PERIOD"
+              },
+              "mac": {
+                "mods": [],
+                "key": "PERIOD"
+              },
+              "note": "마침표(.) — PowerPoint·Google Slides 공통 검은 화면 토글. B 는 한글 입력 상태에서 'ㅠ' 로 먹혀 암전이 안 됐다(2026-10-18 실기, docs/research/shortcuts.md 4장)"
+            },
+            {
+              "id": "showStart",
+              "label": "쇼 시작",
+              "icon": "i-play",
+              "win": {
+                "mods": [],
+                "key": "F5"
+              },
+              "mac": {
+                "mods": [
+                  "gui",
+                  "shift"
+                ],
+                "key": "ENTER"
+              },
+              "note": "처음부터 시작. mac 은 Cmd+Shift+Return"
+            },
+            {
+              "id": "showEnd",
+              "label": "쇼 종료",
+              "icon": "i-stop",
+              "win": {
+                "mods": [],
+                "key": "ESCAPE"
+              },
+              "mac": {
+                "mods": [],
+                "key": "ESCAPE"
+              }
+            }
+          ]
+        },
+        "slides": {
+          "name": "Google Slides",
+          "source": "https://support.google.com/docs/answer/1696717?hl=en",
+          "actions": [
+            {
+              "id": "next",
+              "label": "다음",
+              "icon": null,
+              "win": {
+                "mods": [],
+                "key": "RIGHT"
+              },
+              "mac": {
+                "mods": [],
+                "key": "RIGHT"
+              }
+            },
+            {
+              "id": "prev",
+              "label": "이전",
+              "icon": null,
+              "win": {
+                "mods": [],
+                "key": "LEFT"
+              },
+              "mac": {
+                "mods": [],
+                "key": "LEFT"
+              }
+            },
+            {
+              "id": "blackout",
+              "label": "암전",
+              "icon": null,
+              "win": {
+                "mods": [],
+                "key": "PERIOD"
+              },
+              "mac": {
+                "mods": [],
+                "key": "PERIOD"
+              },
+              "note": "마침표(.) — PowerPoint·Google Slides 공통 검은 화면 토글. B 는 한글 입력 상태에서 'ㅠ' 로 먹혀 암전이 안 됐다(2026-10-18 실기, docs/research/shortcuts.md 4장)"
+            },
+            {
+              "id": "showStart",
+              "label": "쇼 시작",
+              "icon": "i-play",
+              "win": {
+                "mods": [
+                  "ctrl"
+                ],
+                "key": "F5"
+              },
+              "mac": {
+                "mods": [
+                  "gui"
+                ],
+                "key": "ENTER"
+              },
+              "note": "현재 슬라이드부터 발표. Chrome 포커스가 Slides 밖이면 Ctrl+F5 = 주소창 이동"
+            },
+            {
+              "id": "showEnd",
+              "label": "쇼 종료",
+              "icon": "i-stop",
+              "win": {
+                "mods": [],
+                "key": "ESCAPE"
+              },
+              "mac": {
+                "mods": [],
+                "key": "ESCAPE"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "launch": {
+      "name": "실행",
+      "defaultApp": "launcher",
+      "appOrder": [
+        "launcher"
+      ],
+      "apps": {
+        "launcher": {
+          "name": "Launcher",
+          "source": "docs/research/launcher.md (2026-10-17 조사원 10명 종합)",
+          "actions": [
+            {
+              "id": "claude",
+              "label": "Claude",
+              "icon": null,
+              "win": {
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "1"
+              },
+              "mac": {
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "SPACE"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "Claude"
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              },
+              "winAlt": null,
+              "note": "Ctrl+Alt+1 = PC 시작 메뉴 '손목 컨트롤러' 폴더의 바로 가기 키(설치 페이지 'PC 바로 가기 키 설정' 스크립트). 작업표시줄 순서·한/영과 무관. 길게 = 없음(App Paths 실행 이름 없음)"
+            },
+            {
+              "id": "kakao",
+              "label": "카카오톡",
+              "icon": null,
+              "win": {
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "2"
+              },
+              "mac": {
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "SPACE"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "KakaoTalk"
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              },
+              "winAlt": null,
+              "note": "Ctrl+Alt+2 = PC 시작 메뉴 '손목 컨트롤러' 폴더의 바로 가기 키(설치 페이지 'PC 바로 가기 키 설정' 스크립트). 작업표시줄 순서·한/영과 무관. 길게 = 없음(App Paths 실행 이름 없음)"
+            },
+            {
+              "id": "chrome",
+              "label": "크롬",
+              "icon": null,
+              "win": {
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "3"
+              },
+              "mac": {
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "SPACE"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "Google Chrome"
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              },
+              "winAlt": {
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "R"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "chrome"
+                  },
+                  {
+                    "wait": 50
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              },
+              "note": "Ctrl+Alt+3 = PC 시작 메뉴 '손목 컨트롤러' 폴더의 바로 가기 키(설치 페이지 'PC 바로 가기 키 설정' 스크립트). 작업표시줄 순서·한/영과 무관. 길게 = Win+R 실행 이름"
+            },
+            {
+              "id": "ppt",
+              "label": "파워포인트",
+              "icon": null,
+              "win": {
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "4"
+              },
+              "mac": {
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "SPACE"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "PowerPoint"
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              },
+              "winAlt": {
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "R"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "powerpnt"
+                  },
+                  {
+                    "wait": 50
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              },
+              "note": "Ctrl+Alt+4 = PC 시작 메뉴 '손목 컨트롤러' 폴더의 바로 가기 키(설치 페이지 'PC 바로 가기 키 설정' 스크립트). 작업표시줄 순서·한/영과 무관. 길게 = Win+R 실행 이름"
+            },
+            {
+              "id": "excel",
+              "label": "엑셀",
+              "icon": null,
+              "win": {
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "5"
+              },
+              "mac": {
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "SPACE"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "Excel"
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              },
+              "winAlt": {
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "R"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "excel"
+                  },
+                  {
+                    "wait": 50
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              },
+              "note": "Ctrl+Alt+5 = PC 시작 메뉴 '손목 컨트롤러' 폴더의 바로 가기 키(설치 페이지 'PC 바로 가기 키 설정' 스크립트). 작업표시줄 순서·한/영과 무관. 길게 = Win+R 실행 이름"
+            },
+            {
+              "id": "hwp",
+              "label": "한글",
+              "icon": null,
+              "win": {
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "6"
+              },
+              "mac": {
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "SPACE"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "Hancom Office HWP"
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              },
+              "winAlt": null,
+              "note": "Ctrl+Alt+6 = PC 시작 메뉴 '손목 컨트롤러' 폴더의 바로 가기 키(설치 페이지 'PC 바로 가기 키 설정' 스크립트). 작업표시줄 순서·한/영과 무관. 길게 = 없음(App Paths 실행 이름 없음)"
+            },
+            {
+              "id": "capture",
+              "label": "캡처",
+              "icon": null,
+              "win": {
+                "mods": [
+                  "gui",
+                  "shift"
+                ],
+                "key": "S"
+              },
+              "mac": {
+                "mods": [
+                  "gui",
+                  "shift"
+                ],
+                "key": "5"
+              },
+              "winAlt": null
+            },
+            {
+              "id": "lock",
+              "label": "화면 잠금",
+              "icon": null,
+              "win": {
+                "mods": [
+                  "gui"
+                ],
+                "key": "L"
+              },
+              "mac": {
+                "mods": [
+                  "ctrl",
+                  "gui"
+                ],
+                "key": "Q"
+              },
+              "winAlt": null
+            },
+            {
+              "id": "desktop",
+              "label": "바탕 화면",
+              "icon": null,
+              "win": {
+                "mods": [
+                  "gui"
+                ],
+                "key": "D"
+              },
+              "mac": null,
+              "winAlt": null
+            },
+            {
+              "id": "display",
+              "label": "화면 연결",
+              "icon": null,
+              "win": {
+                "mods": [
+                  "gui"
+                ],
+                "key": "P"
+              },
+              "mac": null,
+              "winAlt": null,
+              "note": "복제/확장 메뉴만 연다"
+            },
+            {
+              "id": "mute",
+              "label": "음소거",
+              "icon": null,
+              "win": {
+                "steps": [
+                  {
+                    "consumer": "MUTE"
+                  }
+                ]
+              },
+              "mac": {
+                "steps": [
+                  {
+                    "consumer": "MUTE"
+                  }
+                ]
+              },
+              "winAlt": null
+            },
+            {
+              "id": "portal",
+              "label": "포털",
+              "icon": null,
+              "win": {
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "3"
+                    }
+                  },
+                  {
+                    "wait": 800
+                  },
+                  {
+                    "chord": {
+                      "mods": [
+                        "ctrl"
+                      ],
+                      "key": "T"
+                    }
+                  },
+                  {
+                    "wait": 150
+                  },
+                  {
+                    "text": "{url}"
+                  },
+                  {
+                    "wait": 50
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              },
+              "mac": {
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "SPACE"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "{url}"
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              },
+              "winAlt": {
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "R"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "{url}"
+                  },
+                  {
+                    "wait": 50
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              },
+              "url": "",
+              "note": "url 은 설정 화면에서 넣는다(교육청마다 다름). 비어 있으면 타일 비활성. 로그인은 자동화하지 않는다"
+            }
+          ]
+        }
+      }
+    },
+    "meeting": {
+      "name": "회의",
+      "defaultApp": "zoom",
+      "appOrder": [
+        "zoom",
+        "teams",
+        "meet"
+      ],
+      "apps": {
+        "zoom": {
+          "name": "Zoom",
+          "source": "https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0067050",
+          "actions": [
+            {
+              "id": "mic",
+              "label": "마이크",
+              "icon": "i-mic",
+              "win": {
+                "mods": [
+                  "alt"
+                ],
+                "key": "A"
+              },
+              "mac": {
+                "mods": [
+                  "gui",
+                  "shift"
+                ],
+                "key": "A"
+              }
+            },
+            {
+              "id": "camera",
+              "label": "카메라",
+              "icon": "i-camera",
+              "win": {
+                "mods": [
+                  "alt"
+                ],
+                "key": "V"
+              },
+              "mac": {
+                "mods": [
+                  "gui",
+                  "shift"
+                ],
+                "key": "V"
+              }
+            },
+            {
+              "id": "hand",
+              "label": "손 들기",
+              "icon": "i-hand",
+              "win": {
+                "mods": [
+                  "alt"
+                ],
+                "key": "Y"
+              },
+              "mac": {
+                "mods": [
+                  "alt"
+                ],
+                "key": "Y"
+              },
+              "note": "mac 은 Option+Y"
+            }
+          ]
+        },
+        "teams": {
+          "name": "Teams",
+          "source": "https://support.microsoft.com/en-us/office/keyboard-shortcuts-for-microsoft-teams-2e8e2a70-e8d8-4a19-949b-4c36dd5292d2",
+          "actions": [
+            {
+              "id": "mic",
+              "label": "마이크",
+              "icon": "i-mic",
+              "win": {
+                "mods": [
+                  "ctrl",
+                  "shift"
+                ],
+                "key": "M"
+              },
+              "mac": {
+                "mods": [
+                  "gui",
+                  "shift"
+                ],
+                "key": "M"
+              }
+            },
+            {
+              "id": "camera",
+              "label": "카메라",
+              "icon": "i-camera",
+              "win": {
+                "mods": [
+                  "ctrl",
+                  "shift"
+                ],
+                "key": "O"
+              },
+              "mac": {
+                "mods": [
+                  "gui",
+                  "shift"
+                ],
+                "key": "O"
+              },
+              "note": "데스크톱 앱 전제(웹앱 Windows 는 단축키 없음)"
+            },
+            {
+              "id": "hand",
+              "label": "손 들기",
+              "icon": "i-hand",
+              "win": {
+                "mods": [
+                  "ctrl",
+                  "shift"
+                ],
+                "key": "K"
+              },
+              "mac": {
+                "mods": [
+                  "gui",
+                  "shift"
+                ],
+                "key": "K"
+              }
+            }
+          ]
+        },
+        "meet": {
+          "name": "Meet",
+          "source": "https://support.google.com/a/users/answer/9896256?hl=en",
+          "actions": [
+            {
+              "id": "mic",
+              "label": "마이크",
+              "icon": "i-mic",
+              "win": {
+                "mods": [
+                  "ctrl"
+                ],
+                "key": "D"
+              },
+              "mac": {
+                "mods": [
+                  "gui"
+                ],
+                "key": "D"
+              },
+              "note": "Meet 탭 포커스 밖이면 Ctrl+D = 북마크"
+            },
+            {
+              "id": "camera",
+              "label": "카메라",
+              "icon": "i-camera",
+              "win": {
+                "mods": [
+                  "ctrl"
+                ],
+                "key": "E"
+              },
+              "mac": {
+                "mods": [
+                  "gui"
+                ],
+                "key": "E"
+              }
+            },
+            {
+              "id": "hand",
+              "label": "손 들기",
+              "icon": "i-hand",
+              "win": {
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "H"
+              },
+              "mac": {
+                "mods": [
+                  "ctrl",
+                  "gui"
+                ],
+                "key": "H"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

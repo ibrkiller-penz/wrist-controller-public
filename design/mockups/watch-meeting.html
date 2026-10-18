@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>회의 모드 목업</title>
+<!--
+  회의 모드 목업 (디자인팀 3번)
+  명세: ../watch-coding-meeting.md 2절. 토큰: ../tokens.css, 아이콘: ../icons.svg
+  아이콘은 외부 <use> 참조라 file:// 로는 안 보인다 → design 폴더에서
+  python -m http.server 8000 후 http://localhost:8000/mockups/watch-meeting.html
+-->
+<link rel="stylesheet" href="../tokens.css">
+<style>
+  /* ---------- 페이지 바깥(--sim-*) ---------- */
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--sim-bg); color: var(--sim-text-1);
+         font-family: var(--sim-font-family); font-size: var(--sim-text-size); line-height: 1.5; }
+  header, main { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: var(--sim-text-size-lg); margin: 32px 0 12px; }
+  p  { margin: 4px 0; color: var(--sim-text-2); }
+  code { font-family: var(--sim-font-mono); font-size: 13px; }
+  .notice { background: var(--sim-notice-bg); color: var(--sim-notice-text);
+            padding: 8px 12px; border-radius: var(--sim-radius); margin-top: 12px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-top: 16px; }
+  .controls label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .controls button { font: inherit; color: var(--sim-text-1); background: var(--sim-surface-2);
+                     border: 1px solid var(--sim-border); border-radius: 6px; padding: 2px 10px; cursor: pointer; }
+  .controls button:focus-visible, .controls input:focus-visible { outline: 2px solid var(--sim-focus); outline-offset: 2px; }
+  .live { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .bezel { padding: 14px; background: var(--sim-bezel); border: 2px solid var(--sim-bezel-edge);
+           border-radius: 78px; box-shadow: var(--sim-shadow); width: max-content; }
+  .log { flex: 1 1 280px; min-width: 260px; max-width: 520px; background: var(--sim-surface);
+         border: 1px solid var(--sim-border); border-radius: var(--sim-radius-lg); overflow: hidden; }
+  .log h3 { margin: 0; padding: 8px 12px; font-size: var(--sim-text-size); background: var(--sim-surface-2);
+            border-bottom: 1px solid var(--sim-border); }
+  .log ol { list-style: none; margin: 0; padding: 8px 12px; height: 440px; overflow: auto;
+            font-family: var(--sim-font-mono); font-size: 13px; }
+  .log li { padding: 2px 0; color: var(--sim-text-2); }
+  .log .k { color: var(--sim-log-key); } .log .d { color: var(--sim-log-dropped); } .log .s { color: var(--sim-log-system); }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(438px, 1fr)); gap: 24px; }
+  figure { margin: 0; }
+  figcaption { margin-top: 8px; color: var(--sim-text-2); max-width: 438px; }
+  figcaption b { color: var(--sim-text-1); }
+
+  /* ---------- 시계 화면 안쪽(--wc-*) ---------- */
+  .wc-screen * { position: absolute; margin: 0; }
+  .wc-screen .wc-icon, .wc-screen svg * { position: static; }
+  .wc-screen button { border: 0; padding: 0; cursor: pointer; font-family: var(--wc-font-family);
+                      -webkit-tap-highlight-color: transparent; touch-action: none; }
+
+  /* 상태줄 (system.md 3.1) */
+  .sb-dot  { left: 40px; top: 23px; width: 10px; height: 10px; border-radius: 50%; background: var(--wc-accent); }
+  .sb-name { left: 58px; top: 14px; width: 100px; height: 28px; color: var(--wc-accent);
+             font: var(--wc-type-label-weight) var(--wc-type-label-size)/var(--wc-type-label-line) var(--wc-font-family); }
+  .sb-time { left: 170px; top: 14px; width: 70px; text-align: center; color: var(--wc-text-1);
+             font: var(--wc-type-label-weight) var(--wc-type-label-size)/var(--wc-type-label-line) var(--wc-font-family); }
+  .sb-lock { left: 244px; top: 14px; color: var(--wc-locked); }
+  .sb-ble  { left: 274px; top: 14px; color: var(--wc-text-2); }
+  .sb-bat  { left: 306px; top: 14px; width: 28px; height: 28px; color: var(--wc-text-2); }
+  .sb-bat i { left: 5.25px; top: 11.1px; height: 5.8px; border-radius: 1px; background: currentColor; }
+  .sb-pct  { left: 336px; top: 16px; width: 40px; color: var(--wc-text-2);
+             font: var(--wc-type-caption-weight) var(--wc-type-caption-size)/var(--wc-type-caption-line) var(--wc-font-family); }
+  .is-disc .sb-dot { background: var(--wc-text-3); }
+  .is-disc .sb-name { color: var(--wc-text-3); }
+  .is-disc .sb-ble { color: var(--wc-disconnected); animation: blink var(--wc-motion-blink) steps(1, end) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* 앱 선택 칩 118×48 (2.2) */
+  .chip { top: 64px; width: 118px; height: 48px; border-radius: var(--wc-radius-pill);
+          background: var(--wc-surface-1); color: var(--wc-text-2);
+          font: var(--wc-type-label-weight) var(--wc-type-label-size)/48px var(--wc-font-family);
+          text-align: center; transition: transform var(--wc-motion-release) var(--wc-ease-out); }
+  .chip::before { content: ""; position: absolute; inset: -24px -6px -6px -6px; } /* 터치 영역 y 40~118 */
+  .chip.is-sel { background: var(--wc-accent-dim); color: var(--wc-accent);
+                 box-shadow: inset 0 0 0 var(--wc-focus-ring) var(--wc-accent); }
+  .chip.is-pressed { background: var(--wc-surface-2); transform: scale(var(--wc-press-scale));
+                     transition-duration: var(--wc-motion-press); }
+
+  /* 토글 타일 공통 */
+  .tg { background: var(--wc-surface-1); color: var(--wc-text-1);
+        transition: transform var(--wc-motion-release) var(--wc-ease-out); }
+  .tg::after { content: ""; position: absolute; inset: 0; border-radius: inherit;
+               box-shadow: inset 0 0 0 2px var(--wc-accent); opacity: 0; pointer-events: none; }
+  .tg.is-pressed { transform: scale(var(--wc-press-scale)); transition-duration: var(--wc-motion-press); }
+  .tg.is-pressed::after { opacity: 1; }
+  .tg.is-flash::after { animation: flash var(--wc-motion-flash) var(--wc-ease-out) forwards; }
+  @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
+  .tg .ic.is-fade { animation: fadein var(--wc-motion-fast) var(--wc-ease-out); }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  .hold { height: 4px; border-radius: var(--wc-radius-pill); background: var(--wc-text-2);
+          transform-origin: left center; transform: scaleX(0); opacity: 0; }
+  .tg.is-holding .hold { opacity: 1; animation: hold var(--wc-hold-center) linear forwards; }
+  .tg.is-hold-still .hold { opacity: 1; transform: scaleX(.6); }
+  @keyframes hold { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+  /* 마이크 큰 타일 378×220 (2.4) */
+  .mic { left: 16px; top: 124px; width: 378px; height: 220px; border-radius: var(--wc-radius-lg); }
+  .mic .hn { left: 20px; top: 20px; color: var(--wc-text-3); white-space: nowrap;
+             font: var(--wc-type-caption-weight) var(--wc-type-caption-size)/var(--wc-type-caption-line) var(--wc-font-mono); }
+  .mic .badge { left: 294px; top: 16px; width: 64px; height: 32px; border-radius: var(--wc-radius-sm);
+                text-align: center; color: var(--wc-text-2);
+                font: var(--wc-type-caption-weight) var(--wc-type-caption-size)/32px var(--wc-font-family); }
+  .mic .ic { left: 141px; top: 24px; }
+  .mic .st { left: 0; top: 132px; width: 378px; text-align: center;
+             font: var(--wc-type-heading-weight) var(--wc-type-heading-size)/var(--wc-type-heading-line) var(--wc-font-family); }
+  .mic .sub { left: 0; top: 176px; width: 378px; text-align: center; color: var(--wc-text-2);
+              font: var(--wc-type-caption-weight) var(--wc-type-caption-size)/var(--wc-type-caption-line) var(--wc-font-family); }
+  .mic .hold { left: 28px; top: 208px; width: 322px; }
+  .mic[data-st="unknown"] { box-shadow: inset 0 0 0 1px var(--wc-border); }
+  .mic[data-st="unknown"] .ic { color: var(--wc-text-2); }
+  .mic[data-st="unknown"] .badge { color: var(--wc-text-3); box-shadow: inset 0 0 0 1px var(--wc-border); }
+  .mic[data-st="on"] { background: var(--wc-accent-dim); box-shadow: inset 0 0 0 2px var(--wc-accent-dim-border); }
+  .mic[data-st="on"] .ic { color: var(--wc-accent); }
+  .mic[data-st="on"] .badge { box-shadow: inset 0 0 0 1px var(--wc-accent-dim-border); }
+  .mic[data-st="off"] { background: var(--wc-danger-dim); box-shadow: inset 0 0 0 2px var(--wc-danger); }
+  .mic[data-st="off"] .ic { color: var(--wc-danger); }
+  .mic[data-st="off"] .badge { box-shadow: inset 0 0 0 1px var(--wc-danger); }
+
+  /* 카메라·손 들기 작은 타일 183×130 (2.5) */
+  .sm { top: 356px; width: 183px; height: 130px; border-radius: var(--wc-radius-md); }
+  .sm .ic { left: 20px; top: 20px; }
+  .sm .st { right: 20px; top: 30px; color: var(--wc-text-2); white-space: nowrap;
+            font: var(--wc-type-label-weight) var(--wc-type-label-size)/var(--wc-type-label-line) var(--wc-font-family); }
+  .sm .lb { left: 20px; top: 82px; white-space: nowrap;
+            font: var(--wc-type-body-weight) var(--wc-type-body-size)/var(--wc-type-body-line) var(--wc-font-family); }
+  .sm .hold { left: 20px; top: 120px; width: 143px; }
+  .cam { left: 16px; }  .hand { left: 211px; }
+  .cam[data-st="unknown"] { box-shadow: inset 0 0 0 1px var(--wc-border); }
+  .cam[data-st="unknown"] .ic, .cam[data-st="off"] .ic { color: var(--wc-text-2); }
+  .cam[data-st="on"] { background: var(--wc-accent-dim); box-shadow: inset 0 0 0 2px var(--wc-accent-dim-border); }
+  .cam[data-st="on"] .ic { color: var(--wc-accent); }
+  .hand[data-st="down"] .ic { color: var(--wc-accent); }
+  .hand[data-st="up"] { background: var(--wc-accent-dim); box-shadow: inset 0 0 0 var(--wc-focus-ring) var(--wc-accent); }
+  .hand[data-st="up"] .ic { color: var(--wc-accent-strong); }
+  .hand[data-st="up"] .st { color: var(--wc-text-1); }
+
+  /* 비활성(키 없음)·연결 끊김: 검정 면 + 1px border + text-disabled (우선순위 최상) */
+  .tg.is-disabled, .is-disc .tg { background: var(--wc-bg) !important; box-shadow: inset 0 0 0 1px var(--wc-border) !important; }
+  .tg.is-disabled *, .is-disc .tg * { color: var(--wc-text-disabled) !important; }
+  .is-disc .tg .badge { box-shadow: inset 0 0 0 1px var(--wc-border) !important; }
+  .tg.is-disabled .hn, .is-disc .tg .hn { display: none; }
+  .is-disc .tg .hold { background: var(--wc-text-2); }
+
+  /* 배너·토스트 (system.md 5.1, 명세 2.7) */
+  .banner, .toast { left: 16px; width: 378px; height: 72px; border-radius: var(--wc-radius-md);
+                    display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--wc-text-1);
+                    font: var(--wc-type-body-weight) var(--wc-type-body-size)/var(--wc-type-body-line) var(--wc-font-family); }
+  .banner > *, .toast > * { position: static; }
+  .banner { top: 414px; background: var(--wc-disconnected-dim); box-shadow: inset 0 0 0 2px var(--wc-disconnected); }
+  .banner .wc-icon { color: var(--wc-disconnected); }
+  .banner.is-shake { animation: shake var(--wc-motion-flash) linear; }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 12.5% { transform: translateX(-6px); }
+    37.5% { transform: translateX(6px); } 62.5% { transform: translateX(-6px); } 87.5% { transform: translateX(6px); } }
+  .toast { top: 414px; background: var(--wc-surface-2); font-size: 24px; opacity: 0; transform: translateY(16px);
+           transition: opacity var(--wc-motion-base) var(--wc-ease-out), transform var(--wc-motion-base) var(--wc-ease-out);
+           pointer-events: none; }
+  .is-disc .toast { top: 334px; }
+  .toast.is-show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+<header>
+  <h1>회의 모드 — 앱 선택 · 마이크 · 카메라 · 손 들기</h1>
+  <p>410×502 실제 크기. 명세: <code>design/watch-coding-meeting.md</code> 2절.</p>
+  <p><b>탭</b>(600ms 미만) = 손 뗄 때 키 전송 + 추정 상태 뒤집기. <b>길게 누름</b>(600ms) = 키 안 보내고 표시만 맞추기. 상태가 "모름"이면 탭해도 키만 보내고 모름 유지.</p>
+  <p>시계는 PC 앱의 실제 상태를 읽을 수 없다(HID 단방향). 켜짐·꺼짐은 "마지막으로 보낸 토글" 기준 추정이다.</p>
+  <div class="notice">아이콘이 안 보이면 <code>file://</code>로 연 것이다. <code>design</code> 폴더에서 <code>python -m http.server 8000</code> 후 <code>http://localhost:8000/mockups/watch-meeting.html</code>로 연다.</div>
+  <div class="controls" role="group" aria-label="목업 조건">
+    <label><input type="checkbox" id="disc"> 연결 끊김</label>
+    <label><input type="checkbox" id="locked"> 제스처·음성 잠금</label>
+    <label><input type="checkbox" id="dis-hand"> 손 들기 키 비어 있음(비활성)</label>
+    <button type="button" id="reset">30초 넘게 끊겼다 재연결 → 모름으로</button>
+  </div>
+</header>
+
+<main>
+  <h2>직접 눌러 보기</h2>
+  <div class="live">
+    <div class="bezel"><div id="live"></div></div>
+    <section class="log" aria-label="HID 로그">
+      <h3>HID 로그 (목업)</h3>
+      <ol id="log"></ol>
+    </section>
+  </div>
+
+  <h2>상태 모음</h2>
+  <div class="gallery" id="gallery"></div>
+</main>
+
+<script>
+/* 단축키는 실제 구현에서 /shared/keymap.json 에서 읽는다. 여기 값은 목업용 사본. */
+const APPS = {
+  zoom:  { name: 'Zoom',  ro: 'Zoom으로',  mic: 'Alt+A',        cam: 'Alt+V',        hand: 'Alt+Y' },
+  teams: { name: 'Teams', ro: 'Teams로',   mic: 'Ctrl+Shift+M', cam: 'Ctrl+Shift+O', hand: 'Ctrl+Shift+K' },
+  meet:  { name: 'Meet',  ro: 'Meet으로',  mic: 'Ctrl+D',       cam: 'Ctrl+E',       hand: 'Ctrl+Alt+H' },
+};
+const CHIP_X = { zoom: 16, teams: 146, meet: 276 };
+const WORD = { unknown: '모름', on: '켜짐', off: '꺼짐', down: '내림', up: '올림' };
+const NAME = { mic: '마이크', cam: '카메라', hand: '손 들기' };
+const icon = (id, cls = '') => `<svg class="wc-icon ${cls}" aria-hidden="true"><use href="../icons.svg#${id}"/></svg>`;
+const fresh = () => ({ mic: 'unknown', cam: 'unknown', hand: 'down' });
+
+function statusbar(o) {
+  const bat = 64;
+  return `
+    <span class="sb-dot"></span><span class="sb-name">회의</span>
+    <span class="sb-time">14:32</span>
+    ${o.locked ? `<span class="sb-lock">${icon('i-lock', 'wc-icon--sm')}</span>` : ''}
+    <span class="sb-ble">${icon(o.disc ? 'i-ble-off' : 'i-ble', 'wc-icon--sm')}</span>
+    <span class="sb-bat">${icon('i-battery', 'wc-icon--sm')}<i style="width:${(13.4 * bat / 100).toFixed(1)}px"></i></span>
+    <span class="sb-pct">${bat}%</span>`;
+}
+
+/* 타일 안쪽 내용 — 상태가 바뀌면 이 함수로 다시 그린다 */
+function inner(key, st, app, disabled) {
+  if (key === 'mic') {
+    const ic = st === 'off' ? 'i-mic-off' : 'i-mic';
+    const title = st === 'unknown' ? '마이크' : `마이크 ${WORD[st]}`;
+    const sub = disabled ? '키 없음' : st === 'unknown' ? '상태 모름 · 길게 눌러 맞추기' : '추정 · 다르면 길게 눌러 맞추기';
+    return `<span class="hn">${APPS[app].mic}</span>
+      <span class="badge">${st === 'unknown' ? '모름' : '추정'}</span>
+      <span class="ic">${icon(ic, 'wc-icon--lg')}</span>
+      <span class="st">${title}</span><span class="sub">${sub}</span><span class="hold"></span>`;
+  }
+  const ic = key === 'hand' ? 'i-hand' : st === 'off' ? 'i-camera-off' : 'i-camera';
+  return `<span class="ic">${icon(ic)}</span><span class="st">${disabled ? '키 없음' : WORD[st]}</span>
+    <span class="lb">${NAME[key]}</span><span class="hold"></span>`;
+}
+function tileClass(key, o) {
+  const base = key === 'mic' ? 'tg mic' : `tg sm ${key}`;
+  return [base, o.disabled?.includes(key) && 'is-disabled', o.pressed === key && 'is-pressed',
+          o.holdStill === key && 'is-pressed is-hold-still'].filter(Boolean).join(' ');
+}
+
+/* o = { app, st:{mic,cam,hand}, disc, locked, disabled:[key], pressed:key, holdStill:key } */
+function screen(o) {
+  const chips = Object.keys(APPS).map(a =>
+    `<button type="button" class="chip${a === o.app ? ' is-sel' : ''}" data-app="${a}" style="left:${CHIP_X[a]}px"
+       aria-pressed="${a === o.app}">${APPS[a].name}</button>`).join('');
+  const tiles = ['mic', 'cam', 'hand'].map(k => {
+    const dis = o.disabled?.includes(k);
+    return `<button type="button" class="${tileClass(k, o)}" data-key="${k}" data-st="${o.st[k]}"
+       aria-label="${NAME[k]} ${WORD[o.st[k]]}(추정)">${inner(k, o.st[k], o.app, dis)}</button>`;
+  }).join('');
+  const banner = o.disc ? `<div class="banner">${icon('i-ble-off', 'wc-icon--sm')}<span>연결 끊김 · 다시 연결 중</span></div>` : '';
+  return `<div class="wc-screen${o.disc ? ' is-disc' : ''}" data-mode="meeting">
+    ${statusbar(o)}${chips}${tiles}${banner}<div class="toast" role="status"><span></span></div></div>`;
+}
+
+/* ---------- 인터랙티브 ---------- */
+const $ = id => document.getElementById(id);
+const state = { app: 'zoom', est: { zoom: fresh(), teams: fresh(), meet: fresh() } }; // 앱별 추정값 (RAM)
+const opts = () => ({ app: state.app, st: state.est[state.app], disc: $('disc').checked,
+                      locked: $('locked').checked, disabled: $('dis-hand').checked ? ['hand'] : [] });
+function log(text, cls) {
+  const li = document.createElement('li');
+  li.innerHTML = `${new Date().toLocaleTimeString('en-GB')} <span class="${cls}">${text}</span>`;
+  $('log').prepend(li);
+}
+let toastTimer;
+function toast(msg) {
+  const t = $('live').querySelector('.toast');
+  t.firstElementChild.textContent = msg; t.classList.add('is-show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('is-show'), 1600); // --wc-motion-toast
+}
+function renderLive() {
+  $('live').innerHTML = screen(opts());
+  $('live').querySelectorAll('.chip').forEach(bindChip);
+  $('live').querySelectorAll('.tg').forEach(bindTile);
+}
+function bindChip(el) {
+  el.addEventListener('pointerdown', () => el.classList.add('is-pressed'));
+  el.addEventListener('pointerleave', () => el.classList.remove('is-pressed'));
+  el.addEventListener('pointerup', () => {               // 손을 뗄 때만 바뀐다 (D6)
+    if (!el.classList.contains('is-pressed')) return;
+    el.classList.remove('is-pressed');
+    const a = el.dataset.app; if (a === state.app) return;
+    state.app = a; renderLive();
+    $('live').querySelectorAll('.tg .ic').forEach(i => i.classList.add('is-fade'));
+    toast(`${APPS[a].ro} 바꿈`); log(`앱 선택 ${APPS[a].name} (키 없음)`, 's');
+  });
+}
+const flipToggle = s => s === 'on' ? 'off' : s === 'off' ? 'on' : 'unknown'; // 탭: 모름은 유지
+const flipSync = (k, s) => k === 'hand' ? (s === 'up' ? 'down' : 'up') : (s === 'off' ? 'on' : 'off'); // 길게: 모름→꺼짐→켜짐
+
+function repaint(el, key) {
+  const st = state.est[state.app][key];
+  el.dataset.st = st;
+  el.innerHTML = inner(key, st, state.app, el.classList.contains('is-disabled'));
+  el.querySelector('.ic').classList.add('is-fade');      // 120ms 교차 페이드
+}
+function bindTile(el) {
+  const key = el.dataset.key;
+  let timer = null, longDone = false, x0 = 0, y0 = 0, moved = false;
+  el.addEventListener('pointerdown', e => {
+    if (el.classList.contains('is-disabled')) return;
+    el.setPointerCapture(e.pointerId);
+    longDone = false; moved = false; x0 = e.clientX; y0 = e.clientY;
+    el.classList.remove('is-flash'); el.classList.add('is-pressed', 'is-holding');
+    timer = setTimeout(() => {                            // 600ms: 표시만 뒤집기
+      longDone = true;
+      const est = state.est[state.app];
+      est[key] = flipSync(key, est[key]);
+      repaint(el, key);
+      el.classList.remove('is-holding');
+      toast('표시만 바꿈 · 키 안 보냄');
+      log(`표시만 맞춤 · ${NAME[key]} → ${WORD[est[key]]} (키 안 보냄)`, 's');
+    }, 600);
+  });
+  el.addEventListener('pointermove', e => {
+    if (el.classList.contains('is-pressed') && Math.hypot(e.clientX - x0, e.clientY - y0) >= 16) {
+      moved = true; cancel();
+    }
+  });
+  function cancel() { clearTimeout(timer); el.classList.remove('is-pressed', 'is-holding'); }
+  el.addEventListener('pointercancel', cancel);
+  el.addEventListener('pointerup', () => {
+    if (!el.classList.contains('is-pressed')) return;
+    cancel();
+    if (longDone || moved) return;
+    const o = opts(); const hint = APPS[state.app][key];
+    if (o.disc) {                                         // 끊김: 보내지도 쌓지도 않음
+      const b = $('live').querySelector('.banner');
+      b.classList.remove('is-shake'); void b.offsetWidth; b.classList.add('is-shake');
+      log(`버림 · ${hint} (${NAME[key]})`, 'd'); return;
+    }
+    const est = state.est[state.app];                    // 손 뗄 때 전송 (D3)
+    est[key] = key === 'hand' ? (est[key] === 'up' ? 'down' : 'up') : flipToggle(est[key]);
+    repaint(el, key);
+    void el.offsetWidth; el.classList.add('is-flash');
+    log(`키 ${hint} · ${APPS[state.app].name} ${NAME[key]} → ${WORD[est[key]]}${est[key] === 'unknown' ? '' : '(추정)'}`, 'k');
+  });
+  el.addEventListener('animationend', e => { if (e.pseudoElement) el.classList.remove('is-flash'); });
+}
+$('disc').addEventListener('change', () => { log($('disc').checked ? '연결 끊김' : '연결됨', 's'); renderLive(); });
+$('locked').addEventListener('change', () => { log($('locked').checked ? '제스처·음성 잠김 (타일은 동작)' : '잠금 풀림', 's'); renderLive(); });
+$('dis-hand').addEventListener('change', renderLive);
+$('reset').addEventListener('click', () => {
+  for (const a in state.est) state.est[a] = fresh();
+  log('30초 넘는 끊김 후 재연결 → 마이크·카메라 모름, 손 내림', 's'); renderLive();
+});
+renderLive();
+
+/* ---------- 상태 모음 (정적) ---------- */
+const FRAMES = [
+  [{ app: 'zoom', st: fresh() }, '<b>처음 진입</b> — 마이크·카메라 "모름"(회색, 배지 "모름"), 손 "내림". 재부팅·긴 끊김 뒤에도 이 모습.'],
+  [{ app: 'zoom', st: { mic: 'on', cam: 'on', hand: 'down' } }, '<b>켜짐 추정</b> — accent-dim 면 + dim-border, 아이콘 초록. 배지 "추정"과 보조 문구로 단정하지 않음을 알린다.'],
+  [{ app: 'zoom', st: { mic: 'off', cam: 'off', hand: 'up' } }, '<b>꺼짐 추정 + 손 올림</b> — 마이크 꺼짐만 danger(빨강) + 사선 아이콘. 카메라 꺼짐은 회색 사선. 손 올림은 3px accent 테두리.'],
+  [{ app: 'zoom', st: { mic: 'on', cam: 'on', hand: 'down' }, holdStill: 'mic' }, '<b>마이크 길게 누르는 중</b> — scale 0.96 + 2px accent, 아래 진행 막대(600ms에 가득). 가득 차면 키 없이 표시만 뒤집힌다.'],
+  [{ app: 'teams', st: { mic: 'off', cam: 'unknown', hand: 'down' } }, '<b>Teams 선택</b> — 칩은 accent-dim + 3px accent 테두리. 힌트·추정값은 앱별로 따로 기억.'],
+  [{ app: 'meet', st: fresh(), disabled: ['hand'] }, '<b>비활성</b> (손 들기) — keymap에 현재 앱 키가 비었을 때. 검정 면 + 1px border, "키 없음".'],
+  [{ app: 'zoom', st: { mic: 'off', cam: 'on', hand: 'down' }, disc: true }, '<b>연결 끊김</b> — 타일은 끊김 표현, 추정 글자는 text-disabled로 남김. 탭은 배너 흔들림, 길게 누름(표시 맞추기)은 허용.'],
+  [{ app: 'zoom', st: { mic: 'on', cam: 'off', hand: 'down' }, locked: true }, '<b>잠금</b> — 상태줄 자물쇠만. 회의 타일은 그대로 동작.'],
+];
+$('gallery').innerHTML = FRAMES.map(([o, cap]) =>
+  `<figure><div class="bezel">${screen(o)}</div><figcaption>${cap}</figcaption></figure>`).join('');
+</script>
+</body>
+</html>

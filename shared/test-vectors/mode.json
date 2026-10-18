@@ -1,0 +1,2670 @@
+{
+  "suite": "mode",
+  "description": "모드 전환·시계·발표·실행·회의·시트·잠금·연결 상태. 기본: keymap.json settings(시계, Windows, PowerPoint/Zoom), 연결됨.",
+  "cases": [
+    {
+      "id": "swipe-cycle",
+      "checklist": "모드 전환",
+      "desc": "왼쪽 스와이프 = 다음 모드(시계→발표→실행→회의→시계), 오른쪽 = 이전",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "swipe",
+            "dir": "left"
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "mode": "launch"
+            },
+            "events": [
+              {
+                "t": "mode",
+                "mode": "launch"
+              }
+            ]
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "swipe",
+            "dir": "left"
+          },
+          "expect": {
+            "state": {
+              "mode": "meeting"
+            }
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "swipe",
+            "dir": "left"
+          },
+          "expect": {
+            "state": {
+              "mode": "clock"
+            }
+          }
+        },
+        {
+          "at": 250,
+          "input": {
+            "t": "swipe",
+            "dir": "left"
+          },
+          "expect": {
+            "state": {
+              "mode": "present"
+            }
+          }
+        },
+        {
+          "at": 300,
+          "input": {
+            "t": "swipe",
+            "dir": "right"
+          },
+          "expect": {
+            "state": {
+              "mode": "clock"
+            }
+          }
+        },
+        {
+          "at": 400,
+          "input": {
+            "t": "swipe",
+            "dir": "right"
+          },
+          "expect": {
+            "state": {
+              "mode": "meeting"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "default-start-clock",
+      "desc": "기본 시작 모드 = 시계(keymap settings.mode)",
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "mode": "clock",
+              "launchPage": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "boot-short-clock-toggle",
+      "checklist": "BOOT 짧게 = 시계 ↔ 직전 모드(모든 모드), 키 안 보냄",
+      "init": {
+        "mode": "launch"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "down"
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "up"
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "mode": "clock",
+              "prevMode": "launch"
+            },
+            "events": [
+              {
+                "t": "mode",
+                "mode": "clock"
+              }
+            ]
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "down"
+          }
+        },
+        {
+          "at": 300,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "up"
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "mode": "launch"
+            }
+          }
+        },
+        {
+          "at": 400,
+          "input": {
+            "t": "swipe",
+            "dir": "left"
+          },
+          "expect": {
+            "state": {
+              "mode": "meeting"
+            }
+          }
+        },
+        {
+          "at": 500,
+          "input": {
+            "t": "swipe",
+            "dir": "left"
+          },
+          "expect": {
+            "state": {
+              "mode": "clock",
+              "prevMode": "meeting"
+            }
+          }
+        },
+        {
+          "at": 600,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "down"
+          }
+        },
+        {
+          "at": 700,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "up"
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "mode": "meeting"
+            }
+          }
+        },
+        {
+          "at": 800,
+          "input": {
+            "t": "setMode",
+            "mode": "present"
+          },
+          "expect": {
+            "state": {
+              "mode": "present"
+            }
+          }
+        },
+        {
+          "at": 900,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "down"
+          }
+        },
+        {
+          "at": 1000,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "up"
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "mode": "clock",
+              "prevMode": "present"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "boot-hold-air-and-lock-keep-mode",
+      "desc": "발표 모드(에어마우스 켬): BOOT 누른 채 = 에어마우스(모드 그대로), 2초 = 잠금(모드 그대로)",
+      "init": {
+        "mode": "present"
+      },
+      "configPatch": {
+        "gesture": {
+          "airMouse": {
+            "enabled": true
+          }
+        }
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "down"
+          }
+        },
+        {
+          "at": 300,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "air": {
+                "active": true
+              }
+            }
+          }
+        },
+        {
+          "at": 500,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "up"
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "mode": "present",
+              "air": {
+                "active": false
+              }
+            }
+          }
+        },
+        {
+          "at": 1000,
+          "input": {
+            "t": "setMode",
+            "mode": "launch"
+          }
+        },
+        {
+          "at": 1100,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "down"
+          }
+        },
+        {
+          "at": 3200,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "locked": true
+            }
+          }
+        },
+        {
+          "at": 3300,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "up"
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "mode": "launch",
+              "locked": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "air-off-by-default",
+      "checklist": "에어마우스 기본 끔: BOOT 를 누르고 있어도 시작 안 함, 손목 튕김은 그대로",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "down"
+          }
+        },
+        {
+          "at": 300,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "air": {
+                "active": false
+              }
+            },
+            "noEvents": [
+              "air"
+            ]
+          }
+        },
+        {
+          "at": 1500,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "air": {
+                "active": false
+              }
+            }
+          }
+        },
+        {
+          "at": 1600,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "up"
+          },
+          "expect": {
+            "hid": [],
+            "noEvents": [
+              "air"
+            ],
+            "state": {
+              "mode": "clock",
+              "air": {
+                "active": false
+              }
+            }
+          }
+        },
+        {
+          "at": 1700,
+          "input": {
+            "t": "setMode",
+            "mode": "present"
+          }
+        },
+        {
+          "at": 1800,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "down"
+          }
+        },
+        {
+          "at": 3900,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "locked": true,
+              "air": {
+                "active": false
+              }
+            }
+          }
+        },
+        {
+          "at": 4000,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "up"
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "mode": "present",
+              "locked": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "clock-sends-nothing",
+      "checklist": "시계 모드 — 키 안 보냄",
+      "init": {
+        "mode": "clock"
+      },
+      "steps": [
+        {
+          "at": 200,
+          "input": {
+            "t": "tap",
+            "x": 350,
+            "y": 300
+          },
+          "expect": {
+            "hid": []
+          }
+        },
+        {
+          "at": 300,
+          "input": {
+            "t": "tap",
+            "x": 60,
+            "y": 300
+          },
+          "expect": {
+            "hid": []
+          }
+        },
+        {
+          "at": 400,
+          "input": {
+            "t": "longPress",
+            "x": 205,
+            "y": 300
+          },
+          "expect": {
+            "hid": []
+          }
+        },
+        {
+          "at": 500,
+          "input": {
+            "t": "swipe",
+            "dir": "down"
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "sheet": {
+                "open": false
+              }
+            }
+          }
+        },
+        {
+          "at": 700,
+          "input": {
+            "t": "swipe",
+            "dir": "left"
+          },
+          "expect": {
+            "state": {
+              "mode": "present"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "present-taps",
+      "checklist": "모드별 키 입력",
+      "desc": "오른쪽 탭 = →, 왼쪽 탭 = ←, 중앙 탭 = 없음, 상태줄 탭 = 없음",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "tap",
+            "x": 350,
+            "y": 300
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "RIGHT"
+              }
+            ]
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "tap",
+            "x": 60,
+            "y": 300
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "LEFT"
+              }
+            ]
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "tap",
+            "x": 205,
+            "y": 300
+          },
+          "expect": {
+            "hid": []
+          }
+        },
+        {
+          "at": 300,
+          "input": {
+            "t": "tap",
+            "x": 350,
+            "y": 20
+          },
+          "expect": {
+            "hid": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "present-blackout",
+      "desc": "중앙 길게 누름 = B(암전 토글). 암전 중 다음 슬라이드를 보내면 암전 표시 해제",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "longPress",
+            "x": 205,
+            "y": 300
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "PERIOD"
+              }
+            ],
+            "state": {
+              "show": {
+                "blackout": true
+              }
+            }
+          }
+        },
+        {
+          "at": 1000,
+          "input": {
+            "t": "longPress",
+            "x": 205,
+            "y": 300
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "PERIOD"
+              }
+            ],
+            "state": {
+              "show": {
+                "blackout": false
+              }
+            }
+          }
+        },
+        {
+          "at": 2000,
+          "input": {
+            "t": "longPress",
+            "x": 205,
+            "y": 300
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "PERIOD"
+              }
+            ],
+            "state": {
+              "show": {
+                "blackout": true
+              }
+            }
+          }
+        },
+        {
+          "at": 3000,
+          "input": {
+            "t": "tap",
+            "x": 350,
+            "y": 300
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "RIGHT"
+              }
+            ],
+            "state": {
+              "show": {
+                "blackout": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "show-sheet",
+      "desc": "아래로 스와이프 → 시트 → 쇼 시작(F5), 다시 열어 쇼 종료(Esc)",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "swipe",
+            "dir": "down"
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        },
+        {
+          "at": 500,
+          "input": {
+            "t": "tap",
+            "x": 100,
+            "y": 150
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "F5"
+              }
+            ],
+            "state": {
+              "sheet": {
+                "open": false
+              },
+              "show": {
+                "running": true,
+                "startedAt": 500
+              }
+            }
+          }
+        },
+        {
+          "at": 60000,
+          "input": {
+            "t": "swipe",
+            "dir": "down"
+          },
+          "expect": {
+            "state": {
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        },
+        {
+          "at": 60500,
+          "input": {
+            "t": "tap",
+            "x": 300,
+            "y": 150
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "ESCAPE"
+              }
+            ],
+            "state": {
+              "sheet": {
+                "open": false
+              },
+              "show": {
+                "running": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "sheet-blocks-and-closes",
+      "desc": "시트 열림 중 좌우 스와이프·슬라이드 탭 무시, 덮개 탭으로 닫힘, 3초 무입력 자동 닫힘",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "swipe",
+            "dir": "down"
+          },
+          "expect": {
+            "state": {
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "swipe",
+            "dir": "left"
+          },
+          "expect": {
+            "state": {
+              "mode": "present",
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "tap",
+            "x": 350,
+            "y": 400
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "sheet": {
+                "open": false
+              }
+            }
+          }
+        },
+        {
+          "at": 1000,
+          "input": {
+            "t": "swipe",
+            "dir": "down"
+          },
+          "expect": {
+            "state": {
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        },
+        {
+          "at": 3999,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        },
+        {
+          "at": 4000,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "sheet": {
+                "open": false
+              }
+            },
+            "events": [
+              {
+                "t": "sheet",
+                "open": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "show-start-mac-powerpoint",
+      "desc": "macOS PowerPoint 쇼 시작 = Cmd+Shift+Return",
+      "init": {
+        "mode": "present",
+        "os": "mac"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "swipe",
+            "dir": "down"
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "tap",
+            "x": 100,
+            "y": 150
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "gui",
+                  "shift"
+                ],
+                "key": "ENTER"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "show-start-slides",
+      "desc": "Google Slides(Windows) 쇼 시작 = Ctrl+F5",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "setApp",
+            "mode": "present",
+            "app": "slides"
+          },
+          "expect": {
+            "state": {
+              "apps": {
+                "present": "slides"
+              }
+            }
+          }
+        },
+        {
+          "at": 10,
+          "input": {
+            "t": "swipe",
+            "dir": "down"
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "tap",
+            "x": 100,
+            "y": 150
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl"
+                ],
+                "key": "F5"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-apps-win",
+      "checklist": "실행 1쪽: Ctrl+Alt+1~6(PC 시작 메뉴 바로 가기 키 — 설치 페이지 스크립트)",
+      "init": {
+        "mode": "launch"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 126
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "1"
+              }
+            ],
+            "events": [
+              {
+                "t": "action",
+                "source": "touch",
+                "sent": true
+              }
+            ]
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 126
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "2"
+              }
+            ],
+            "events": [
+              {
+                "t": "action",
+                "source": "touch",
+                "sent": true
+              }
+            ]
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 262
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "3"
+              }
+            ],
+            "events": [
+              {
+                "t": "action",
+                "source": "touch",
+                "sent": true
+              }
+            ]
+          }
+        },
+        {
+          "at": 300,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 262
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "4"
+              }
+            ],
+            "events": [
+              {
+                "t": "action",
+                "source": "touch",
+                "sent": true
+              }
+            ]
+          }
+        },
+        {
+          "at": 400,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 398
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "5"
+              }
+            ],
+            "events": [
+              {
+                "t": "action",
+                "source": "touch",
+                "sent": true
+              }
+            ]
+          }
+        },
+        {
+          "at": 500,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 398
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "6"
+              }
+            ],
+            "events": [
+              {
+                "t": "action",
+                "source": "touch",
+                "sent": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-apps-long-win",
+      "checklist": "실행 1쪽 길게 = Win+R 대안(크롬·파워포인트·엑셀만 — Claude·카카오톡·한글은 App Paths 가 없어 없음)",
+      "init": {
+        "mode": "launch"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "longPress",
+            "x": 107,
+            "y": 126
+          },
+          "expect": {
+            "hid": []
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "longPress",
+            "x": 302,
+            "y": 126
+          },
+          "expect": {
+            "hid": []
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "longPress",
+            "x": 107,
+            "y": 262
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "macro",
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "R"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "chrome"
+                  },
+                  {
+                    "wait": 50
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "at": 300,
+          "input": {
+            "t": "longPress",
+            "x": 302,
+            "y": 262
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "macro",
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "R"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "powerpnt"
+                  },
+                  {
+                    "wait": 50
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "at": 400,
+          "input": {
+            "t": "longPress",
+            "x": 107,
+            "y": 398
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "macro",
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "R"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "excel"
+                  },
+                  {
+                    "wait": 50
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "at": 500,
+          "input": {
+            "t": "longPress",
+            "x": 302,
+            "y": 398
+          },
+          "expect": {
+            "hid": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-apps-mac",
+      "desc": "macOS: Spotlight(Cmd+Space → 영문 이름 → Return)",
+      "init": {
+        "mode": "launch",
+        "os": "mac"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 126
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "macro",
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "SPACE"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "Claude"
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 126
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "macro",
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "SPACE"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "KakaoTalk"
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "longPress",
+            "x": 302,
+            "y": 262
+          },
+          "expect": {
+            "hid": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-page2-win",
+      "checklist": "실행 2쪽: 캡처·잠금·바탕화면·화면 전환·음소거·업무포털(주소 비면 비활성)",
+      "init": {
+        "mode": "launch"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "swipe",
+            "dir": "up"
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "launchPage": 1
+            },
+            "events": [
+              {
+                "t": "launchPage",
+                "page": 1
+              }
+            ]
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 126
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "gui",
+                  "shift"
+                ],
+                "key": "S"
+              }
+            ]
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 126
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "gui"
+                ],
+                "key": "L"
+              }
+            ]
+          }
+        },
+        {
+          "at": 300,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 262
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "gui"
+                ],
+                "key": "D"
+              }
+            ]
+          }
+        },
+        {
+          "at": 400,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 262
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "gui"
+                ],
+                "key": "P"
+              }
+            ]
+          }
+        },
+        {
+          "at": 500,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 398
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "macro",
+                "steps": [
+                  {
+                    "consumer": "MUTE"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "at": 600,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 398
+          },
+          "expect": {
+            "hid": []
+          }
+        },
+        {
+          "at": 700,
+          "input": {
+            "t": "longPress",
+            "x": 107,
+            "y": 126
+          },
+          "expect": {
+            "hid": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-page2-mac",
+      "init": {
+        "mode": "launch",
+        "os": "mac",
+        "launchPage": 1
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 126
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "gui",
+                  "shift"
+                ],
+                "key": "5"
+              }
+            ]
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 126
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "gui"
+                ],
+                "key": "Q"
+              }
+            ]
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 262
+          },
+          "expect": {
+            "hid": []
+          }
+        },
+        {
+          "at": 300,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 262
+          },
+          "expect": {
+            "hid": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-page-switch",
+      "desc": "쪽 전환: 세로 스와이프(위 = 다음, 아래 = 앞, 돌아감) 또는 아래 쪽 점 탭. 가로 스와이프는 모드 전환",
+      "init": {
+        "mode": "launch"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "swipe",
+            "dir": "down"
+          },
+          "expect": {
+            "state": {
+              "launchPage": 1
+            }
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "swipe",
+            "dir": "down"
+          },
+          "expect": {
+            "state": {
+              "launchPage": 0
+            }
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "tap",
+            "x": 205,
+            "y": 480
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "launchPage": 1
+            }
+          }
+        },
+        {
+          "at": 300,
+          "input": {
+            "t": "tap",
+            "x": 205,
+            "y": 480
+          },
+          "expect": {
+            "state": {
+              "launchPage": 0
+            }
+          }
+        },
+        {
+          "at": 400,
+          "input": {
+            "t": "swipe",
+            "dir": "left"
+          },
+          "expect": {
+            "state": {
+              "mode": "meeting",
+              "launchPage": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-gap-tap",
+      "desc": "타일 사이 틈(간격 12px) 탭 → 없음",
+      "init": {
+        "mode": "launch"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "tap",
+            "x": 205,
+            "y": 126
+          },
+          "expect": {
+            "hid": []
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 194
+          },
+          "expect": {
+            "hid": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-disconnected-dropped",
+      "checklist": "연결 끊김 시 실행 타일은 버림",
+      "init": {
+        "mode": "launch",
+        "connected": false
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 126
+          },
+          "expect": {
+            "hid": [],
+            "dropped": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "1"
+              }
+            ]
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "longPress",
+            "x": 302,
+            "y": 262
+          },
+          "expect": {
+            "hid": [],
+            "dropped": [
+              {
+                "t": "macro",
+                "steps": [
+                  {
+                    "chord": {
+                      "mods": [
+                        "gui"
+                      ],
+                      "key": "R"
+                    }
+                  },
+                  {
+                    "wait": 300
+                  },
+                  {
+                    "text": "powerpnt"
+                  },
+                  {
+                    "wait": 50
+                  },
+                  {
+                    "chord": {
+                      "mods": [],
+                      "key": "ENTER"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "meeting-apps",
+      "checklist": "Zoom, Teams, Meet 마이크 토글",
+      "init": {
+        "mode": "meeting"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "tap",
+            "x": 205,
+            "y": 234
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "alt"
+                ],
+                "key": "A"
+              }
+            ]
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "tap",
+            "x": 205,
+            "y": 88
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "apps": {
+                "meeting": "teams"
+              }
+            }
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "tap",
+            "x": 205,
+            "y": 234
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "shift"
+                ],
+                "key": "M"
+              }
+            ]
+          }
+        },
+        {
+          "at": 300,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 421
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "shift"
+                ],
+                "key": "O"
+              }
+            ]
+          }
+        },
+        {
+          "at": 400,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 421
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "shift"
+                ],
+                "key": "K"
+              }
+            ]
+          }
+        },
+        {
+          "at": 500,
+          "input": {
+            "t": "tap",
+            "x": 335,
+            "y": 88
+          },
+          "expect": {
+            "state": {
+              "apps": {
+                "meeting": "meet"
+              }
+            }
+          }
+        },
+        {
+          "at": 600,
+          "input": {
+            "t": "tap",
+            "x": 205,
+            "y": 234
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl"
+                ],
+                "key": "D"
+              }
+            ]
+          }
+        },
+        {
+          "at": 700,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 421
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl"
+                ],
+                "key": "E"
+              }
+            ]
+          }
+        },
+        {
+          "at": 800,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 421
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "H"
+              }
+            ]
+          }
+        },
+        {
+          "at": 900,
+          "input": {
+            "t": "tap",
+            "x": 75,
+            "y": 88
+          },
+          "expect": {
+            "state": {
+              "apps": {
+                "meeting": "zoom"
+              }
+            }
+          }
+        },
+        {
+          "at": 1000,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 421
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "alt"
+                ],
+                "key": "V"
+              }
+            ]
+          }
+        },
+        {
+          "at": 1100,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 421
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "alt"
+                ],
+                "key": "Y"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "meeting-mac",
+      "init": {
+        "mode": "meeting",
+        "os": "mac"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "tap",
+            "x": 205,
+            "y": 234
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "gui",
+                  "shift"
+                ],
+                "key": "A"
+              }
+            ]
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 421
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "alt"
+                ],
+                "key": "Y"
+              }
+            ]
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "tap",
+            "x": 335,
+            "y": 88
+          }
+        },
+        {
+          "at": 300,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 421
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "gui"
+                ],
+                "key": "H"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "meeting-estimate",
+      "desc": "추정 상태: 처음 unknown, 탭해도 unknown 유지 → 길게 눌러 off 로 맞춤(키 안 보냄) → 탭하면 on. 손 들기는 down↔up. 앱별 따로 기억",
+      "init": {
+        "mode": "meeting"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "tap",
+            "x": 205,
+            "y": 234
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "alt"
+                ],
+                "key": "A"
+              }
+            ],
+            "state": {
+              "meeting": {
+                "zoom": {
+                  "mic": "unknown"
+                }
+              }
+            }
+          }
+        },
+        {
+          "at": 1000,
+          "input": {
+            "t": "longPress",
+            "x": 205,
+            "y": 234
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "meeting": {
+                "zoom": {
+                  "mic": "off"
+                }
+              }
+            },
+            "events": [
+              {
+                "t": "estimate",
+                "target": "mic",
+                "value": "off",
+                "synced": true
+              }
+            ]
+          }
+        },
+        {
+          "at": 2000,
+          "input": {
+            "t": "tap",
+            "x": 205,
+            "y": 234
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "alt"
+                ],
+                "key": "A"
+              }
+            ],
+            "state": {
+              "meeting": {
+                "zoom": {
+                  "mic": "on"
+                }
+              }
+            }
+          }
+        },
+        {
+          "at": 3000,
+          "input": {
+            "t": "tap",
+            "x": 302,
+            "y": 421
+          },
+          "expect": {
+            "state": {
+              "meeting": {
+                "zoom": {
+                  "hand": "up"
+                }
+              }
+            }
+          }
+        },
+        {
+          "at": 4000,
+          "input": {
+            "t": "tap",
+            "x": 205,
+            "y": 88
+          },
+          "expect": {
+            "state": {
+              "meeting": {
+                "teams": {
+                  "mic": "unknown",
+                  "hand": "down"
+                },
+                "zoom": {
+                  "mic": "on"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "disconnected-no-burst",
+      "checklist": "연결 끊김 시 넘기기 입력은 무시(재연결 후 몰아서 보내지 않음)",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "connection",
+            "connected": false
+          },
+          "expect": {
+            "state": {
+              "connected": false
+            },
+            "events": [
+              {
+                "t": "connection",
+                "connected": false
+              }
+            ]
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "tap",
+            "x": 350,
+            "y": 300
+          },
+          "expect": {
+            "hid": [],
+            "dropped": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "RIGHT"
+              }
+            ]
+          }
+        },
+        {
+          "at": 150,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "short"
+          },
+          "expect": {
+            "hid": [],
+            "dropped": [],
+            "state": {
+              "mode": "clock"
+            }
+          }
+        },
+        {
+          "at": 160,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "short"
+          },
+          "expect": {
+            "hid": [],
+            "dropped": [],
+            "state": {
+              "mode": "present"
+            }
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "longPress",
+            "x": 205,
+            "y": 300
+          },
+          "expect": {
+            "hid": [],
+            "dropped": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "PERIOD"
+              }
+            ],
+            "state": {
+              "show": {
+                "blackout": false
+              }
+            }
+          }
+        },
+        {
+          "at": 1000,
+          "input": {
+            "t": "connection",
+            "connected": true
+          },
+          "expect": {
+            "hid": [],
+            "dropped": [],
+            "state": {
+              "connected": true
+            }
+          }
+        },
+        {
+          "at": 1100,
+          "input": {
+            "t": "tap",
+            "x": 350,
+            "y": 300
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "RIGHT"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "disconnected-meeting-no-estimate",
+      "desc": "끊김 중 회의 타일 탭 → 버림, 추정값 변화 없음",
+      "init": {
+        "mode": "meeting",
+        "connected": false,
+        "meeting": {
+          "zoom": {
+            "mic": "off",
+            "camera": "unknown",
+            "hand": "down"
+          },
+          "teams": {
+            "mic": "unknown",
+            "camera": "unknown",
+            "hand": "down"
+          },
+          "meet": {
+            "mic": "unknown",
+            "camera": "unknown",
+            "hand": "down"
+          }
+        }
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "tap",
+            "x": 205,
+            "y": 234
+          },
+          "expect": {
+            "hid": [],
+            "dropped": [
+              {
+                "t": "key",
+                "mods": [
+                  "alt"
+                ],
+                "key": "A"
+              }
+            ],
+            "state": {
+              "meeting": {
+                "zoom": {
+                  "mic": "off"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meeting-estimate-reset-after-30s",
+      "desc": "30초 넘게 끊겼다 재연결 → 마이크·카메라 unknown, 손 down",
+      "init": {
+        "mode": "meeting",
+        "meeting": {
+          "zoom": {
+            "mic": "on",
+            "camera": "off",
+            "hand": "up"
+          },
+          "teams": {
+            "mic": "off",
+            "camera": "unknown",
+            "hand": "down"
+          },
+          "meet": {
+            "mic": "unknown",
+            "camera": "unknown",
+            "hand": "down"
+          }
+        }
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "connection",
+            "connected": false
+          }
+        },
+        {
+          "at": 10000,
+          "input": {
+            "t": "connection",
+            "connected": true
+          },
+          "expect": {
+            "state": {
+              "meeting": {
+                "zoom": {
+                  "mic": "on"
+                }
+              }
+            }
+          }
+        },
+        {
+          "at": 20000,
+          "input": {
+            "t": "connection",
+            "connected": false
+          }
+        },
+        {
+          "at": 50001,
+          "input": {
+            "t": "connection",
+            "connected": true
+          },
+          "expect": {
+            "state": {
+              "meeting": {
+                "zoom": {
+                  "mic": "unknown",
+                  "camera": "unknown",
+                  "hand": "down"
+                },
+                "teams": {
+                  "mic": "unknown"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "lock-keeps-touch",
+      "checklist": "잠금은 제스처만 막고 터치·버튼은 그대로",
+      "init": {
+        "mode": "launch"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "down"
+          }
+        },
+        {
+          "at": 2000,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "locked": true
+            },
+            "events": [
+              {
+                "t": "lock",
+                "locked": true
+              }
+            ]
+          }
+        },
+        {
+          "at": 2100,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "up"
+          },
+          "expect": {
+            "hid": []
+          }
+        },
+        {
+          "at": 2200,
+          "input": {
+            "t": "tap",
+            "x": 107,
+            "y": 126
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "1"
+              }
+            ]
+          }
+        },
+        {
+          "at": 2300,
+          "input": {
+            "t": "swipe",
+            "dir": "right"
+          },
+          "expect": {
+            "state": {
+              "mode": "present"
+            }
+          }
+        },
+        {
+          "at": 2400,
+          "input": {
+            "t": "tap",
+            "x": 350,
+            "y": 300
+          },
+          "expect": {
+            "hid": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "RIGHT"
+              }
+            ]
+          }
+        },
+        {
+          "at": 2600,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "long"
+          },
+          "expect": {
+            "state": {
+              "locked": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "pwr-short-screen",
+      "desc": "PWR 짧게 = 화면 켜기·끄기(키 안 보냄)",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "button",
+            "id": "pwr",
+            "action": "down"
+          }
+        },
+        {
+          "at": 100,
+          "input": {
+            "t": "button",
+            "id": "pwr",
+            "action": "up"
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "screenOn": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "set-os-and-sensitivity",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "setOs",
+            "os": "mac"
+          },
+          "expect": {
+            "state": {
+              "os": "mac"
+            }
+          }
+        },
+        {
+          "at": 10,
+          "input": {
+            "t": "setSensitivity",
+            "level": 5
+          },
+          "expect": {
+            "state": {
+              "sensitivity": 2
+            }
+          }
+        },
+        {
+          "at": 20,
+          "input": {
+            "t": "setMode",
+            "mode": "meeting"
+          },
+          "expect": {
+            "state": {
+              "mode": "meeting"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>발표 모드 목업</title>
+<!-- 디자인팀 2번: 시계 공통 프레임 + 발표 모드. 명세는 ../watch-presentation.md
+     토큰은 ../tokens.css 만 사용. 아이콘은 ../icons.svg 원본을 file:// 에서도 보이게 아래에 인라인 사본으로 넣었다(경로 수정 금지, 원본이 바뀌면 함께 갱신). -->
+<link rel="stylesheet" href="../tokens.css">
+<style>
+  /* ---------- 페이지(시뮬레이션 사이트 토큰) ---------- */
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--sim-bg); color: var(--sim-text-1); font-family: var(--sim-font-family); font-size: var(--sim-text-size); }
+  .page { max-width: 1400px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: var(--sim-text-size-lg); margin: 40px 0 12px; }
+  p.lead { color: var(--sim-text-2); margin: 0 0 8px; line-height: 1.6; }
+  code, kbd { font-family: var(--sim-font-mono); font-size: 12px; background: var(--sim-surface-2); border: 1px solid var(--sim-border); border-radius: 6px; padding: 1px 5px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(426px, 1fr)); gap: 24px; }
+  figure { margin: 0; background: var(--sim-surface); border: 1px solid var(--sim-border); border-radius: var(--sim-radius-lg); padding: 8px 8px 12px; box-shadow: var(--sim-shadow); }
+  figcaption { padding: 10px 6px 0; color: var(--sim-text-2); line-height: 1.5; }
+  figcaption b { color: var(--sim-text-1); display: block; }
+  .strips { display: grid; gap: 8px; }
+  .strip-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .strip-row span { color: var(--sim-text-2); }
+  @media (max-width: 460px) { .wc-screen { zoom: .82; } .grid { grid-template-columns: 1fr; } }
+
+  /* ---------- 시계 공통 ---------- */
+  .wc-screen .a { position: absolute; }
+  .t-display { font-size: var(--wc-type-display-size); line-height: var(--wc-type-display-line); font-weight: var(--wc-type-display-weight); letter-spacing: -2px; }
+  .t-title   { font-size: var(--wc-type-title-size); line-height: var(--wc-type-title-line); font-weight: var(--wc-type-title-weight); }
+  .t-heading { font-size: var(--wc-type-heading-size); line-height: var(--wc-type-heading-line); font-weight: var(--wc-type-heading-weight); }
+  .t-body    { font-size: var(--wc-type-body-size); line-height: var(--wc-type-body-line); font-weight: var(--wc-type-body-weight); }
+  .t-label   { font-size: var(--wc-type-label-size); line-height: var(--wc-type-label-line); font-weight: var(--wc-type-label-weight); }
+  .t-caption { font-size: var(--wc-type-caption-size); line-height: var(--wc-type-caption-line); font-weight: var(--wc-type-caption-weight); }
+  .mono { font-family: var(--wc-font-mono); }
+  .c { text-align: center; } .r { text-align: right; }
+
+  /* 상태줄 0,0,410,56 */
+  .sb .dot  { left: 40px; top: 23px; width: 10px; height: 10px; border-radius: 50%; background: var(--wc-accent); transition: background var(--wc-motion-fast); }
+  .sb .name { left: 58px; top: 14px; width: 100px; height: 28px; color: var(--wc-accent); transition: color var(--wc-motion-fast); }
+  .sb .time { left: 170px; top: 14px; width: 70px; height: 28px; color: var(--wc-text-1); }
+  .sb .lock { left: 244px; top: 14px; color: var(--wc-locked); }
+  .sb .ble  { left: 274px; top: 14px; color: var(--wc-text-2); }
+  .sb .bat  { left: 306px; top: 14px; }
+  .sb .pct  { left: 336px; top: 16px; width: 46px; height: 24px; }
+  .sb.off .dot { background: var(--wc-text-3); }
+  .sb.off .name { color: var(--wc-text-3); }
+  .sb.off .ble { color: var(--wc-disconnected); }
+  .blink { animation: wc-blink var(--wc-motion-blink) steps(1) infinite; }
+  @keyframes wc-blink { 0% { opacity: 1; } 50% { opacity: 0; } }
+
+  /* 본문 트랙(모드 전환 때 이 레이어만 가로 이동) */
+  .track { position: absolute; left: 0; top: 0; width: 1230px; height: 502px; transform: translateX(-410px); will-change: transform; }
+  .track.anim { transition: transform var(--wc-motion-mode) var(--wc-ease-out); }
+  .track.back { transition: transform var(--wc-motion-release) var(--wc-ease-out); }
+  .panel { position: absolute; top: 0; width: 410px; height: 502px; }
+  .panel:nth-child(1) { left: 0; } .panel:nth-child(2) { left: 410px; } .panel:nth-child(3) { left: 820px; }
+  .placeholder { left: 40px; top: 230px; width: 330px; color: var(--wc-text-3); }
+
+  /* 발표 영역 플래시: 왼 0~120 / 중앙 120~290 / 오른 290~410, y 64~486 */
+  .zone { top: 64px; height: 422px; background: var(--wc-accent-dim); opacity: 0; }
+  .zone.l { left: 0; width: 120px; } .zone.m { left: 120px; width: 170px; } .zone.r { left: 290px; width: 120px; }
+  .zone.flash { animation: wc-flash var(--wc-motion-flash) var(--wc-ease-out) forwards; }
+  @keyframes wc-flash { from { opacity: 1; } to { opacity: 0; } }
+  .zone.holding { opacity: 1; transition: opacity var(--wc-hold-center) linear; }
+  .zone.cancel { transition: opacity var(--wc-motion-release) var(--wc-ease-out); }
+
+  .showstate { left: 0; top: 152px; width: 410px; color: var(--wc-text-2); }
+  .timer { left: 0; top: 196px; width: 410px; height: 112px; color: var(--wc-text-1); transition: opacity var(--wc-motion-fast); }
+  .timer.pre, .timer.dim { color: var(--wc-text-3); }
+  .timer.ended { color: var(--wc-text-2); }
+  .chip { left: 135px; top: 330px; width: 140px; height: 44px; border-radius: var(--wc-radius-sm); background: var(--wc-surface-2); color: var(--wc-accent); display: flex; align-items: center; justify-content: center; }
+  .hint { top: 418px; height: 24px; color: var(--wc-text-3); transition: opacity var(--wc-motion-fast); }
+  .hint.l { left: 40px; width: 80px; } .hint.m { left: 120px; width: 170px; } .hint.r { left: 290px; width: 80px; }
+  .hide { opacity: 0; }
+
+  /* 모드 점: x 173~237, y 466~474 */
+  .dots { left: 173px; top: 466px; width: 64px; height: 8px; }
+  .dots i { position: absolute; top: 0; height: 8px; border-radius: var(--wc-radius-pill); background: var(--wc-text-disabled); }
+  .dots i.on { background: var(--wc-accent); }
+
+  /* 음성 띠 95,64,220,32 */
+  .vp { left: 95px; top: 64px; width: 220px; height: 32px; border-radius: var(--wc-radius-pill); display: flex; align-items: center; padding-left: 10px; gap: 6px; color: var(--wc-text-3); border: 1px solid transparent; overflow: hidden; }
+  .vp.listen, .vp.sent { background: var(--wc-accent-dim); border-color: var(--wc-accent-dim-border); color: var(--wc-accent); }
+  .vp.listen span, .vp.sent span { color: var(--wc-text-1); }
+  .vp.nosend { background: var(--wc-disconnected-dim); border-color: var(--wc-disconnected); color: var(--wc-disconnected); }
+  .vp.nosend span { color: var(--wc-text-1); }
+  .vp .prog { position: absolute; left: 16px; right: 16px; bottom: 2px; height: 2px; background: var(--wc-accent); transform-origin: left; }
+  .vp.listen .prog { animation: wc-shrink 3000ms linear forwards; }
+  .vp.static .prog { animation: none; transform: scaleX(.55); }
+  @keyframes wc-shrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+  /* 에어마우스 링: 중심 (205,260) 지름 160 */
+  .ring { left: 125px; top: 180px; width: 160px; height: 160px; border-radius: 50%; border: var(--wc-focus-ring) solid var(--wc-accent); animation: wc-in var(--wc-motion-base) var(--wc-ease-out); }
+  .ring.lock-pend { border-color: var(--wc-locked); }
+  .ring .fill { position: absolute; inset: 0; border-radius: 50%; background: var(--wc-accent-dim); opacity: 0; }
+  .ring .fill.flash { animation: wc-flash var(--wc-motion-flash) var(--wc-ease-out) forwards; }
+  .ring .core { left: 71px; top: 71px; width: 12px; height: 12px; border-radius: 50%; background: var(--wc-accent); }
+  .ring.lock-pend .core { background: var(--wc-locked); }
+  .ring.press { transform: scale(var(--wc-press-scale)); transition: transform var(--wc-motion-press); }
+  .air-label { left: 0; top: 352px; width: 410px; color: var(--wc-accent); }
+  .air-help  { left: 0; top: 388px; width: 410px; color: var(--wc-text-2); }
+  @keyframes wc-in { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
+
+  /* 시트 0,0,410,240 + 덮개 */
+  .scrim { left: 0; top: 240px; width: 410px; height: 262px; background: var(--wc-scrim); }
+  .sheet { left: 0; top: 0; width: 410px; height: 240px; background: var(--wc-surface-2); border-radius: 0 0 var(--wc-radius-lg) var(--wc-radius-lg); }
+  .sheet .ttl { left: 0; top: 32px; width: 410px; color: var(--wc-text-1); }
+  .sbtn { top: 92px; width: 171px; height: 120px; border-radius: var(--wc-radius-md); background: var(--wc-surface-1); border: 1px solid transparent; color: var(--wc-accent); transition: transform var(--wc-motion-release), background var(--wc-motion-release); }
+  .sbtn.start { left: 24px; } .sbtn.stop { left: 215px; }
+  .sbtn.rec { background: var(--wc-accent-dim); border-color: var(--wc-accent-dim-border); }
+  .sbtn.press { background: var(--wc-accent-dim); border: 2px solid var(--wc-accent); color: var(--wc-accent-strong); transform: scale(var(--wc-press-scale)); transition-duration: var(--wc-motion-press); }
+  .sbtn.dis { background: var(--wc-bg); border-color: var(--wc-border); color: var(--wc-text-disabled); }
+  .sbtn.dis .lbl { color: var(--wc-text-disabled); } .sbtn.dis .key { display: none; }
+  .sbtn .wc-icon { position: absolute; left: 16px; top: 36px; }
+  .sbtn .lbl { left: 74px; top: 28px; color: var(--wc-text-1); white-space: nowrap; }
+  .sbtn .key { left: 74px; top: 62px; color: var(--wc-text-3); }
+  .grab { left: 185px; top: 224px; width: 40px; height: 4px; border-radius: var(--wc-radius-pill); background: var(--wc-text-disabled); }
+  .sheetwrap { position: absolute; inset: 0; }
+  .sheetwrap .sheet-move { position: absolute; inset: 0 0 auto 0; height: 240px; transition: transform var(--wc-motion-base) var(--wc-ease-out); }
+
+  /* 배너 16,414,378,72 / 토스트 45,215,320,72 */
+  .banner { left: 16px; top: 414px; width: 378px; height: 72px; border-radius: var(--wc-radius-md); background: var(--wc-disconnected-dim); border: 2px solid var(--wc-disconnected); display: flex; align-items: center; gap: 12px; padding-left: 18px; color: var(--wc-disconnected); animation: wc-up var(--wc-motion-base) var(--wc-ease-out); }
+  .banner span, .toast span { color: var(--wc-text-1); }
+  .banner.re { background: var(--wc-surface-1); border-color: var(--wc-border); }
+  .okdot { width: 10px; height: 10px; border-radius: 50%; background: var(--wc-success); margin: 0 9px; }
+  .shake { animation: wc-shake var(--wc-motion-flash) var(--wc-ease-in-out); }
+  @keyframes wc-shake { 0%,100% { translate: 0; } 20% { translate: -6px; } 40% { translate: 6px; } 60% { translate: -6px; } 80% { translate: 6px; } }
+  @keyframes wc-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+  .toast { left: 45px; top: 215px; width: 320px; height: 72px; border-radius: var(--wc-radius-md); border: 2px solid; display: flex; align-items: center; gap: 12px; padding-left: 18px; animation: wc-toast var(--wc-motion-base) var(--wc-ease-out); }
+  .toast.lock { background: var(--wc-locked-dim); border-color: var(--wc-locked); color: var(--wc-locked); }
+  .toast.ok { background: var(--wc-surface-2); border-color: var(--wc-border); color: var(--wc-success); }
+  .toast.bat { background: var(--wc-danger-dim); border-color: var(--wc-danger); color: var(--wc-danger); }
+  @keyframes wc-toast { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* 모드 이름 오버레이 0,227,410,48 */
+  .modetitle { left: 0; top: 227px; width: 410px; color: var(--wc-accent); pointer-events: none; animation: wc-title 1000ms linear forwards; }
+  .modetitle.static { animation: none; }
+  @keyframes wc-title { 0% { opacity: 0; } 12% { opacity: 1; } 60% { opacity: 1; } 80%, 100% { opacity: 0; } }
+
+  /* 연결 대기 전체화면 */
+  .wait-ico { left: 157px; top: 104px; color: var(--wc-disconnected); }
+  .wait-ttl { left: 0; top: 224px; width: 410px; color: var(--wc-text-1); }
+  .wait-l1 { left: 0; top: 288px; width: 410px; color: var(--wc-text-2); }
+  .wait-l2 { left: 0; top: 320px; width: 410px; color: var(--wc-text-1); }
+  .wait-l3 { left: 0; top: 372px; width: 410px; color: var(--wc-text-3); }
+
+  /* 좌표 격자 보기(검수용) */
+  .guides .wc-screen::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(90deg, transparent 119px, rgba(255,0,255,.6) 119px 120px, transparent 120px 289px, rgba(255,0,255,.6) 289px 290px, transparent 290px),
+                linear-gradient(180deg, transparent 55px, rgba(0,255,255,.6) 55px 56px, transparent 56px 63px, rgba(0,255,255,.6) 63px 64px, transparent 64px 485px, rgba(0,255,255,.6) 485px 486px, transparent 486px); }
+
+  /* ---------- 놀이터(시뮬레이터 흉내) ---------- */
+  .play { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .watch { background: var(--sim-bezel); border: 2px solid var(--sim-bezel-edge); border-radius: 84px; padding: 18px; position: relative; touch-action: none; }
+  .sidebtn { position: absolute; right: -14px; top: 150px; width: 12px; height: 64px; border-radius: 0 6px 6px 0; background: var(--sim-side-button); border: 1px solid var(--sim-bezel-edge); cursor: pointer; padding: 0; }
+  .panel-ui { flex: 1 1 300px; min-width: 0; background: var(--sim-surface); border: 1px solid var(--sim-border); border-radius: var(--sim-radius-lg); padding: 16px; }
+  .panel-ui .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .panel-ui button { font: inherit; padding: 6px 10px; border-radius: var(--sim-radius); border: 1px solid var(--sim-border); background: var(--sim-surface-2); color: var(--sim-text-1); cursor: pointer; }
+  .panel-ui button:focus-visible, .sidebtn:focus-visible { outline: 2px solid var(--sim-focus); outline-offset: 2px; }
+  .log { font-family: var(--sim-font-mono); font-size: var(--sim-text-size-sm); max-height: 260px; overflow: auto; border-top: 1px solid var(--sim-border); padding-top: 8px; }
+  .log div { padding: 2px 0; }
+  .log .key { color: var(--sim-log-key); } .log .mouse { color: var(--sim-log-mouse); } .log .sys { color: var(--sim-log-system); } .log .drop { color: var(--sim-log-dropped); }
+  .notice { background: var(--sim-notice-bg); color: var(--sim-notice-text); border-radius: var(--sim-radius); padding: 8px 10px; margin-bottom: 12px; font-size: var(--sim-text-size-sm); }
+  .help { color: var(--sim-text-2); font-size: var(--sim-text-size-sm); line-height: 1.7; margin: 0 0 12px; }
+</style>
+</head>
+<body>
+<!-- 아이콘 인라인 사본 (원본: ../icons.svg) -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-ble" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10-5 5V2l5 5L7 17"/></g></symbol>
+  <symbol id="i-ble-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17l-5 5V12"/><path d="M12 7.5V2l5 5-2.5 2.5"/><path d="M7 17l5-5"/><path d="M3 3l18 18"/></g></symbol>
+  <symbol id="i-battery" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2"/></g></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><path d="M12 15v2"/></g></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.5v15l12-7.5z"/></g></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></g></symbol>
+  <symbol id="i-voice" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4M8 7v10M12 3v18M16 7v10M20 10v4"/></g></symbol>
+</svg>
+
+<div class="page">
+  <h1>시계 공통 프레임 · 발표 모드</h1>
+  <p class="lead">디자인팀 2번 목업. 화면은 410×502 실제 px(1:1). 치수·상태·시간 근거는 <code>design/watch-presentation.md</code>. 토큰은 <code>design/tokens.css</code>만 썼다.</p>
+  <p class="lead"><label><input type="checkbox" id="guideToggle"> 영역 경계선 보기(검수용: 분홍 = 좌/중/우 탭 경계 x 120·290, 하늘 = y 56·64·486)</label></p>
+
+  <h2>1. 놀이터 — 직접 눌러 보기</h2>
+  <div class="play">
+    <div class="watch" id="watch">
+      <div id="live"></div>
+      <button class="sidebtn" id="sideBtn" aria-label="측면 버튼 (Space)"></button>
+    </div>
+    <div class="panel-ui">
+      <div class="notice">음성은 키보드로 흉내 낸 흐름이다. 실제 시계 음성 엔진의 정확도와 무관하다.</div>
+      <p class="help">
+        화면 왼쪽/오른쪽 클릭 = 이전/다음 · 가운데 0.6초 누름 = 암전 · 좌우로 끌기 = 모드 전환 · 맨 위 상태줄에서 아래로 끌기 = 쇼 시트<br>
+        <kbd>Space</kbd> 측면 버튼(짧게 = 다음, 누른 채 = 에어마우스, 2초 가만히 = 잠금) · <kbd>V</kbd> “키트” 호출 · <kbd>N</kbd> “다음” 말하기 · <kbd>L</kbd> 잠금 · <kbd>D</kbd> 연결 끊김/복구
+      </p>
+      <div class="btns">
+        <button data-act="wake">“키트” (V)</button>
+        <button data-act="say">“다음” (N)</button>
+        <button data-act="lock">잠금 (L)</button>
+        <button data-act="conn">연결 끊김/복구 (D)</button>
+        <button data-act="boot">부팅 직후(연결 대기)</button>
+        <button data-act="bat">배터리 단계 바꾸기</button>
+      </div>
+      <div class="log" id="log" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <h2>2. 상태줄 변형 (0, 0, 410, 56)</h2>
+  <div class="strips" id="strips"></div>
+
+  <h2>3. 발표 모드 상태별 화면</h2>
+  <div class="grid" id="gallery"></div>
+</div>
+
+<script>
+/* ===== 데이터 ===== */
+const MODES = [
+  { id: 'present', name: '발표' },
+  { id: 'coding',  name: '코딩' },
+  { id: 'meeting', name: '회의' },
+];
+
+const ico = (id, cls = 'wc-icon--sm', extra = '') =>
+  `<svg class="wc-icon ${cls} ${extra}" aria-hidden="true"><use href="#${id}"/></svg>`;
+
+/* 배터리: 외곽 + 잔량 막대(24 그리드 x4.5 y9.5 h5 w0~11.5) */
+function battery(pct, chg) {
+  const color = chg ? 'var(--wc-success)' : pct <= 10 ? 'var(--wc-danger)' : pct <= 20 ? 'var(--wc-warning)' : 'var(--wc-text-2)';
+  const w = (11.5 * Math.round(pct / 5) * 5 / 100).toFixed(2);
+  return `<svg class="wc-icon wc-icon--sm a bat" style="color:${color}" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-battery"/><rect x="4.5" y="9.5" height="5" width="${w}" fill="currentColor" stroke="none"/></svg>
+          <div class="a pct t-caption" style="color:${color}">${pct}%${chg ? '+' : ''}</div>`;
+}
+
+/* 상태줄 */
+function statusBar(o) {
+  const off = o.conn === 'off' || o.conn === 'wait';
+  return `<div class="a sb ${off ? 'off' : ''}" style="left:0;top:0;width:410px;height:56px">
+    <div class="a dot"></div>
+    <div class="a name t-label">${MODES[o.mode].name}</div>
+    <div class="a time t-label c">${o.clock || '14:05'}</div>
+    ${o.lock ? `<div class="a lock">${ico('i-lock')}</div>` : ''}
+    <div class="a ble ${off ? 'blink' : ''}">${ico(off ? 'i-ble-off' : 'i-ble')}</div>
+    ${battery(o.bat ?? 82, o.chg)}
+  </div>`;
+}
+
+/* 모드 점: 알약 24 / 점 8 / 간격 12 */
+function dots(mode) {
+  let x = 0, html = '';
+  MODES.forEach((m, i) => {
+    const w = i === mode ? 24 : 8;
+    html += `<i class="${i === mode ? 'on' : ''}" style="left:${x}px;width:${w}px"></i>`;
+    x += w + 12;
+  });
+  return `<div class="a dots" aria-hidden="true">${html}</div>`;
+}
+
+/* 음성 띠 */
+function voicePill(o) {
+  if (o.lock || !o.voice || o.voice === 'none' || o.conn === 'wait') return '';
+  const map = {
+    idle:   `‘키트’ 대기`,
+    listen: `듣는 중…`,
+    sent:   `다음 →`,
+    nosend: `보내지 않음`,
+  };
+  return `<div class="a vp ${o.voice} ${o.staticFx ? 'static' : ''} ${o.voice === 'nosend' && !o.staticFx ? 'shake' : ''}">
+    ${ico('i-voice')}<span class="t-caption">${map[o.voice]}</span>${o.voice === 'listen' ? '<i class="prog"></i>' : ''}</div>`;
+}
+
+/* 발표 본문 */
+function presentBody(o) {
+  if (o.conn === 'wait') {
+    return `<div class="a wait-ico">${ico('i-ble-off', 'wc-icon--lg')}</div>
+      <div class="a wait-ttl t-title c">연결 대기</div>
+      <div class="a wait-l1 t-body c">PC 블루투스에서</div>
+      <div class="a wait-l2 t-body c">‘손목 컨트롤러’ 선택</div>
+      <div class="a wait-l3 t-caption c">좌우로 밀어 모드 전환</div>`;
+  }
+  const st = ['쇼 시작 전', '쇼 진행 중', '쇼 끝남'][o.show];
+  const tcls = o.conn === 'off' ? 'dim' : ['pre', '', 'ended'][o.show];
+  const air = !!o.air;
+  return `
+    <div class="a zone l ${o.flash === 'l' ? 'flash' : ''}"></div>
+    <div class="a zone m" style="${o.hold ? `opacity:${o.hold}` : ''}"></div>
+    <div class="a zone r ${o.flash === 'r' ? 'flash' : ''}"></div>
+    ${voicePill(o)}
+    <div class="a showstate t-label c ${air ? 'hide' : ''}">${st}</div>
+    <div class="a timer t-display c ${tcls} ${air ? 'hide' : ''}">${o.time}</div>
+    ${o.blackout && !air ? `<div class="a chip t-label">암전 중</div>` : ''}
+    <div class="a hint l t-caption ${air ? 'hide' : ''}">‹ 이전</div>
+    <div class="a hint m t-caption c ${air ? 'hide' : ''}">길게 · ${o.blackout ? '복귀' : '암전'}</div>
+    <div class="a hint r t-caption r ${air ? 'hide' : ''}">다음 ›</div>`;
+}
+
+function otherBody(mode) {
+  return `<div class="a placeholder t-caption c">${MODES[mode].name} 모드 본문<br>(다른 팀원 목업 담당)</div>`;
+}
+
+/* 화면 전체 */
+function screen(o) {
+  o = Object.assign({ mode: 0, show: 1, time: '12:34', conn: 'on', voice: 'idle' }, o);
+  const prev = (o.mode + 2) % 3, next = (o.mode + 1) % 3;
+  const body = m => m === 0 ? presentBody(Object.assign({}, o, { mode: 0 })) : otherBody(m);
+  const tx = -410 + (o.drag || 0);
+  // 끌기 중에는 이웃 패널이 보인다
+  const panels = `<div class="track" style="transform:translateX(${tx}px)">
+      <div class="panel">${body(prev)}</div><div class="panel">${body(o.mode)}</div><div class="panel">${body(next)}</div></div>`;
+  let air = '';
+  if (o.air && o.mode === 0) {
+    air = `<div class="a ring ${o.air === 'lock' ? 'lock-pend' : ''}"><div class="fill ${o.click ? 'flash' : ''}"></div><div class="a core"></div></div>
+      <div class="a air-label t-label c" ${o.air === 'lock' ? 'style="color:var(--wc-locked)"' : ''}>${o.air === 'lock' ? '잠금 판정 중' : '포인터'}</div>
+      <div class="a air-help t-caption c">${o.air === 'lock' ? '2초 동안 가만히 → 잠금' : '화면 탭 = 클릭'}</div>`;
+  }
+  let banner = '';
+  if (o.conn === 'off') banner = `<div class="a banner ${o.shake ? 'shake' : ''}">${ico('i-ble-off')}<span class="t-body">연결 끊김 · 다시 연결 중</span></div>`;
+  if (o.conn === 're') banner = `<div class="a banner re"><i class="okdot"></i><span class="t-body">연결됨</span></div>`;
+  let toast = '';
+  if (o.toast === 'lock')   toast = `<div class="a toast lock">${ico('i-lock')}<span class="t-body">제스처·음성 잠김</span></div>`;
+  if (o.toast === 'unlock') toast = `<div class="a toast lock">${ico('i-lock')}<span class="t-body">제스처·음성 풀림</span></div>`;
+  if (o.toast === 'ok')     toast = `<div class="a toast ok">${ico('i-ble')}<span class="t-body">연결됨</span></div>`;
+  if (o.toast === 'bat')    toast = `<div class="a toast bat">${battery(8).split('<div')[0].replace('a bat', '')}<span class="t-body">배터리 부족</span></div>`;
+  let sheet = '';
+  if (o.sheet) {
+    const dis = o.conn === 'off';
+    const rs = !dis && o.show !== 1 ? 'rec' : '', re = !dis && o.show === 1 ? 'rec' : '';
+    sheet = `<div class="a scrim" data-hit="scrim"></div>
+      <div class="a sheet">
+        <div class="a ttl t-heading c">슬라이드 쇼</div>
+        <div class="a sbtn start ${dis ? 'dis' : rs} ${o.sheetPress === 'start' ? 'press' : ''}" data-hit="start">${ico('i-play', '')}<div class="a lbl t-body">쇼 시작</div><div class="a key t-caption mono">F5</div></div>
+        <div class="a sbtn stop ${dis ? 'dis' : re} ${o.sheetPress === 'stop' ? 'press' : ''}" data-hit="stop">${ico('i-stop', '')}<div class="a lbl t-body">쇼 종료</div><div class="a key t-caption mono">Esc</div></div>
+        <div class="a grab"></div>
+      </div>`;
+  }
+  const title = o.title != null ? `<div class="a modetitle t-title c ${o.staticFx ? 'static' : ''}">${MODES[o.mode].name}</div>` : '';
+  return `<div class="wc-screen" data-mode="${MODES[o.mode].id}" role="img" aria-label="${o.label || '시계 화면'}">
+    ${panels}${air}${dots(o.mode)}${statusBar(o)}${banner}${toast}${sheet}${title}</div>`;
+}
+
+/* ===== 상태줄 변형 ===== */
+const strips = [
+  ['기본 · 연결됨 · 82%', { bat: 82 }],
+  ['배터리 15% (경고 노랑)', { bat: 15 }],
+  ['배터리 8% (위험 빨강)', { bat: 8 }],
+  ['충전 중 64%+', { bat: 64, chg: true }],
+  ['제스처·음성 잠금', { lock: true }],
+  ['연결 끊김 (BLE 점멸, 모드 이름 흐림)', { conn: 'off' }],
+  ['코딩 모드', { mode: 1 }],
+  ['회의 모드', { mode: 2 }],
+];
+document.getElementById('strips').innerHTML = strips.map(([t, o]) => {
+  o = Object.assign({ mode: 0, conn: 'on' }, o);
+  return `<div class="strip-row"><div class="wc-screen" data-mode="${MODES[o.mode].id}" style="height:56px;border-radius:28px 28px 0 0">${statusBar(o)}</div><span>${t}</span></div>`;
+}).join('');
+
+/* ===== 갤러리 ===== */
+const S = { staticFx: true };
+const gallery = [
+  ['A. 기본 — 쇼 진행 중', '경과 시간 display 112px, 상태 라벨 y152, 탭 힌트 y418, 모드 점 y466. 음성 띠는 “키트” 대기(정지 화면).', { show: 1 }],
+  ['B. 쇼 시작 전', '00:00 은 --wc-text-3. F5(시트) 또는 첫 다음/이전 전송 때 시작.', { show: 0, time: '00:00' }],
+  ['C. 오른쪽 탭 → 다음(→)', '오른쪽 영역 290~410 전체에 --wc-accent-dim, 400ms 동안 사라짐. 측면 버튼·튕김·음성 “다음”도 같은 플래시. (정지 화면에선 시작 프레임)', { flash: 'r-static' }],
+  ['D. 가운데 길게 누름 진행 (300ms 시점)', '중앙 120~290 면이 600ms 동안 0→1. 떼거나 16px 움직이면 160ms에 취소.', { hold: .5 }],
+  ['E. 암전 중 (B 보냄)', '칩 135,330,140,44 · surface-2 · accent 글자. 중앙 힌트가 “길게 · 복귀”. 다음/이전/Esc 보내면 칩 자동 해제.', { blackout: true }],
+  ['F. 에어마우스 (측면 버튼 누른 채)', '시간·힌트 숨김. 링 중심 205,260 지름 160 · 3px accent. 화면 아무 곳 탭 = 왼쪽 클릭.', { air: true }],
+  ['G. 버튼 2초 가만히 → 잠금 판정', '1000ms부터 링이 --wc-locked 로 교차 페이드, 2000ms에 잠금 토글. 손목을 움직이면 취소.', { air: 'lock' }],
+  ['H. 아래로 스와이프 시트', '0,0,410,240 · surface-2. 버튼 171×120. 쇼 진행 중이라 “쇼 종료”가 권장(dim 면). 3초 무입력 자동 닫힘.', { sheet: true }],
+  ['I. 음성 — “키트” 인식, 명령 듣는 중', '띠가 accent-dim 으로 켜지고 아래 진행선이 3000ms 동안 줄어든다.', { voice: 'listen' }],
+  ['J. 음성 — “다음” 인식', '띠 “다음 →” + 오른쪽 영역 플래시, 600ms 후 대기로. “다음” 단독은 아무 반응 없음.', { voice: 'sent', flash: 'r-static' }],
+  ['K. 잠금 토글 순간', '상태줄 자물쇠(보라) 상시. 음성 띠 숨김. 터치·버튼은 그대로라 본문은 흐리지 않음. 토스트 1600ms.', { lock: true, toast: 'lock' }],
+  ['L. 연결 끊김 (사용 중)', '배너 16,414,378,72. 시간은 흐르되 text-3. 입력은 보내지도 쌓지도 않고 배너만 흔들림.', { conn: 'off', voice: 'idle' }],
+  ['M. 재연결', '배너가 초록 점 + “연결됨”으로 바뀌고 1600ms 후 사라짐.', { conn: 're' }],
+  ['N. 연결 대기 (부팅 후 미연결)', '전체화면. 큰 아이콘 96px은 점멸하지 않음(상태줄 아이콘만 점멸).', { conn: 'wait' }],
+  ['O. 모드 전환 — 손가락 따라오기', '본문만 1:1로 이동(여기선 −160px). 상태줄·모드 점은 고정. 손 떼면 280ms ease-out.', { drag: -160 }],
+  ['P. 모드 전환 확정 직후', '새 모드 이름 title 40px · 새 accent, 화면 가운데 600ms 후 사라짐. 상태줄 이름·점 120ms 교차 페이드.', { mode: 1, title: true }],
+  ['Q. 배터리 10% 이하 첫 진입', '1회 토스트. 상태줄 배터리 빨강.', { bat: 8, toast: 'bat' }],
+];
+document.getElementById('gallery').innerHTML = gallery.map(([t, d, o]) => {
+  const opts = Object.assign({}, S, o, { label: t });
+  if (opts.flash === 'r-static') opts.flash = null, opts._rflash = true;
+  let html = screen(opts);
+  if (opts._rflash) html = html.replace('class="a zone r "', 'class="a zone r " style="opacity:1"');
+  return `<figure>${html}<figcaption><b>${t}</b>${d}</figcaption></figure>`;
+}).join('');
+
+document.getElementById('guideToggle').addEventListener('change', e => document.body.classList.toggle('guides', e.target.checked));
+
+/* ===== 놀이터 ===== */
+const st = { mode: 0, show: 0, sec: 0, conn: 'on', lock: false, blackout: false, voice: 'idle', air: false, sheet: false, bat: 82, chg: false };
+const live = document.getElementById('live');
+const logEl = document.getElementById('log');
+let toastT, voiceT, sheetT;
+
+function log(text, cls = 'key') {
+  const d = new Date();
+  const ts = d.toTimeString().slice(0, 8);
+  logEl.insertAdjacentHTML('afterbegin', `<div class="${cls}">${ts}  ${text}</div>`);
+}
+const fmt = s => { s = Math.min(s, 99 * 60 + 59); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+const clock = () => new Date().toTimeString().slice(0, 5);
+
+function render(extra = {}) {
+  live.innerHTML = screen(Object.assign({}, st, { time: fmt(st.sec), clock: clock(), label: '조작 가능한 시계 화면' }, extra));
+}
+setInterval(() => {
+  if (st.show === 1) { st.sec++; const t = live.querySelector('.panel:nth-child(2) .timer'); if (t) t.textContent = fmt(st.sec); }
+}, 1000);
+
+function flash(side) {
+  const z = live.querySelector(`.panel:nth-child(2) .zone.${side}`);
+  if (!z) return;
+  z.classList.remove('flash'); void z.offsetWidth; z.classList.add('flash');
+}
+function shake() {
+  const b = live.querySelector('.banner');
+  if (b) { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); }
+}
+function showToast(kind) {
+  clearTimeout(toastT);
+  render({ toast: kind });
+  toastT = setTimeout(() => render(), 1600 + 200);
+}
+
+/* 키 전송 — 끊김이면 버린다 */
+function send(dir, via) {
+  if (st.conn !== 'on') { log(`버림: ${dir === 'r' ? '→' : '←'} (${via}) — 연결 끊김`, 'drop'); shake(); return false; }
+  if (st.show === 0) { st.show = 1; st.sec = 0; log('경과 시간 자동 시작', 'sys'); }
+  const hadBlack = st.blackout; st.blackout = false;
+  if (hadBlack) render();
+  log(`키 ${dir === 'r' ? '→ 다음' : '← 이전'} (${via})`);
+  flash(dir === 'r' ? 'r' : 'l');
+  return true;
+}
+
+/* --- 터치 --- */
+let p = null, holdT = null;
+function local(e) { const r = live.firstElementChild.getBoundingClientRect(); const k = r.width / 410; return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k }; }
+
+live.addEventListener('pointerdown', e => {
+  const { x, y } = local(e);
+  live.setPointerCapture(e.pointerId);
+  p = { x0: x, y0: y, t0: performance.now(), dx: 0, dy: 0, drag: false, fromBar: y < 56 && !st.sheet, hit: e.target.closest('[data-hit]')?.dataset.hit };
+  if (st.sheet) {
+    clearTimeout(sheetT);
+    if (p.hit === 'start' || p.hit === 'stop') {
+      if (st.conn !== 'on') { log(`버림: ${p.hit === 'start' ? 'F5' : 'Esc'} — 연결 끊김`, 'drop'); return; }
+      render({ sheetPress: p.hit });
+      if (p.hit === 'start') { st.show = 1; st.sec = 0; st.blackout = false; log('키 F5 쇼 시작'); }
+      else { st.show = 2; st.blackout = false; log('키 Esc 쇼 종료'); }
+      setTimeout(() => { st.sheet = false; render(); }, 400);
+    } else if (p.hit === 'scrim') { st.sheet = false; render(); }
+    p = null; return;
+  }
+  if (st.air) {
+    log('마우스 왼쪽 클릭', 'mouse');
+    const f = live.querySelector('.ring .fill'), ring = live.querySelector('.ring');
+    if (f) { f.classList.remove('flash'); void f.offsetWidth; f.classList.add('flash'); }
+    if (ring) { ring.classList.add('press'); setTimeout(() => ring.classList.remove('press'), 80); }
+    p = null; return;
+  }
+  if (st.mode === 0 && st.conn !== 'wait' && x >= 120 && x < 290 && y >= 64) {
+    const z = live.querySelector('.panel:nth-child(2) .zone.m');
+    z.classList.remove('cancel'); void z.offsetWidth; z.classList.add('holding');
+    holdT = setTimeout(() => {
+      holdT = null; p && (p.held = true);
+      z.classList.remove('holding');
+      if (st.conn !== 'on') { log('버림: B — 연결 끊김', 'drop'); shake(); z.style.opacity = 0; return; }
+      st.blackout = !st.blackout;
+      log(`키 B (${st.blackout ? '암전' : '복귀'})`);
+      render(); flash('m');
+    }, 600);
+  }
+});
+
+function cancelHold() {
+  if (!holdT) return;
+  clearTimeout(holdT); holdT = null;
+  const z = live.querySelector('.panel:nth-child(2) .zone.m');
+  if (z) { z.classList.remove('holding'); z.classList.add('cancel'); }
+}
+
+live.addEventListener('pointermove', e => {
+  if (!p) return;
+  const { x, y } = local(e);
+  p.dx = x - p.x0; p.dy = y - p.y0;
+  if (Math.hypot(p.dx, p.dy) > 16) cancelHold();
+  if (p.fromBar && p.dy > 0) {
+    if (!st.sheet) { st.sheet = true; render(); }
+    const s = live.querySelector('.sheet'), sc = live.querySelector('.scrim');
+    const off = Math.min(0, -240 + p.dy * 2);
+    s.style.transform = `translateY(${off}px)`; sc.style.opacity = (240 + off) / 240;
+    return;
+  }
+  if (!p.fromBar && (p.drag || Math.abs(p.dx) > 16 && Math.abs(p.dx) > Math.abs(p.dy))) {
+    p.drag = true;
+    live.querySelector('.track').style.transform = `translateX(${-410 + p.dx}px)`;
+  }
+});
+
+live.addEventListener('pointerup', () => {
+  if (!p) return;
+  const dt = performance.now() - p.t0;
+  if (p.fromBar && st.sheet) {
+    const s = live.querySelector('.sheet'), sc = live.querySelector('.scrim');
+    s.style.transition = sc.style.transition = 'transform var(--wc-motion-base) var(--wc-ease-out), opacity var(--wc-motion-base)';
+    if (p.dy >= 60) { s.style.transform = 'translateY(0)'; sc.style.opacity = 1; log('쇼 시트 열림 (3초 무입력 시 닫힘)', 'sys'); armSheet(); }
+    else { s.style.transform = 'translateY(-240px)'; sc.style.opacity = 0; setTimeout(() => { st.sheet = false; render(); }, 200); }
+  } else if (p.drag) {
+    const tr = live.querySelector('.track');
+    const ok = Math.abs(p.dx) >= 80 && Math.abs(p.dy) < 60;
+    if (ok) {
+      tr.classList.add('anim'); tr.style.transform = `translateX(${p.dx < 0 ? -820 : 0}px)`;
+      const nm = (st.mode + (p.dx < 0 ? 1 : 2)) % 3;
+      setTimeout(() => { st.mode = nm; render({ title: true }); log(`모드 → ${MODES[nm].name}`, 'sys'); }, 280);
+    } else { tr.classList.add('back'); tr.style.transform = 'translateX(-410px)'; }
+  } else if (holdT) {
+    cancelHold();
+    if (Math.hypot(p.dx, p.dy) < 16 && dt < 600) {/* 중앙 짧은 탭: 무시 */}
+  } else if (!p.held && st.mode === 0 && st.conn !== 'wait' && p.y0 >= 64 && Math.hypot(p.dx, p.dy) < 16 && dt < 600) {
+    if (p.x0 < 120) send('l', '왼쪽 탭');
+    else if (p.x0 >= 290) send('r', '오른쪽 탭');
+  }
+  p = null;
+});
+
+function armSheet() { clearTimeout(sheetT); sheetT = setTimeout(() => { if (st.sheet) { st.sheet = false; render(); log('쇼 시트 자동 닫힘', 'sys'); } }, 3000); }
+
+/* --- 측면 버튼 --- */
+let sb = null;
+function sideDown() {
+  if (sb) return;
+  sb = { t0: performance.now() };
+  sb.airT = setTimeout(() => {
+    if (st.mode === 0 && st.conn !== 'wait') { st.air = true; render(); log('에어마우스 시작', 'mouse'); }
+  }, 250);
+  sb.lockPendT = setTimeout(() => { if (st.air) render({ air: 'lock' }); }, 1000);
+  sb.lockT = setTimeout(() => { sb.locked = true; toggleLock('측면 버튼 2초'); if (st.air) render({ air: 'lock', toast: st.lock ? 'lock' : 'unlock' }); }, 2000);
+}
+function sideUp() {
+  if (!sb) return;
+  clearTimeout(sb.airT); clearTimeout(sb.lockPendT); clearTimeout(sb.lockT);
+  const dt = performance.now() - sb.t0;
+  if (st.air) { st.air = false; render(); log('에어마우스 끝 (커서 즉시 정지)', 'mouse'); if (sb.locked) showToast(st.lock ? 'lock' : 'unlock'); }
+  else if (dt < 250 && st.mode === 0) send('r', '측면 버튼');
+  sb = null;
+}
+const btn = document.getElementById('sideBtn');
+btn.addEventListener('pointerdown', e => { e.preventDefault(); sideDown(); });
+btn.addEventListener('pointerup', sideUp);
+btn.addEventListener('pointerleave', sideUp);
+
+/* --- 잠금·음성·연결 --- */
+function toggleLock(via) {
+  st.lock = !st.lock;
+  if (st.lock) { st.voice = 'idle'; clearTimeout(voiceT); }
+  log(`제스처·음성 ${st.lock ? '잠김' : '풀림'} (${via})`, 'sys');
+  if (!sb || !st.air) showToast(st.lock ? 'lock' : 'unlock');
+}
+function wake() {
+  if (st.lock) { log('음성 무시: 잠금 중', 'sys'); return; }
+  if (st.mode !== 0 || st.conn === 'wait') { log('음성 무시: 발표 모드 아님', 'sys'); return; }
+  st.voice = 'listen'; render(); log('호출어 “키트” 인식 — 3초 동안 명령 대기', 'sys');
+  clearTimeout(voiceT); voiceT = setTimeout(() => { st.voice = 'idle'; render(); log('명령 시간 초과', 'sys'); }, 3000);
+}
+function say() {
+  if (st.voice !== 'listen') { log('“다음” 단독 — 무시(호출어 없음)', 'sys'); return; }
+  clearTimeout(voiceT);
+  if (st.conn === 'on') { st.voice = 'sent'; render(); send('r', '음성'); }
+  else { st.voice = 'nosend'; render(); log('버림: → (음성) — 연결 끊김', 'drop'); }
+  voiceT = setTimeout(() => { st.voice = 'idle'; render(); }, 600);
+}
+function toggleConn() {
+  if (st.conn === 'on') { st.conn = 'off'; render(); log('BLE 연결 끊김', 'sys'); return; }
+  const wasWait = st.conn === 'wait';
+  st.conn = wasWait ? 'on' : 're'; render(); log('BLE 연결됨', 'sys');
+  if (wasWait) showToast('ok');
+  else setTimeout(() => { st.conn = 'on'; render(); }, 1600);
+}
+const bats = [[82, false], [15, false], [8, false], [64, true]]; let bi = 0;
+
+document.querySelector('.panel-ui .btns').addEventListener('click', e => {
+  const a = e.target.closest('button')?.dataset.act;
+  if (a === 'wake') wake();
+  if (a === 'say') say();
+  if (a === 'lock') toggleLock('버튼');
+  if (a === 'conn') toggleConn();
+  if (a === 'boot') { st.conn = 'wait'; st.show = 0; st.sec = 0; st.voice = 'idle'; render(); log('부팅 — 연결 대기', 'sys'); }
+  if (a === 'bat') { bi = (bi + 1) % bats.length; [st.bat, st.chg] = bats[bi]; if (st.bat <= 10 && !st.chg) showToast('bat'); else render(); }
+});
+addEventListener('keydown', e => {
+  if (e.target.matches('input, textarea')) return;
+  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) sideDown(); }
+  if (e.repeat) return;
+  const k = e.key.toLowerCase();
+  if (k === 'v') wake();
+  if (k === 'n') say();
+  if (k === 'l') toggleLock('키보드');
+  if (k === 'd') toggleConn();
+});
+addEventListener('keyup', e => { if (e.code === 'Space') sideUp(); });
+
+render();
+log('놀이터 준비됨 — 화면을 눌러 보세요', 'sys');
+</script>
+</body>
+</html>

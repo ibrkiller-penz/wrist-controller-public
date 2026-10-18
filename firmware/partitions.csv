@@ -1,0 +1,13 @@
+# 손목 컨트롤러 파티션 표 — 16MB 플래시 기준(ESP32-C6 실물 16MB, C6 외장 플래시 최대 16MB).
+# 사용 범위 0x0~0x510000(약 5.1MB). 나머지는 비워 둔다. 부트로더 0x0, 파티션 표 0x8000.
+# 주의(firmware-stack.md 7장): 웹 설치에서 '지우지 않음'을 골라도 페어링(NVS)이 남으려면
+# 이 표는 v0.1.0 에서 확정하고 이후 바꾸지 않는다. OTA 는 1차 범위 밖이라 앱 파티션은 하나.
+# 크기 확인(2026-10-16, STEP2 화면+STEP3 BLE HID): 앱 1,268,208B = factory 4MB 의 30% → 키우지 않는다.
+# 2026-10-17: 음성 기능을 빼면서 'model'(0x10000, 512KB) 파티션을 없애고 STEP8 이전 배치로 되돌렸다
+#   (factory 0x90000 → 0x10000, storage 0x490000 → 0x410000). 오프셋이 바뀌므로 합친 이미지를 0x0 에 통째로 쓴다(README).
+#   NVS(페어링)는 0x9000 그대로라 유지된다. 아직 v0.1.0 전이라 바꿨다 — v0.1.0 부터는 이 표를 고정한다.
+# Name,    Type, SubType, Offset,   Size,     Flags
+nvs,       data, nvs,     0x9000,   0x6000,
+phy_init,  data, phy,     0xf000,   0x1000,
+factory,   app,  factory, 0x10000,  0x400000,
+storage,   data, spiffs,  0x410000, 0x100000,

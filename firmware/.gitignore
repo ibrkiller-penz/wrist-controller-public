@@ -1,0 +1,10 @@
+# ESP-IDF 빌드 산출물
+build/
+managed_components/
+sdkconfig
+sdkconfig.old
+dependencies.lock
+# CI 가 태그에서 만든다
+version.txt
+# 호스트 테스트 빌드
+test/build/

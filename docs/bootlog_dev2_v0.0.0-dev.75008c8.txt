@@ -1,0 +1,101 @@
+I (433) wc: [메모리 부팅] 내부 RAM 여유 356432 B, 최대 블록 327680 B, 최저 여유 356432 B, DMA 여유 341828 B
+I (443) wc: 모드 clock, OS win, 장치 이름 '손목 컨트롤러 D7C2'
+I (443) LVGL: Starting LVGL task
+I (443) ESP32-C6-Touch-AMOLED-2.06: Initialize SPI bus
+I (444) sh8601: LCD panel create success, version: 2.0.0
+E (767) sh8601: swap_xy is not supported by this panel
+I (794) wc_ui: LVGL 그리기 버퍼 40줄 × 2 = 65600바이트(DMA 내부 RAM)
+W (1115) i2c.master: Please check pull-up resistances whether be connected properly. Otherwise unexpected behavior would happen. For more detailed information, please read docs
+I (1117) wc_ui: 터치 FT3168 초기화 완료(INT 구동 읽기)
+I (1145) wc: [메모리 화면 후] 내부 RAM 여유 254488 B, 최대 블록 237568 B, 최저 여유 254292 B, DMA 여유 239884 B
+I (1359) wc_ui: 화면 객체 생성 완료
+I (1359) wc: [메모리 UI 후] 내부 RAM 여유 229520 B, 최대 블록 212992 B, 최저 여유 228192 B, DMA 여유 214916 B
+I (1360) BLE_INIT: Using main XTAL as clock source, chip ver: 2
+I (1360) BLE_INIT: ble controller commit:[4adb29e,7f63735]
+I (1365) BLE_INIT: Bluetooth MAC: 98:a3:16:a5:d7:c2
+I (1365) phy_init: phy_version 344,0b4366d,Apr 10 2026,13:53:11
+I (1439) phy: libbtbb version: e4897a5, Apr 10 2026, 13:53:26
+I (1444) wc_ble: NimBLE 호스트 태스크 시작
+I (1447) NimBLE: GAP procedure initiated: stop advertising.
+
+I (1447) wc_ble: HID 시작
+I (1448) wc_ble: BLE HID 초기화 완료(맵 144바이트)
+I (1448) wc: [메모리 BLE 후] 내부 RAM 여유 183868 B, 최대 블록 167936 B, 최저 여유 183748 B, DMA 여유 169264 B
+I (1449) NimBLE: GAP procedure initiated: advertise; 
+I (1449) NimBLE: disc_mode=2
+I (1449) NimBLE:  adv_channel_map=0 own_addr_type=0 adv_filter_policy=0 adv_itvl_min=48 adv_itvl_max=80
+I (1450) NimBLE: 
+
+I (1451) wc_ble: 광고 시작 '손목 컨트롤러 D7C2'
+I (1471) wc_imu: QMI8658 주소 0x6B, 자이로 ±1024 dps(32.0 LSB/dps), 가속도 ±4g, ~125Hz
+I (1472) wc: 직렬 명령 받기 준비(USB-Serial/JTAG 드라이버)
+I (1473) MODEL_LOADER: The storage free size is 6400 KB
+I (1473) MODEL_LOADER: The partition size is 512 KB
+I (1474) MODEL_LOADER: Successfully load srmodels
+Quantized wakenet9s: wakenet9_tts2h12_Hi,ESP_3_0.630_0.635, tigger:v4, mode:1, p:0
+I (1531) ES7210: Work in Slave mode
+I (1538) ES7210: Enable ES7210_INPUT_MIC1
+I (1541) ES7210: Enable ES7210_INPUT_MIC2
+I (1546) wc_voice: WakeNet 'wn9s_hiesp' 준비(내부 RAM 34496 B 사용, 덩어리 1024 B)
+I (1547) wc: [메모리 음성 후] 내부 RAM 여유 125740 B, 최대 블록 108544 B, 최저 여유 125740 B, DMA 여유 111136 B
+I (1601) wc_vnext: 준비 완료: 등록본 0개, 메모리(정적) 약 15030 B
+I (1602) wc: [메모리 next 목소리 후] 내부 RAM 여유 117456 B, 최대 블록 100352 B, 최저 여유 117456 B, DMA 여유 102852 B
+I (1603) wc_pmu: AXP2101 찾음
+I (1603) wc_pmu: 배터리 감지 이미 켜짐(0x68=0x01)
+I (1604) wc_pmu: 연료계 이미 켜짐(0x18=0x0A)
+I (1604) wc_pmu: 배터리 전압 ADC 이미 켜짐(0x30=0x03)
+I (1605) wc_rtc: PCF85063A 찾음
+W (1606) wc: RTC 시각 없음 — 설치 페이지 '시계 시간 맞추기' 또는 직렬 t 로 맞추세요
+I (1607) main_task: Returned from app_main()
+I (1607) wc_pmu: 원값 0x00=0x20(배터리 있음 0) 0x01=0x15(충전 방향 0) 0xA4=0
+W (1608) wc: 배터리 % 를 읽지 못함 — BLE 배터리 값 50 로 보냄
+I (6656) wc_pmu: 원값 0x00=0x20(배터리 있음 0) 0x01=0x15(충전 방향 0) 0xA4=0
+W (11627) wc_ui: 터치 I2C 실패 0회(확인 읽기 7회), 칩 리셋 0회 — 최근 10초, 실패는 '터치 없음'으로 처리
+I (11656) wc_pmu: 원값 0x00=0x20(배터리 있음 0) 0x01=0x15(충전 방향 0) 0xA4=0
+I (101) esp_image: segment 1: paddr=000f170c vaddr=40800000 sizeE (773) sh8601: swap_xy is not supported by this panel
+I (800) wc_ui: LVGL 그리기 버퍼 40줄 × 2 = 65600바이트(DMA 내부 RAM)
+W (1121) i2c.master: Please check pull-up resistances whether be connected properly. Otherwise unexpected behavior would happen. For more detailed information, please read docs
+I (1123) wc_ui: 터치 FT3168 초기화 완료(INT 구동 읽기)
+I (1151) wc: [메모리 화면 후] 내부 RAM 여유 254448 B, 최대 블록 237568 B, 최저 여유 254252 B, DMA 여유 239844 B
+I (1365) wc_ui: 화면 객체 생성 완료
+I (1365) wc: [메모리 UI 후] 내부 RAM 여유 229480 B, 최대 블록 212992 B, 최저 여유 228152 B, DMA 여유 214876 B
+I (1366) BLE_INIT: Using main XTAL as clock source, chip ver: 2
+I (1366) BLE_INIT: ble controller commit:[4adb29e,7f63735]
+I (1371) BLE_INIT: Bluetooth MAC: 98:a3:16:a5:d7:c2
+I (1371) phy_init: phy_version 344,0b4366d,Apr 10 2026,13:53:11
+I (1446) phy: libbtbb version: e4897a5, Apr 10 2026, 13:53:26
+I (1450) wc_ble: NimBLE 호스트 태스크 시작
+I (1453) NimBLE: GAP procedure initiated: stop advertising.
+
+I (1454) wc_ble: HID 시작
+I (1454) wc_ble: BLE HID 초기화 완료(맵 144바이트)
+I (1454) wc: [메모리 BLE 후] 내부 RAM 여유 183852 B, 최대 블록 167936 B, 최저 여유 183708 B, DMA 여유 169248 B
+I (1455) NimBLE: GAP procedure initiated: advertise; 
+I (1456) NimBLE: disc_mode=2
+I (1456) NimBLE:  adv_channel_map=0 own_addr_type=0 adv_filter_policy=0 adv_itvl_min=48 adv_itvl_max=80
+I (1456) NimBLE: 
+
+I (1457) wc_ble: 광고 시작 '손목 컨트롤러 D7C2'
+I (1476) wc_imu: QMI8658 주소 0x6B, 자이로 ±1024 dps(32.0 LSB/dps), 가속도 ±4g, ~125Hz
+I (1477) wc: 직렬 명령 받기 준비(USB-Serial/JTAG 드라이버)
+I (1478) MODEL_LOADER: The storage free size is 6400 KB
+I (1478) MODEL_LOADER: The partition size is 512 KB
+I (1479) MODEL_LOADER: Successfully load srmodels
+Quantized wakenet9s: wakenet9_tts2h12_Hi,ESP_3_0.630_0.635, tigger:v4, mode:1, p:0
+I (1536) ES7210: Work in Slave mode
+I (1543) ES7210: Enable ES7210_INPUT_MIC1
+I (1546) ES7210: Enable ES7210_INPUT_MIC2
+I (1551) wc_voice: WakeNet 'wn9s_hiesp' 준비(내부 RAM 34488 B 사용, 덩어리 1024 B)
+I (1552) wc: [메모리 음성 후] 내부 RAM 여유 125708 B, 최대 블록 108544 B, 최저 여유 125708 B, DMA 여유 111104 B
+I (1606) wc_vnext: 준비 완료: 등록본 0개, 메모리(정적) 약 15030 B
+I (1607) wc: [메모리 next 목소리 후] 내부 RAM 여유 117424 B, 최대 블록 100352 B, 최저 여유 117372 B, DMA 여유 102820 B
+I (1608) wc_pmu: AXP2101 찾음
+I (1608) wc_pmu: 배터리 감지 이미 켜짐(0x68=0x01)
+I (1609) wc_pmu: 연료계 이미 켜짐(0x18=0x0A)
+I (1609) wc_pmu: 배터리 전압 ADC 이미 켜짐(0x30=0x03)
+I (1610) wc_rtc: PCF85063A 찾음
+I (1611) wc: RTC 시각 1792213228 (UTC+540분)
+I (1612) main_task: Returned from app_main()
+I (1612) wc_pmu: 원값 0x00=0x20(배터리 있음 0) 0x01=0x15(충전 방향 0) 0xA4=0
+W (1613) wc: 배터리 % 를 읽지 못함 — BLE 배터리 값 50 로 보냄
+I (6661) wc_pmu: 원값 0x00=0x20(배터리 있음 0) 0x01=0x15(충전 방향 0) 0xA4=0

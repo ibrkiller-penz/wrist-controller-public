@@ -1,0 +1,96 @@
+/* HID 로그 스타일 — 담당: pc 모듈. 클래스 접두사: .log-*  (명세: design/simulator-layout.md 6장) */
+
+@media (min-width: 1280px) {
+  .log-root { position: sticky; top: 72px; }
+}
+
+.log-panel {
+  display: flex; flex-direction: column; min-width: 0;
+  height: calc(100vh - 88px); max-height: 960px; min-height: 320px;
+  background: var(--sim-surface); border: 1px solid var(--sim-border); border-radius: var(--sim-radius-lg, 16px); overflow: hidden;
+}
+@media (max-width: 1279px) { .log-panel { height: 320px; min-height: 0; } }
+@media (max-width: 767px)  { .log-panel { height: 360px; } }
+
+.log-spacer { flex: 1; }
+
+/* 헤더 44 */
+.log-panel__head { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 12px 6px 16px; background: var(--sim-surface-2); border-bottom: 1px solid var(--sim-border); flex-wrap: wrap; }
+.log-panel__title { margin: 0; font-size: 14px; font-weight: 700; }
+.log-count { font-size: var(--sim-text-size-sm, 12px); color: var(--sim-text-2); font-variant-numeric: tabular-nums; }
+.log-btn {
+  height: 28px; padding: 0 8px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--sim-text-1);
+  font-size: var(--sim-text-size-sm, 12px); cursor: pointer; white-space: nowrap;
+  transition: transform var(--wc-motion-release), background var(--wc-motion-release);
+}
+.log-btn:hover { background: var(--sim-surface); border-color: var(--sim-border); }
+.log-btn:active { transform: scale(0.96); transition-duration: var(--wc-motion-press); }
+.log-btn[aria-pressed="true"] { background: var(--sim-surface); border-color: var(--sim-border); font-weight: 600; }
+
+/* 필터 칩 */
+.log-filters { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--sim-border); flex-wrap: wrap; }
+.log-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px;
+  border: 1px solid var(--sim-border); background: var(--sim-surface); color: var(--sim-text-2); font-size: var(--sim-text-size-sm, 12px); cursor: pointer;
+}
+.log-chip i { width: 8px; height: 8px; border-radius: 2px; background: currentColor; }
+.log-chip[data-f="key"] i { background: var(--sim-log-key); }
+.log-chip[data-f="mouse"] i { background: var(--sim-log-mouse); }
+.log-chip[data-f="media"] i { background: var(--sim-log-media); }
+.log-chip[data-f="sys"] i { background: var(--sim-log-system); }
+.log-chip[aria-pressed="true"] { background: var(--sim-surface-2); color: var(--sim-text-1); font-weight: 600; }
+
+/* 열 제목 + 행: 84 · 64 · 1fr · 44 */
+.log-cols, .log-row { display: grid; grid-template-columns: 84px 64px minmax(0, 1fr) 44px; gap: 8px; align-items: center; padding: 0 12px 0 9px; }
+.log-cols { height: 28px; color: var(--sim-text-3); font-size: 11px; border-bottom: 1px solid var(--sim-border); border-left: 3px solid transparent; }
+
+.log-body { position: relative; flex: 1; min-height: 0; display: flex; }
+.log-list { flex: 1; min-height: 0; margin: 0; padding: 0; list-style: none; overflow: auto; font-size: 13px; }
+.log-row { min-height: 28px; border-left: 3px solid var(--row-c); border-bottom: 1px solid var(--sim-border); }
+.log-row.is-new { animation: log-row-in var(--wc-motion-base) var(--wc-ease-out); }
+@keyframes log-row-in { from { background: var(--sim-surface-2); } }
+.log-row__tm { color: var(--sim-text-3); font: 12px var(--sim-font-mono); font-variant-numeric: tabular-nums; }
+.log-row__ty { justify-self: start; height: 20px; padding: 0 6px; border-radius: 4px; border: 1px solid var(--row-c); color: var(--row-c); font: 700 10px/18px var(--sim-font-mono); letter-spacing: 0.04em; }
+.log-row__ct { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--sim-font-mono); color: var(--sim-text-1); }
+.log-row__sub { font-style: normal; color: var(--sim-text-3); }
+.log-row__src { color: var(--sim-text-3); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-row[data-t="key"]   { --row-c: var(--sim-log-key); }
+.log-row[data-t="mouse"] { --row-c: var(--sim-log-mouse); }
+.log-row[data-t="media"] { --row-c: var(--sim-log-media); }
+.log-row[data-t="sys"]   { --row-c: var(--sim-log-system); }
+.log-row[data-dropped="true"] { --row-c: var(--sim-log-dropped); }
+.log-row[data-dropped="true"] .log-row__main,
+.log-row[data-dropped="true"] .log-row__sub { text-decoration: line-through; color: var(--sim-text-3); }
+.log-row__drop { color: var(--sim-log-dropped); font: 700 11px var(--sim-font-family); margin-left: 6px; }
+
+/* 종류 필터 */
+.log-list[data-filter="key"]   .log-row:not([data-t="key"]),
+.log-list[data-filter="mouse"] .log-row:not([data-t="mouse"]),
+.log-list[data-filter="media"] .log-row:not([data-t="media"]),
+.log-list[data-filter="sys"]   .log-row:not([data-t="sys"]) { display: none; }
+
+/* 새 기록 N건 ↓ */
+.log-more {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  height: 28px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--sim-border);
+  background: var(--sim-surface); color: var(--sim-text-1); box-shadow: var(--sim-shadow);
+  font-size: var(--sim-text-size-sm, 12px); font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.log-more[hidden] { display: none; }
+
+/* 하단 32 */
+.log-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; padding: 6px 12px; border-top: 1px solid var(--sim-border); color: var(--sim-text-3); font-size: var(--sim-text-size-sm, 12px); }
+.log-auto { white-space: nowrap; }
+.log-auto b { color: var(--sim-log-media); }
+.log-auto[data-on="false"] b { color: var(--sim-text-3); }
+.log-panel[data-paused="true"] .log-auto b { color: var(--sim-log-key); }
+
+@media (max-width: 767px) {
+  .log-btn, .log-chip { height: 36px; }
+  .log-cols, .log-row { grid-template-columns: 76px 56px minmax(0, 1fr) 40px; gap: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .log-row.is-new { animation: none !important; }
+  .log-btn { transition: none !important; }
+}

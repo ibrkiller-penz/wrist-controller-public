@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="손목 컨트롤러 따라 하기 — Waveshare ESP32-C6 2.06 AMOLED 시계를 발표·실행·회의 리모컨으로 만드는 단계별 안내(백업, 설치, 페어링, 사용법, 문제 해결)" />
+    <title>손목 컨트롤러 따라 하기</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#000000" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="손목컨트롤러" />
+  </head>
+  <body>
+    <!--
+      따라 하기 안내서. 대상: 시계를 산 교사·학생(코딩 초보). 문구는 쉬운 한국어로.
+      data-g="경로" data-v="값" 이 붙은 숫자는 shared/gesture.json 값과 같아야 한다(src/guide/guide.test.ts 가 검사).
+      판정값을 바꾸면 이 파일의 숫자도 함께 고친다.
+    -->
+    <main class="gd-main">
+      <p class="gd-nav"><a href="./index.html">← 시뮬레이터</a><a href="./install.html">시계에 설치</a></p>
+      <h1 class="gd-title">손목 컨트롤러 따라 하기</h1>
+      <p class="gd-lead">손목시계 하나로 PC 의 발표 슬라이드를 넘기고, 앱을 열고, 화상 회의 마이크를 끕니다. 코딩을 몰라도 이 순서대로 하면 됩니다. PC 에 따로 설치할 프로그램은 없습니다(바로 가기 키 설정만 한 번).</p>
+
+      <nav class="gd-toc" aria-label="차례">
+        <strong>차례</strong>
+        <ol>
+          <li><a href="#what">무엇을 만드나</a></li>
+          <li><a href="#need">준비물</a></li>
+          <li><a href="#s1">1단계 원래 펌웨어 백업</a></li>
+          <li><a href="#s2">2단계 펌웨어 설치</a></li>
+          <li><a href="#s3">3단계 블루투스 연결</a></li>
+          <li><a href="#s4">4단계 시계 시간 맞추기</a></li>
+          <li><a href="#s5">5단계 PC 바로 가기 키</a></li>
+          <li><a href="#use">사용법 표</a></li>
+          <li><a href="#faq">문제 해결</a></li>
+          <li><a href="#dev">직접 고치기(개발자용)</a></li>
+        </ol>
+      </nav>
+
+      <!-- ───────────── 무엇을 만드나 ───────────── -->
+      <section class="gd-card" id="what" aria-labelledby="what-h">
+        <h2 id="what-h">무엇을 만드나</h2>
+        <p>시계가 PC 에 <strong>블루투스 키보드·마우스</strong>로 연결됩니다. 시계 화면을 누르거나 손목을 튕기면 그에 맞는 키(→, ←, 마침표 등)를 PC 로 보냅니다. 화면 4개를 옆으로 밀어 바꿉니다.</p>
+        <figure class="gd-figure">
+          <svg viewBox="0 0 640 250" role="img" aria-labelledby="fig1-t">
+            <title id="fig1-t">시계 오른쪽 면의 버튼 두 개(위 BOOT, 아래 PWR)와 네 가지 화면(시계, 발표, 실행, 회의)</title>
+            <!-- 시계 본체 -->
+            <rect x="20" y="30" width="150" height="182" rx="38" style="fill:var(--sim-surface-2);stroke:var(--sim-border)" stroke-width="2" />
+            <rect x="32" y="42" width="126" height="158" rx="30" fill="#000" />
+            <text x="95" y="118" text-anchor="middle" font-size="34" font-weight="700" style="fill:var(--wc-mode-clock)">10:24</text>
+            <text x="95" y="144" text-anchor="middle" font-size="13" style="fill:var(--wc-mode-clock)">10월 18일 토</text>
+            <!-- 측면 버튼 -->
+            <rect x="170" y="78" width="9" height="30" rx="3" style="fill:var(--sim-text-3)" />
+            <rect x="170" y="136" width="9" height="30" rx="3" style="fill:var(--sim-text-3)" />
+            <line x1="182" y1="93" x2="206" y2="93" style="stroke:var(--sim-text-3)" stroke-width="1.5" />
+            <line x1="182" y1="151" x2="206" y2="151" style="stroke:var(--sim-text-3)" stroke-width="1.5" />
+            <text x="210" y="90" font-size="14" font-weight="700" style="fill:var(--sim-text-1)">위 = BOOT</text>
+            <text x="210" y="106" font-size="12" style="fill:var(--sim-text-2)">짧게: 시계 화면</text>
+            <text x="210" y="148" font-size="14" font-weight="700" style="fill:var(--sim-text-1)">아래 = PWR</text>
+            <text x="210" y="164" font-size="12" style="fill:var(--sim-text-2)">짧게: 화면 켜기/끄기</text>
+            <!-- 네 화면 -->
+            <g font-size="12" text-anchor="middle">
+              <rect x="350" y="20" width="130" height="100" rx="22" fill="#000" style="stroke:var(--wc-mode-clock)" stroke-width="2" />
+              <text x="415" y="62" font-size="24" font-weight="700" style="fill:var(--wc-mode-clock)">10:24</text>
+              <text x="415" y="96" style="fill:var(--wc-mode-clock)">시계</text>
+
+              <rect x="495" y="20" width="130" height="100" rx="22" fill="#000" style="stroke:var(--wc-mode-present)" stroke-width="2" />
+              <line x1="560" y1="34" x2="560" y2="84" style="stroke:var(--wc-mode-present-dim-border)" stroke-width="1.5" />
+              <text x="527" y="64" font-size="14" style="fill:var(--wc-mode-present)">◀ 이전</text>
+              <text x="594" y="64" font-size="14" style="fill:var(--wc-mode-present)">다음 ▶</text>
+              <text x="560" y="106" style="fill:var(--wc-mode-present)">발표</text>
+
+              <rect x="350" y="135" width="130" height="100" rx="22" fill="#000" style="stroke:var(--wc-mode-launch)" stroke-width="2" />
+              <g style="fill:var(--wc-mode-launch-dim);stroke:var(--wc-mode-launch-dim-border)">
+                <rect x="368" y="150" width="28" height="24" rx="6" /><rect x="401" y="150" width="28" height="24" rx="6" /><rect x="434" y="150" width="28" height="24" rx="6" />
+                <rect x="368" y="179" width="28" height="24" rx="6" /><rect x="401" y="179" width="28" height="24" rx="6" /><rect x="434" y="179" width="28" height="24" rx="6" />
+              </g>
+              <text x="415" y="224" style="fill:var(--wc-mode-launch)">실행</text>
+
+              <rect x="495" y="135" width="130" height="100" rx="22" fill="#000" style="stroke:var(--wc-mode-meeting)" stroke-width="2" />
+              <rect x="512" y="150" width="96" height="44" rx="10" style="fill:var(--wc-mode-meeting-dim);stroke:var(--wc-mode-meeting-dim-border)" />
+              <text x="560" y="177" font-size="13" style="fill:var(--wc-mode-meeting)">마이크</text>
+              <text x="560" y="224" style="fill:var(--wc-mode-meeting)">회의</text>
+            </g>
+            <text x="487" y="133" text-anchor="middle" font-size="11" style="fill:var(--sim-text-3)">← 옆으로 밀어 바꿈 →</text>
+          </svg>
+          <figcaption>시계 오른쪽 면에 버튼이 두 개 있습니다. 화면은 옆으로 밀면 시계 → 발표 → 실행 → 회의 순서로 바뀝니다. 실제 모습은 <a href="./index.html">시뮬레이터</a>에서 마우스로 눌러 볼 수 있습니다.</figcaption>
+        </figure>
+        <div class="gd-modes">
+          <div class="gd-mode" data-m="clock"><b>시계</b>시각·날짜를 봅니다. 키를 보내지 않으니 실수로 눌러도 안전합니다. 켜면 여기서 시작합니다.</div>
+          <div class="gd-mode" data-m="present"><b>발표</b>오른쪽 탭 = 다음, 왼쪽 탭 = 이전, 가운데 길게 = 화면 암전. 손목을 튕겨도 다음 장.</div>
+          <div class="gd-mode" data-m="launch"><b>실행</b>Claude·카카오톡·크롬·파워포인트·엑셀·한글을 타일 한 번으로 엽니다(<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>1</kbd>~<kbd>6</kbd>).</div>
+          <div class="gd-mode" data-m="meeting"><b>회의</b>Zoom·Teams·Meet 의 마이크·카메라 끄기/켜기, 손 들기.</div>
+        </div>
+        <p class="gd-sub">PowerPoint·Google Slides·Zoom·Teams·Google Meet 에서 시험했습니다. Windows 기준으로 설명하고, macOS 도 대부분 동작합니다(실행 모드는 Spotlight 로 엽니다).</p>
+      </section>
+
+      <!-- ───────────── 준비물 ───────────── -->
+      <section class="gd-card" id="need" aria-labelledby="need-h">
+        <h2 id="need-h">준비물</h2>
+        <ul>
+          <li><strong>Waveshare ESP32-C6-Touch-AMOLED-2.06</strong> 시계. <strong>배터리 포함판</strong>을 권장합니다(배터리가 없으면 USB 를 꽂아야만 켜집니다).</li>
+          <li><strong>USB-C 데이터 케이블</strong>. 충전 전용 케이블은 PC 가 시계를 알아보지 못합니다.</li>
+          <li><strong>Windows 10/11 PC</strong> + <strong>Chrome 또는 Edge</strong>(설치 페이지가 이 두 브라우저에서만 됩니다). 블루투스가 있어야 합니다(노트북은 대부분 있음).</li>
+          <li>인터넷 연결(설치할 때만).</li>
+        </ul>
+        <p class="gd-warn"><strong>주의: 이름이 비슷한 <code>ESP32-S3</code>-Touch-AMOLED-2.06 은 다른 제품입니다.</strong> 이 펌웨어는 <strong>C6</strong> 판에만 맞습니다. 상자·판매 페이지에서 'C6' 를 꼭 확인하세요. 1단계 명령에서 <code>Chip is ESP32-C6</code> 이라고 나와야 합니다.</p>
+      </section>
+
+      <!-- ───────────── 1단계 ───────────── -->
+      <section class="gd-card" id="s1" aria-labelledby="s1-h">
+        <h2 id="s1-h"><span class="gd-n">1</span>원래 펌웨어 백업 — 꼭 먼저</h2>
+        <p>새 시계에는 원래 프로그램(펌웨어)이 들어 있습니다. 설치하면 지워지므로, <strong>되돌릴 수 있게 통째로 파일로 받아 둡니다.</strong> 한 번만 하면 됩니다(약 5분).</p>
+        <h3>① Python 과 esptool 설치</h3>
+        <ol>
+          <li><a href="https://www.python.org/downloads/" target="_blank" rel="noopener">python.org</a> 에서 Python 3.12 이상을 내려받아 설치합니다. 설치 첫 화면 아래의 <strong>'Add python.exe to PATH'</strong> 를 꼭 체크합니다.</li>
+          <li>시작 메뉴에서 <strong>명령 프롬프트</strong>(또는 PowerShell)를 열고 아래를 붙여 넣고 <kbd>Enter</kbd>.
+            <pre class="gd-cmd"><code>pip install esptool</code></pre>
+          </li>
+        </ol>
+        <h3>② 포트 번호 확인</h3>
+        <ol>
+          <li>시계를 USB 로 PC 에 연결합니다.</li>
+          <li>시작 버튼 오른쪽 클릭 → <strong>장치 관리자</strong> → <strong>포트(COM &amp; LPT)</strong> 에서 새로 생긴 <code>COM</code> 번호를 봅니다(예: <code>COM7</code>). 아래 명령의 <code>COM7</code> 을 내 번호로 바꿉니다.</li>
+          <li>안 보이면 케이블을 바꾸거나, <strong>BOOT(위 버튼)를 누른 채 USB 를 꽂아</strong> 다운로드 모드로 들어갑니다.</li>
+        </ol>
+        <h3>③ 칩 확인 → 백업</h3>
+        <pre class="gd-cmd"><code>esptool --chip esp32c6 -p COM7 flash-id</code></pre>
+        <p class="gd-sub"><code>Chip is ESP32-C6</code>, <code>Detected flash size: 16MB</code> 가 보이면 맞는 시계입니다.</p>
+        <pre class="gd-cmd"><code>esptool --chip esp32c6 -p COM7 -b 460800 read-flash 0 ALL original_backup.bin</code></pre>
+        <p class="gd-sub">16MB 를 읽는 데 1~2분 걸립니다. 명령 창을 연 폴더(보통 <code>C:\Users\내이름</code>)에 <code>original_backup.bin</code> 이 생깁니다.</p>
+        <pre class="gd-cmd"><code>certutil -hashfile original_backup.bin SHA256</code></pre>
+        <p class="gd-sub">나온 긴 글자(해시)를 메모해 두면 나중에 파일이 망가지지 않았는지 확인할 수 있습니다.</p>
+        <p class="gd-warn">백업 파일은 USB 메모리나 클라우드에 <strong>나만 볼 수 있게</strong> 보관하세요. 원래 펌웨어의 Wi-Fi 설정 같은 개인 정보가 들어 있을 수 있어 남에게 주거나 인터넷에 올리면 안 됩니다.</p>
+        <p class="gd-sub">되돌리는 방법은 아래 <a href="#faq-restore">문제 해결 → 원래 펌웨어로 되돌리기</a>에 있습니다. 같은 명령은 <a href="./install.html">설치 페이지</a> 2단계에도 복사 버튼과 함께 있습니다.</p>
+      </section>
+
+      <!-- ───────────── 2단계 ───────────── -->
+      <section class="gd-card" id="s2" aria-labelledby="s2-h">
+        <h2 id="s2-h"><span class="gd-n">2</span>펌웨어 설치</h2>
+        <p>브라우저에서 바로 설치합니다(ESP Web Tools). 시계를 USB 로 연결한 채 PC 의 <strong>Chrome 또는 Edge</strong>로 <a href="./install.html">시계에 설치</a> 페이지를 엽니다.</p>
+        <ol>
+          <li>'원래 펌웨어를 백업했습니다' 를 체크합니다(체크해야 설치 버튼이 켜집니다).</li>
+          <li>버전을 고릅니다. 맨 위가 최신입니다.</li>
+          <li><strong>시계에 설치</strong> → 창에서 시계 포트(<code>COM7</code> 등)를 고르고 <strong>연결</strong>.</li>
+          <li>설치 창에서 <strong>지우기(Erase device)</strong> 를 물으면 아래 표대로 고르고 설치를 누릅니다. 약 1분, 끝날 때까지 USB 를 뽑지 않습니다.</li>
+          <li>끝나면 시계가 다시 켜지며 시계 화면이 나옵니다.</li>
+        </ol>
+        <div class="gd-tablewrap">
+          <table class="gd-table">
+            <thead><tr><th>상황</th><th>지우기(Erase)</th><th>결과</th></tr></thead>
+            <tbody>
+              <tr><td>처음 설치</td><td><strong>선택한다</strong></td><td>원래 펌웨어의 설정 영역과 섞이지 않게 깨끗이 지우고 설치</td></tr>
+              <tr><td>업데이트</td><td><strong>선택하지 않는다</strong></td><td>PC 페어링·시계 설정이 그대로 남아 다시 연결할 필요 없음</td></tr>
+              <tr><td>원래 펌웨어로 되돌린 뒤 다시 설치</td><td>선택한다</td><td>처음 설치와 같음</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="gd-tip">설치 페이지의 버전 목록에 '예시' 라고만 나오면 아직 공개 버전이 올라오기 전입니다. 그때는 <a href="#dev">직접 고치기</a>의 '개발판 설치' 방법(esptool 명령)을 쓰거나 공개 버전을 기다립니다.</p>
+      </section>
+
+      <!-- ───────────── 3단계 ───────────── -->
+      <section class="gd-card" id="s3" aria-labelledby="s3-h">
+        <h2 id="s3-h"><span class="gd-n">3</span>블루투스 연결(페어링)</h2>
+        <ol>
+          <li>시계가 켜져 있으면 PC 를 찾는 중입니다(연결 대기 화면).</li>
+          <li>PC: <strong>설정 → 블루투스 및 장치 → 장치 추가 → 블루투스</strong>.</li>
+          <li>목록에서 <strong>손목 컨트롤러 XXXX</strong> 를 누릅니다. <code>XXXX</code> 는 시계마다 다른 네 글자(예: <code>2D3A</code>)라 여러 대를 구분할 수 있습니다. 비밀번호(PIN)는 묻지 않습니다.</li>
+          <li>'연결됨' 이 뜨고 시계 위쪽 상태줄의 블루투스 표시가 켜지면 끝입니다. 다음부터는 시계를 켜면 자동으로 다시 연결됩니다.</li>
+        </ol>
+        <p class="gd-warn"><strong>다시 연결이 안 될 때</strong>(시계에 'PC에서 이 장치를 제거하고 다시 추가하세요' 가 뜨거나 상태줄 블루투스가 노란색): PC 설정의 장치 목록에서 <strong>손목 컨트롤러 XXXX → 장치 제거</strong> 를 누른 뒤, 위 2~3번을 다시 합니다. 펌웨어를 지우고(Erase) 설치했을 때도 이렇게 해야 합니다.</p>
+      </section>
+
+      <!-- ───────────── 4단계 ───────────── -->
+      <section class="gd-card" id="s4" aria-labelledby="s4-h">
+        <h2 id="s4-h"><span class="gd-n">4</span>시계 시간 맞추기</h2>
+        <p>시계 화면의 시각은 PC 시각을 받아 맞춥니다. 처음 한 번만 하면 전원을 꺼도 유지됩니다(배터리를 뺐다면 다시).</p>
+        <ol>
+          <li>시계를 USB 로 연결하고 <a href="./install.html#inst-s6">설치 페이지</a> 6번 <strong>시계 시간 맞추기</strong> 를 누릅니다.</li>
+          <li>포트를 고르고 연결하면 끝입니다. 시계가 잠깐 다시 켜질 수 있습니다(정상).</li>
+        </ol>
+        <p class="gd-sub">시간대는 한국(UTC+9)이 기본입니다.</p>
+      </section>
+
+      <!-- ───────────── 5단계 ───────────── -->
+      <section class="gd-card" id="s5" aria-labelledby="s5-h">
+        <h2 id="s5-h"><span class="gd-n">5</span>PC 바로 가기 키 만들기(실행 모드용)</h2>
+        <p>실행 모드의 타일은 <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>1</kbd>~<kbd>6</kbd> 키를 보냅니다. PC 가 이 키를 받고 앱을 열도록, <strong>PC 마다 한 번</strong> 바로 가기를 만듭니다. 관리자 권한은 필요 없습니다.</p>
+        <ol>
+          <li><a href="./pc-setup/wrist-shortcuts.ps1" download="wrist-shortcuts.ps1">wrist-shortcuts.ps1 내려받기</a></li>
+          <li>내려받은 파일을 <strong>오른쪽 클릭 → PowerShell 에서 실행</strong>.</li>
+          <li>실행이 막히면 내려받은 폴더(보통 '다운로드')에서 PowerShell 을 열고 아래 한 줄을 실행합니다.
+            <pre class="gd-cmd"><code>powershell -ExecutionPolicy Bypass -File .\wrist-shortcuts.ps1</code></pre>
+          </li>
+          <li>앱마다 <code>만듦</code> 또는 <code>건너뜀</code> 이 나옵니다. 건너뜀 = 그 앱이 설치되어 있지 않음(설치 후 다시 실행하면 됩니다).</li>
+          <li>그래도 키가 안 먹으면 <strong>로그아웃 후 다시 로그인</strong>합니다.</li>
+        </ol>
+        <div class="gd-tablewrap">
+          <table class="gd-table">
+            <thead><tr><th>키</th><th>앱</th></tr></thead>
+            <tbody>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>1</kbd></td><td>Claude</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>2</kbd></td><td>카카오톡</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>3</kbd></td><td>크롬</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>4</kbd></td><td>파워포인트</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>5</kbd></td><td>엑셀</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>6</kbd></td><td>한글</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="gd-sub">스크립트는 내 시작 메뉴에 <code>손목 컨트롤러</code> 폴더를 만들고 바로 가기 6개를 넣을 뿐입니다. 지우려면 그 폴더를 지우면 됩니다.</p>
+      </section>
+
+      <!-- ───────────── 사용법 표 ───────────── -->
+      <section class="gd-card" id="use" aria-labelledby="use-h">
+        <h2 id="use-h">사용법 표</h2>
+        <h3>버튼(시계 오른쪽 면)</h3>
+        <div class="gd-tablewrap">
+          <table class="gd-table">
+            <thead><tr><th>버튼</th><th>누르는 법</th><th>하는 일</th></tr></thead>
+            <tbody>
+              <tr><td>위 BOOT</td><td>짧게</td><td>시계 화면으로. 이미 시계 화면이면 바로 전 화면으로 돌아감(키는 보내지 않음)</td></tr>
+              <tr><td>위 BOOT</td><td><span data-g="button.longPressMs" data-v="2000">2초</span> 누름</td><td>잠금 켜기/끄기 — 잠금 중에는 터치·손목 튕김이 키를 보내지 않음(주머니 속 오작동 방지)</td></tr>
+              <tr><td>아래 PWR</td><td>짧게</td><td>화면 켜기/끄기</td></tr>
+              <tr><td>아래 PWR</td><td>4초 이상</td><td><strong>전원이 꺼짐</strong>(시계 전원 회로가 하는 일). 켤 때는 PWR 를 다시 누름</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>화면 터치</h3>
+        <div class="gd-tablewrap">
+          <table class="gd-table">
+            <thead><tr><th>동작</th><th>방법</th><th>하는 일</th></tr></thead>
+            <tbody>
+              <tr><td>탭</td><td>살짝 눌렀다 뗌(<span data-g="touch.holdMs" data-v="600">0.6초</span> 안에, 손가락을 거의 움직이지 않고)</td><td>타일·영역의 키를 보냄. <strong>손을 뗄 때</strong> 보내므로, 잘못 눌렀으면 손가락을 밀어서 떼면 취소</td></tr>
+              <tr><td>암전</td><td>발표 화면 가운데를 <span data-g="touch.blackoutHoldMs" data-v="360">0.36초</span> 누름</td><td>슬라이드 쇼 화면을 검게(마침표 <kbd>.</kbd>). 한 번 더 하면 다시 보임</td></tr>
+              <tr><td>길게</td><td>회의 타일을 <span data-g="touch.holdMs" data-v="600">0.6초</span> 누름</td><td>키를 보내지 않고 시계 표시만 PC 상태에 맞춤(실제로는 이미 꺼져 있을 때)</td></tr>
+              <tr><td>옆으로 밀기</td><td>좌우로 쓱 밂</td><td>화면 바꾸기: 시계 → 발표 → 실행 → 회의. 슬라이드 쇼 중에는 실수 방지로 더 길게 밀어야 함</td></tr>
+              <tr><td>위에서 당기기</td><td>화면 맨 위 가장자리에서 아래로 당김</td><td>발표: 쇼 시작/종료 시트. 다른 화면: 시계 설정(감도·OS·이름 등)</td></tr>
+              <tr><td>위로 쓸기</td><td>실행 화면에서 위로</td><td>실행 2쪽(화면 캡처·잠금·바탕 화면·화면 전환·음소거)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>손목 튕김</h3>
+        <ul>
+          <li><strong>발표 화면에서만</strong> 동작합니다. 시계·실행·회의 화면이나 잠금 중에는 무시합니다.</li>
+          <li>손목을 바깥으로 튕기든 안쪽으로 튕기든 <strong>모두 '다음 장'</strong>입니다(이전 장은 왼쪽 탭).</li>
+          <li>문 손잡이를 돌리듯 짧고 빠르게 툭 튕겼다 돌아옵니다. 천천히 돌리는 것은 무시합니다. 한 번 넘긴 뒤 <span data-g="flick.cooldownMs" data-v="800">0.8초</span> 동안은 다시 넘기지 않습니다.</li>
+        </ul>
+        <h3>그 밖에</h3>
+        <ul>
+          <li>아무것도 하지 않으면 <span data-g="power.screenOffMs" data-v="20000">20초</span> 뒤 화면이 꺼집니다. 화면 터치·BOOT·손목 들기로 다시 켜집니다.</li>
+          <li>에어마우스(BOOT 를 누른 채 손목을 움직여 마우스 포인터 움직이기)는 기본으로 꺼져 있습니다. 쓰려면 시계 설정에서 '에어마우스' 를 켭니다.</li>
+        </ul>
+      </section>
+
+      <!-- ───────────── 문제 해결 ───────────── -->
+      <section class="gd-card gd-faq" id="faq" aria-labelledby="faq-h">
+        <h2 id="faq-h">문제 해결</h2>
+        <details>
+          <summary>실행 화면에서 카카오톡(또는 다른 앱)이 안 열려요</summary>
+          <p><a href="#s5">5단계 PC 바로 가기 키</a>를 그 PC 에서 했는지 확인합니다. PC 마다 한 번 해야 합니다. 스크립트에 '건너뜀' 이 나왔다면 그 앱이 설치되어 있지 않은 것입니다. 했는데도 안 되면 로그아웃 후 다시 로그인합니다.</p>
+        </details>
+        <details>
+          <summary>한글 입력 상태에서 암전이 안 돼요</summary>
+          <p>이 펌웨어는 암전에 <kbd>B</kbd> 대신 <strong>마침표 <kbd>.</kbd></strong> 를 보내서 한/영 상태와 상관없이 됩니다(<kbd>B</kbd> 는 한글 상태에서 'ㅠ' 로 입력됨). 안 되면 ① 펌웨어가 최신인지, ② 슬라이드 쇼가 실행 중이고 그 창이 맨 앞에 있는지 확인합니다. 편집 화면에서는 마침표가 글자로 입력됩니다.</p>
+        </details>
+        <details>
+          <summary>시계에 '연결 대기' 만 나오고 연결이 안 돼요</summary>
+          <ol>
+            <li>PC 블루투스가 켜져 있는지 봅니다.</li>
+            <li>PC 의 장치 목록에 '손목 컨트롤러 XXXX' 가 이미 있으면 <strong>장치 제거</strong> 후 다시 추가합니다(<a href="#s3">3단계</a>).</li>
+            <li>다른 PC 와 이미 연결되어 있으면 그 PC 의 블루투스를 끕니다. 시계는 한 번에 PC 한 대와 연결됩니다.</li>
+            <li>PWR 를 4초 눌러 껐다 다시 켭니다.</li>
+          </ol>
+        </details>
+        <details>
+          <summary>PC 에 배터리가 늘 50% 로 나와요</summary>
+          <p>배터리가 없는 판(또는 배터리 연결이 빠진 상태)이면 시계가 배터리 양을 읽지 못해 50% 로 알립니다. 배터리 포함판에서 배터리 커넥터가 제대로 꽂혀 있는지 확인합니다. USB 를 꽂고 쓰면 동작에는 문제가 없습니다.</p>
+        </details>
+        <details>
+          <summary>PWR 를 오래 눌렀더니 꺼졌어요</summary>
+          <p>정상입니다. PWR 를 4초 넘게 누르면 시계 전원 회로가 전원을 끊습니다. PWR 를 다시 누르면 켜집니다. 잠금은 <strong>BOOT(위 버튼)</strong> 2초입니다.</p>
+        </details>
+        <details>
+          <summary>손목 튕김이 안 먹거나 너무 잘 먹어요</summary>
+          <p>발표 화면인지, 잠금(BOOT 2초)이 켜져 있지 않은지 봅니다. 튕김은 짧고 빠르게 해야 잡힙니다. 감도는 저장소의 <code>shared/gesture.json</code> 을 고쳐 바꿀 수 있습니다(<a href="#dev">직접 고치기</a>).</p>
+        </details>
+        <details id="faq-restore">
+          <summary>원래 펌웨어로 되돌리고 싶어요</summary>
+          <ol>
+            <li>1단계에서 받은 <code>original_backup.bin</code> 이 있는 폴더에서 명령 창을 엽니다.</li>
+            <li>시계를 USB 로 연결하고(안 되면 BOOT 를 누른 채 꽂기) 아래를 실행합니다. 쓰고 나서 자동으로 검사합니다.
+              <pre class="gd-cmd"><code>esptool --chip esp32c6 -p COM7 -b 460800 write-flash 0x0 original_backup.bin</code></pre>
+            </li>
+            <li>PWR 로 껐다 켭니다. PC 의 '손목 컨트롤러 XXXX' 는 장치 제거합니다.</li>
+          </ol>
+          <p class="gd-sub">백업이 없으면 Waveshare 공식 저장소(<a href="https://github.com/waveshareteam/ESP32-C6-Touch-AMOLED-2.06" target="_blank" rel="noopener">ESP32-C6-Touch-AMOLED-2.06</a>)의 공장 펌웨어로 같은 명령을 씁니다(파일 이름만 바꿈).</p>
+        </details>
+        <details>
+          <summary>설치 페이지에서 '시계에 설치' 버튼이 회색이에요</summary>
+          <p>① 백업 체크를 켰는지, ② 데스크톱 Chrome·Edge 인지(휴대폰·Safari·Firefox 는 안 됨), ③ 버전을 골랐는지 확인합니다. 버전 목록이 '예시' 뿐이면 아직 공개 버전이 없는 것입니다.</p>
+        </details>
+      </section>
+
+      <!-- ───────────── 직접 고치기 ───────────── -->
+      <section class="gd-card" id="dev" aria-labelledby="dev-h">
+        <h2 id="dev-h">직접 고치기(개발자용)</h2>
+        <p>키 배치나 판정값은 코드가 아니라 JSON 파일 두 개에 있습니다. 시뮬레이터와 시계 펌웨어가 같은 파일을 읽어서, 시뮬레이터에서 먼저 시험해 볼 수 있습니다.</p>
+        <h3>저장소 구조</h3>
+        <div class="gd-tablewrap">
+          <table class="gd-table">
+            <thead><tr><th>폴더</th><th>내용</th></tr></thead>
+            <tbody>
+              <tr><td><code>shared/</code></td><td><code>keymap.json</code>(모드·앱별 단축키, 장치 이름) · <code>gesture.json</code>(튕김·터치·버튼·전원 판정값) · <code>test-vectors/</code>(입력 → 기대 출력)</td></tr>
+              <tr><td><code>sim/</code></td><td>이 웹앱(Vite + TypeScript): 시뮬레이터 · 설치 페이지 · 이 안내서</td></tr>
+              <tr><td><code>firmware/</code></td><td>시계 펌웨어(ESP-IDF 5.5 + NimBLE + LVGL 9). <code>logic/</code> 은 하드웨어와 무관한 판정 로직(C++)</td></tr>
+              <tr><td><code>tools/</code></td><td>JSON → C 헤더 생성기, 글꼴 생성기</td></tr>
+              <tr><td><code>sim/public/pc-setup/</code></td><td>PC 바로 가기 키 스크립트</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>고치는 순서</h3>
+        <ol>
+          <li><code>shared/keymap.json</code> 또는 <code>shared/gesture.json</code> 을 고칩니다. 시뮬레이터의 설정(톱니바퀴) 화면에서 편집하고 'JSON 내보내기' 로 받아도 됩니다.</li>
+          <li><strong>시뮬레이터로 먼저 시험</strong>합니다. 시계 화면을 마우스로 누르면 가상 PC 와 HID 로그에 어떤 키가 갔는지 보입니다. 녹화된 손목 움직임(CSV)도 재생할 수 있습니다.
+            <pre class="gd-cmd"><code>cd sim
+npm install
+npm run dev</code></pre>
+          </li>
+          <li>펌웨어용 헤더를 다시 만들고 테스트합니다.
+            <pre class="gd-cmd"><code>python tools/gen_keymap_header.py
+cd sim &amp;&amp; npm test</code></pre>
+          </li>
+          <li>GitHub 에 push 하면 <strong>GitHub Actions</strong> 가 테스트 → 펌웨어 빌드를 합니다(내 PC 에 ESP-IDF 가 없어도 됨). 포크한 저장소의 Actions 탭에서 <code>ci</code> 워크플로를 수동 실행(Run workflow)하면 개발판 <code>.bin</code> 이 아티팩트로 나옵니다.</li>
+          <li><strong>개발판 설치</strong>: 아티팩트 압축을 풀고 그 폴더에서 세 파일을 나눠 씁니다(페어링 유지). 명령은 함께 든 <code>FLASH.txt</code> 에 있습니다.
+            <pre class="gd-cmd"><code>esptool --chip esp32c6 -p COM7 -b 460800 write-flash 0x0 wrist-controller-버전-bootloader.bin 0x8000 wrist-controller-버전-partition-table.bin 0x10000 wrist-controller-버전-app.bin</code></pre>
+            처음 설치라면 <code>…-merged-full-erase.bin</code> 을 쓰거나 먼저 <code>esptool --chip esp32c6 -p COM7 erase-flash</code> 를 합니다.</li>
+        </ol>
+        <h3>테스트 벡터</h3>
+        <p><code>shared/test-vectors/*.json</code> 은 '이런 입력이면 이런 키가 나가야 한다' 는 묶음입니다. 시뮬레이터(TypeScript, <code>npm test</code>)와 펌웨어 로직(C++, <code>firmware/test</code>)이 <strong>같은 벡터를 모두 통과</strong>해야 CI 가 통과합니다. 판정값을 바꿨는데 벡터가 깨지면, 의도한 변화인지 확인하고 벡터를 고칩니다(<code>node sim/scripts/gen-test-vectors.mjs</code>).</p>
+        <p class="gd-sub">자세한 설명: 저장소의 <code>README.md</code>, <code>sim/ARCHITECTURE.md</code>, <code>docs/research/</code>(근거 자료와 출처).</p>
+      </section>
+
+      <p class="gd-foot">이 페이지는 한 번 열면 인터넷 없이도 다시 열 수 있습니다. 소스는 MIT 라이선스입니다. 사용한 글꼴·라이브러리는 저장소의 <code>THIRD_PARTY.md</code> 에 있습니다.</p>
+    </main>
+    <script type="module" src="/src/guide/guide.ts"></script>
+  </body>
+</html>

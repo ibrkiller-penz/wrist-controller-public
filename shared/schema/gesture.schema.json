@@ -1,0 +1,623 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrist-controller.local/schema/gesture.schema.json",
+  "title": "손목 컨트롤러 gesture.json",
+  "description": "제스처·에어마우스·터치·버튼 판정 기준값. 단위: deg/s, ms, px.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "imu",
+    "airMouse",
+    "flick",
+    "touch",
+    "button",
+    "timing"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "$comment": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1
+    },
+    "imu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sampleRateHz",
+        "gyroRangeDps",
+        "axisMap",
+        "axisSign",
+        "biasCalib"
+      ],
+      "properties": {
+        "sampleRateHz": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "펌웨어 IMU 샘플링(시뮬레이션은 실제 dt 사용)"
+        },
+        "gyroRangeDps": {
+          "enum": [
+            16,
+            32,
+            64,
+            128,
+            256,
+            512,
+            1024,
+            2048
+          ]
+        },
+        "axisMap": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "yaw",
+            "pitch",
+            "roll"
+          ],
+          "properties": {
+            "yaw": {
+              "enum": [
+                "gx",
+                "gy",
+                "gz"
+              ]
+            },
+            "pitch": {
+              "enum": [
+                "gx",
+                "gy",
+                "gz"
+              ]
+            },
+            "roll": {
+              "enum": [
+                "gx",
+                "gy",
+                "gz"
+              ]
+            }
+          },
+          "description": "논리 축 ← 센서 축"
+        },
+        "axisSign": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "yaw",
+            "pitch",
+            "roll"
+          ],
+          "properties": {
+            "yaw": {
+              "enum": [
+                1,
+                -1
+              ]
+            },
+            "pitch": {
+              "enum": [
+                1,
+                -1
+              ]
+            },
+            "roll": {
+              "enum": [
+                1,
+                -1
+              ]
+            }
+          }
+        },
+        "biasCalib": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "stillThresholdDps",
+            "stillMs",
+            "trackTauMs"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "stillThresholdDps": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 50
+            },
+            "stillMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "trackTauMs": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60000
+            }
+          }
+        }
+      }
+    },
+    "airMouse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "holdToStartMs",
+        "startSuppressMs",
+        "deadzoneDps",
+        "lowpassTauMs",
+        "curve",
+        "sensitivity",
+        "invertY"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "holdToStartMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000,
+          "description": "주 버튼을 이만큼 누르고 있으면 에어마우스 시작(이전에 떼면 다음 슬라이드)"
+        },
+        "startSuppressMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500,
+          "description": "시작 직후 출력 0 구간"
+        },
+        "deadzoneDps": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enter",
+            "exit"
+          ],
+          "properties": {
+            "enter": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 50
+            },
+            "exit": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 50
+            }
+          },
+          "description": "히스테리시스 데드존: |w|>=enter 로 움직임 시작, |w|<exit 로 정지. exit<=enter"
+        },
+        "lowpassTauMs": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "EMA 시정수. alpha=1-exp(-dt/tau)"
+        },
+        "curve": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "exponent",
+            "maxPxPerReport"
+          ],
+          "properties": {
+            "exponent": {
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 3
+            },
+            "maxPxPerReport": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 127
+            }
+          }
+        },
+        "sensitivity": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "gain"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "gain": {
+                "type": "number",
+                "minimum": 0.01,
+                "maximum": 20,
+                "description": "px/s = gain*|w|^exponent"
+              }
+            }
+          }
+        },
+        "invertY": {
+          "type": "boolean"
+        }
+      }
+    },
+    "flick": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "axis",
+        "prefilterTauMs",
+        "peakThresholdDps",
+        "adaptive",
+        "axisDominanceRatio",
+        "minAboveMs",
+        "maxAboveMs",
+        "rebound",
+        "quietBefore",
+        "cooldownMs",
+        "outwardSign",
+        "inAction"
+      ],
+      "properties": {
+        "axis": {
+          "enum": [
+            "roll",
+            "pitch",
+            "yaw"
+          ]
+        },
+        "prefilterTauMs": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "peakThresholdDps": {
+          "type": "number",
+          "minimum": 100,
+          "maximum": 2000
+        },
+        "adaptive": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "windowMs",
+            "rmsMultiplier"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "windowMs": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 10000
+            },
+            "rmsMultiplier": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 20
+            }
+          }
+        },
+        "axisDominanceRatio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "minAboveMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "maxAboveMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2000
+        },
+        "rebound": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required",
+            "windowMs",
+            "minRatio",
+            "minDps"
+          ],
+          "properties": {
+            "required": {
+              "type": "boolean"
+            },
+            "windowMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "minRatio": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "minDps": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            }
+          }
+        },
+        "quietBefore": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "windowMs",
+            "guardMs",
+            "maxRmsDps"
+          ],
+          "properties": {
+            "windowMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "guardMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 500,
+              "description": "판정 직전 이 구간(튕김의 상승부)은 정숙 RMS 계산에서 뺀다"
+            },
+            "maxRmsDps": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            }
+          }
+        },
+        "cooldownMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000,
+          "description": "인식 후 재인식 금지(작업지시서 800)"
+        },
+        "outwardSign": {
+          "enum": [
+            1,
+            -1
+          ]
+        },
+        "inAction": {
+          "enum": [
+            "none",
+            "prev",
+            "next"
+          ],
+          "description": "안쪽 튕김 동작. next = 다음(기본, 실기 피드백 8 — 안쪽·바깥 모두 다음), none = 무시, prev = 이전"
+        }
+      }
+    },
+    "touch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tapMaxMovePx",
+        "holdMs",
+        "blackoutHoldMs",
+        "swipeMinPx",
+        "swipeMaxOffAxisPx",
+        "swipeAxisRatio",
+        "swipeMaxMs",
+        "showSwipeMinPx",
+        "showSwipeMaxOffAxisPx",
+        "sheetPullMinPx",
+        "pullMaxOffAxisPx",
+        "pullMaxMs",
+        "topEdgePx",
+        "settingsCloseMinPx",
+        "settingsCloseAxisRatio"
+      ],
+      "properties": {
+        "tapMaxMovePx": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "holdMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 5000
+        },
+        "blackoutHoldMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 5000
+        },
+        "swipeMinPx": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 400
+        },
+        "swipeMaxOffAxisPx": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 400
+        },
+        "swipeAxisRatio": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "swipeMaxMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 5000
+        },
+        "showSwipeMinPx": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 400
+        },
+        "showSwipeMaxOffAxisPx": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 400
+        },
+        "sheetPullMinPx": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 400
+        },
+        "pullMaxOffAxisPx": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 400
+        },
+        "pullMaxMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 5000
+        },
+        "topEdgePx": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "settingsCloseMinPx": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 400
+        },
+        "settingsCloseAxisRatio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "button": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "longPressMs"
+      ],
+      "properties": {
+        "longPressMs": {
+          "type": "integer",
+          "minimum": 500,
+          "maximum": 10000,
+          "description": "측면 버튼 길게 누름 = 제스처 잠금 토글(작업지시서 2000)"
+        }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sheetAutoCloseMs",
+        "meetingEstimateResetMs",
+        "settingsIdleCloseMs"
+      ],
+      "properties": {
+        "sheetAutoCloseMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000
+        },
+        "meetingEstimateResetMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600000
+        },
+        "settingsIdleCloseMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600000
+        }
+      }
+    },
+    "power": {
+      "type": "object",
+      "description": "시계 전원 관리(펌웨어 전용, 2단계 9번). 없으면 펌웨어 기본값. 시뮬레이터는 읽지 않는다.",
+      "additionalProperties": false,
+      "required": [
+        "screenOffMs",
+        "brightnessPercent",
+        "batteryPollMs",
+        "wristRaise"
+      ],
+      "properties": {
+        "screenOffMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600000,
+          "description": "마지막 입력(터치·버튼·HID 전송) 뒤 화면이 꺼지기까지. 0 = 끄지 않음"
+        },
+        "brightnessPercent": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 100
+        },
+        "batteryPollMs": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 60000
+        },
+        "wristRaise": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "faceAxis",
+            "faceSign",
+            "faceUpMinG",
+            "minDeltaG",
+            "windowMs"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "faceAxis": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2,
+              "description": "화면 법선 = 가속도 센서 축(ax=0, ay=1, az=2)"
+            },
+            "faceSign": {
+              "enum": [
+                1,
+                -1
+              ]
+            },
+            "faceUpMinG": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1.5,
+              "description": "화면이 위를 볼 때 법선 축 가속도(g) 하한"
+            },
+            "minDeltaG": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2,
+              "description": "windowMs 동안 법선 축 변화량 하한(손목을 든 움직임)"
+            },
+            "windowMs": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 3000
+            }
+          }
+        }
+      }
+    }
+  }
+}

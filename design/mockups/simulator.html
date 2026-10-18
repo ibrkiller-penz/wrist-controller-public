@@ -1,0 +1,1137 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>손목 컨트롤러 시뮬레이터</title>
+<!--
+  시뮬레이션 사이트 전체 레이아웃 목업 (디자인팀 4번)
+  - 명세: design/simulator-layout.md  /  토큰: design/tokens.css  /  아이콘: design/icons.svg
+  - 외부 의존 없음. 아이콘 스프라이트는 file:// 로 열어도 보이도록 <body> 맨 앞에 인라인 사본을 넣었다
+    (system.md 4.1 의 "빌드 때 인라인" 방식). 원본은 design/icons.svg 이며, 원본이 바뀌면 이 사본도 교체한다.
+  - 이 파일의 JS 는 상태를 보여주기 위한 목업용이다. 실제 로직(모드 상태 기계·키맵·제스처)은 /sim 구현이 원본이다.
+-->
+<link rel="stylesheet" href="../tokens.css">
+<style>
+/* ------------------------------------------------------------------
+   0. 기본
+   ------------------------------------------------------------------ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  background: var(--sim-bg);
+  color: var(--sim-text-1);
+  font: var(--sim-text-size)/1.45 var(--sim-font-family);
+  -webkit-font-smoothing: antialiased;
+}
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--sim-focus); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mono { font-family: var(--sim-font-mono); font-variant-numeric: tabular-nums; }
+
+/* 사이트 쪽 아이콘 (시계와 같은 스프라이트, 크기만 사이트용) */
+.si { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* ------------------------------------------------------------------
+   1. 상단 툴바 — 높이 56 (모바일 56 + 48 두 줄)
+   ------------------------------------------------------------------ */
+.tb {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 12px;
+  height: 56px; padding: 0 16px;
+  background: var(--sim-surface);
+  border-bottom: 1px solid var(--sim-border);
+}
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; white-space: nowrap; }
+.brand-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--site-accent); transition: background var(--wc-motion-base); }
+.brand small { font-weight: 500; color: var(--sim-text-3); font-size: var(--sim-text-size-sm); }
+.tb-group { display: flex; align-items: center; gap: 8px; }
+.tb-label { color: var(--sim-text-2); font-size: var(--sim-text-size-sm); white-space: nowrap; }
+.tb-spacer { flex: 1; }
+
+.seg {
+  display: inline-flex; padding: 2px; gap: 2px;
+  background: var(--sim-surface-2); border: 1px solid var(--sim-border); border-radius: var(--sim-radius);
+}
+.seg button {
+  height: 32px; padding: 0 12px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--sim-text-2); cursor: pointer; white-space: nowrap;
+  transition: background var(--wc-motion-release), color var(--wc-motion-release);
+}
+.seg button:hover { color: var(--sim-text-1); }
+.seg button[aria-pressed="true"] { background: var(--sim-surface); color: var(--sim-text-1); font-weight: 600; box-shadow: var(--sim-shadow); }
+.seg button:disabled { color: var(--sim-text-3); opacity: .55; cursor: not-allowed; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 36px; min-width: 36px; padding: 0 12px;
+  border: 1px solid var(--sim-border); border-radius: var(--sim-radius);
+  background: var(--sim-surface); color: var(--sim-text-1);
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background var(--wc-motion-release), transform var(--wc-motion-release);
+}
+.btn:hover { background: var(--sim-surface-2); }
+.btn:active { transform: scale(var(--wc-press-scale)); transition-duration: var(--wc-motion-press); }
+.btn:disabled { color: var(--sim-text-3); cursor: not-allowed; opacity: .6; }
+.btn--icon { padding: 0; width: 36px; }
+.btn--ghost { border-color: transparent; background: transparent; }
+.btn--link { color: var(--sim-focus); border-color: transparent; background: transparent; font-weight: 600; }
+
+/* 음성 버튼 상태: off / listening / heard / ignored / unsupported */
+.voice-btn[data-state="listening"] { color: var(--sim-mode-present); border-color: var(--sim-mode-present); }
+.voice-btn[data-state="listening"] .voice-dot { animation: pulse 1000ms var(--wc-ease-in-out) infinite; }
+.voice-btn[data-state="heard"] { color: var(--sim-log-media); border-color: var(--sim-log-media); }
+.voice-btn[data-state="ignored"] { color: var(--sim-text-3); }
+.voice-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: none; }
+.voice-btn[data-state="listening"] .voice-dot { display: block; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+
+/* 음성 안내 띠 — 툴바 바로 아래, 높이 32 */
+.notice {
+  display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 6px 16px;
+  background: var(--sim-notice-bg); color: var(--sim-notice-text); font-size: var(--sim-text-size-sm);
+  border-bottom: 1px solid var(--sim-border);
+}
+.notice[hidden] { display: none; }
+
+/* ------------------------------------------------------------------
+   2. 3단 레이아웃
+   ≥1600 : 시계(500×s) | PC(유동) | 로그 360          s = 1
+   1280~1599 : 시계 | PC | 로그 320                     s = .75
+   1024~1279 : 시계 | PC  /  시계 | 로그(PC 아래)         s = .75
+   768~1023  : 위와 같음                                  s = .6
+   <768 : 시계 → PC → 로그 세로                            s = min(1, (폭-32)/500)
+   ------------------------------------------------------------------ */
+.layout {
+  flex: 1;
+  display: grid; gap: var(--sim-gap); padding: var(--sim-gap);
+  grid-template-columns: auto minmax(0, 1fr) 360px;
+  grid-template-areas: "watch pc log";
+  align-items: start;
+}
+.col-watch { grid-area: watch; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.col-pc    { grid-area: pc; min-width: 0; }
+.col-log   { grid-area: log; min-width: 0; position: sticky; top: 72px; }
+@media (max-width: 1599px) { .layout { grid-template-columns: auto minmax(0, 1fr) 320px; } }
+@media (max-width: 1279px) {
+  .layout { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "watch pc" "watch log"; }
+  .col-log { position: static; }
+  .col-watch { position: sticky; top: 72px; }
+}
+@media (max-width: 1279px) { .brand small, .tb-input .tb-label { display: none; } }
+@media (max-width: 1023px) { .hide-md { display: none; } } /* 테마 전환은 설정 화면으로 이동 */
+@media (max-width: 767px) {
+  .layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "watch" "pc" "log"; padding: 12px 16px; }
+  .col-watch { position: static; }
+  .tb { position: static; flex-wrap: wrap; height: auto; padding: 8px 16px; row-gap: 8px; } /* 폰: 툴바 고정 해제 */
+  .ppt-main { grid-template-columns: 1fr; } .ppt-rail { display: none; } /* 폰: 썸네일 숨김 */
+  .tb-input { order: 10; width: 100%; }
+  .tb-input .seg { flex: 1; }
+  .tb-input .seg button { flex: 1; height: 40px; padding: 0 6px; }
+  .tb-input .tb-label { display: none; }
+  .brand small, .hide-sm { display: none; }
+  .btn { height: 44px; min-width: 44px; } /* 폰 터치 최소 44 */
+  .btn--icon { width: 44px; }
+}
+
+.panel {
+  background: var(--sim-surface); border: 1px solid var(--sim-border);
+  border-radius: var(--sim-radius-lg); box-shadow: var(--sim-shadow); overflow: hidden;
+}
+.panel-h {
+  display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px;
+  background: var(--sim-surface-2); border-bottom: 1px solid var(--sim-border);
+}
+.panel-h h2, .panel-h .sub { white-space: nowrap; }
+.panel-h h2 { margin: 0; font-size: var(--sim-text-size); font-weight: 700; }
+.panel-h .sub { color: var(--sim-text-3); font-size: var(--sim-text-size-sm); }
+
+/* ------------------------------------------------------------------
+   3. 시계 에뮬레이터 — 기기 상자 500×542 (베젤 450×542 + 측면 버튼·라벨 50)
+      화면 410×502 는 베젤 안 (20, 20). 전체를 --s 로 축소.
+   ------------------------------------------------------------------ */
+.watch-stage { --s: 1; position: relative; width: calc(500px * var(--s)); height: calc(542px * var(--s)); flex: none; }
+.device { position: absolute; left: 0; top: 0; width: 500px; height: 542px; transform: scale(var(--s)); transform-origin: 0 0; }
+.bezel {
+  position: absolute; left: 0; top: 0; width: 450px; height: 542px;
+  border-radius: 84px; /* 화면 64 + 베젤 20 */
+  background: var(--sim-bezel);
+  box-shadow: inset 0 0 0 2px var(--sim-bezel-edge), inset 0 0 0 6px var(--sim-bezel), inset 0 0 0 7px var(--sim-bezel-edge), var(--sim-shadow);
+}
+.bezel > .wc-screen { position: absolute; left: 20px; top: 20px; touch-action: none; cursor: pointer; }
+.side-btn {
+  position: absolute; left: 448px; width: 12px; height: 64px; padding: 0;
+  border: 1px solid var(--sim-bezel-edge); border-left: 0; border-radius: 0 6px 6px 0;
+  background: var(--sim-side-button); cursor: pointer;
+  transition: transform var(--wc-motion-release) var(--wc-ease-out);
+}
+.side-btn::before { content: ""; position: absolute; inset: -12px -16px -12px -6px; } /* 실제 히트 영역 34×88 */
+.side-btn.is-pressed { transform: translateX(-4px); background: var(--sim-bezel); transition-duration: var(--wc-motion-press); }
+.side-btn--pwr  { top: 150px; }
+.side-btn--boot { top: 250px; }
+.side-lbl { position: absolute; left: 466px; width: 34px; font: 700 11px/1.2 var(--sim-font-mono); color: var(--sim-text-3); pointer-events: none; }
+.side-lbl b { display: block; font-weight: 500; font-family: var(--sim-font-family); font-size: 10px; }
+.side-lbl--pwr { top: 166px; } .side-lbl--boot { top: 266px; }
+.hold-ring { /* 측면 버튼 2초 누름 진행 표시 — 버튼 옆 세로 막대 */
+  position: absolute; left: 462px; width: 3px; height: 64px; border-radius: 2px; background: var(--wc-locked);
+  transform-origin: bottom; transform: scaleY(0); opacity: 0;
+}
+.hold-ring.is-on { opacity: 1; transform: scaleY(1); transition: transform var(--wc-hold-side) linear; }
+.watch-caption { font-size: var(--sim-text-size-sm); color: var(--sim-text-3); text-align: center; }
+
+/* ---- 시계 화면 내부 (항상 --wc-*, 사이트 테마 무관) ---- */
+.wc-screen * { position: absolute; margin: 0; }
+.wc-screen .flow, .wc-screen .flow * { position: static; }
+.t-display { font-size: var(--wc-type-display-size); line-height: var(--wc-type-display-line); font-weight: var(--wc-type-display-weight); }
+.t-title   { font-size: var(--wc-type-title-size);   line-height: var(--wc-type-title-line);   font-weight: var(--wc-type-title-weight); }
+.t-heading { font-size: var(--wc-type-heading-size); line-height: var(--wc-type-heading-line); font-weight: var(--wc-type-heading-weight); }
+.t-body    { font-size: var(--wc-type-body-size);    line-height: var(--wc-type-body-line);    font-weight: var(--wc-type-body-weight); }
+.t-label   { font-size: var(--wc-type-label-size);   line-height: var(--wc-type-label-line);   font-weight: var(--wc-type-label-weight); }
+.t-caption { font-size: var(--wc-type-caption-size); line-height: var(--wc-type-caption-line); font-weight: var(--wc-type-caption-weight); }
+
+/* 상태줄 y 0~56 (system.md 3.1) */
+.sb-dot  { left: 40px; top: 23px; width: 10px; height: 10px; border-radius: 50%; background: var(--wc-accent); }
+.sb-mode { left: 58px; top: 14px; width: 100px; height: 28px; color: var(--wc-accent); }
+.sb-time { left: 170px; top: 14px; width: 70px; height: 28px; text-align: center; color: var(--wc-text-1); }
+.sb-lock { left: 244px; top: 14px; color: var(--wc-locked); display: none; }
+.sb-ble  { left: 274px; top: 14px; color: var(--wc-text-2); }
+.sb-bat  { left: 306px; top: 14px; color: var(--wc-text-2); }
+.sb-pct  { left: 336px; top: 16px; color: var(--wc-text-2); }
+.wc-screen[data-locked="true"] .sb-lock { display: block; }
+.wc-screen[data-conn="off"] .sb-ble { color: var(--wc-disconnected); animation: blink var(--wc-motion-blink) steps(1) infinite; }
+.wc-screen[data-conn="off"] .sb-dot { background: var(--wc-text-3); }
+.wc-screen[data-conn="off"] .sb-mode { color: var(--wc-text-3); }
+@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } }
+
+/* 모드 화면 컨테이너 — 전환 시 280ms 가로 슬라이드 */
+.mode-view { left: 0; top: 0; width: 410px; height: 502px; display: none; }
+.mode-view.is-active { display: block; }
+.mode-view.in-right { animation: inR var(--wc-motion-mode) var(--wc-ease-out); }
+.mode-view.in-left  { animation: inL var(--wc-motion-mode) var(--wc-ease-out); }
+@keyframes inR { from { transform: translateX(410px); } to { transform: none; } }
+@keyframes inL { from { transform: translateX(-410px); } to { transform: none; } }
+
+/* 발표 모드 (system.md 3.2) */
+.zone { top: 64px; height: 422px; background: var(--wc-accent-dim); opacity: 0; transition: opacity var(--wc-motion-flash) var(--wc-ease-out); }
+.zone.is-flash { opacity: 1; transition-duration: 0ms; }
+.zone--l { left: 0; width: 120px; } .zone--c { left: 120px; width: 170px; } .zone--r { left: 290px; width: 120px; }
+.timer { left: 0; top: 236px; width: 410px; text-align: center; color: var(--wc-text-1); letter-spacing: -2px; }
+.timer.is-idle, .wc-screen[data-conn="off"] .timer { color: var(--wc-text-3); }
+.pz-cap { top: 430px; color: var(--wc-text-3); }
+.pz-cap--l { left: 24px; } .pz-cap--r { right: 24px; }
+.chip-black { left: 141px; top: 360px; width: 128px; height: 40px; border-radius: var(--wc-radius-sm); background: var(--wc-surface-2); color: var(--wc-accent); text-align: center; line-height: 40px; display: none; }
+.wc-screen[data-black="true"] .chip-black { display: block; }
+.air-ring { left: 125px; top: 195px; width: 160px; height: 160px; border-radius: 50%; border: var(--wc-focus-ring) solid var(--wc-accent); display: none; }
+.air-ring span { position: static; display: block; text-align: center; line-height: 154px; color: var(--wc-accent); }
+.wc-screen[data-air="true"] .air-ring { display: block; }
+.wc-screen[data-air="true"] .timer, .wc-screen[data-air="true"] .chip-black { display: none; }
+.voice-band { left: 16px; top: 64px; width: 378px; height: 32px; display: none; align-items: center; gap: 8px; color: var(--wc-accent); }
+.voice-band > * { position: static; }
+.wc-screen[data-voice="listening"] .voice-band { display: flex; }
+
+/* 코딩 모드 타일 183×132 (system.md 3.3) */
+.tile {
+  width: 183px; height: 132px; border-radius: var(--wc-radius-md); background: var(--wc-surface-1);
+  border: 2px solid transparent;
+  transition: transform var(--wc-motion-release) var(--wc-ease-out), background var(--wc-motion-release), border-color var(--wc-motion-flash);
+}
+.tile.is-pressed { transform: scale(var(--wc-press-scale)); background: var(--wc-accent-dim); border-color: var(--wc-accent); transition-duration: var(--wc-motion-press); }
+.tile .wc-icon { left: 18px; top: 16px; color: var(--wc-accent); }
+.tile .tl  { left: 18px; top: 68px; color: var(--wc-text-1); }
+.tile .th  { left: 18px; top: 100px; color: var(--wc-text-3); font-family: var(--wc-font-mono); }
+.wc-screen[data-conn="off"] .tile { background: var(--wc-bg); border: 1px solid var(--wc-border); }
+.wc-screen[data-conn="off"] .tile .wc-icon, .wc-screen[data-conn="off"] .tile .tl { color: var(--wc-text-disabled); }
+.wc-screen[data-conn="off"] .tile .th { display: none; }
+
+/* 회의 모드 (system.md 3.4) */
+.mchip { top: 64px; width: 118px; height: 48px; border-radius: var(--wc-radius-pill); background: var(--wc-surface-1); color: var(--wc-text-2); text-align: center; line-height: 48px; border: 2px solid transparent; }
+.mchip.is-on { background: var(--wc-accent-dim); border-color: var(--wc-accent); color: var(--wc-accent); }
+.mic-tile { left: 16px; top: 124px; width: 378px; height: 220px; border-radius: var(--wc-radius-lg); background: var(--wc-surface-1); border: 2px solid transparent; transition: transform var(--wc-motion-release); }
+.mic-tile .wc-icon--lg { left: 139px; top: 32px; color: var(--wc-accent); }
+.mic-tile .tl { left: 0; width: 374px; top: 148px; text-align: center; }
+.mic-tile[data-on="false"] { border-color: var(--wc-danger); background: var(--wc-danger-dim); }
+.mic-tile[data-on="false"] .wc-icon--lg { color: var(--wc-danger); }
+.mtile { top: 356px; width: 183px; height: 130px; border-radius: var(--wc-radius-md); background: var(--wc-surface-1); }
+.mtile .wc-icon { left: 18px; top: 16px; color: var(--wc-accent); }
+.mtile .tl { left: 18px; top: 80px; }
+
+/* 연결 끊김 배너 (system.md 5.1) */
+.dc-banner { left: 16px; top: 414px; width: 378px; height: 72px; border-radius: var(--wc-radius-md); background: var(--wc-disconnected-dim); border: 2px solid var(--wc-disconnected); color: var(--wc-text-1); display: none; align-items: center; justify-content: center; gap: 8px; }
+.dc-banner > * { position: static; }
+.wc-screen[data-conn="off"] .dc-banner { display: flex; animation: up var(--wc-motion-base) var(--wc-ease-out); }
+.dc-banner.is-shake { animation: shake var(--wc-motion-flash) linear; }
+@keyframes up { from { transform: translateY(88px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes shake { 0%,50%,100% { transform: none; } 12%,62% { transform: translateX(-6px); } 37%,87% { transform: translateX(6px); } }
+
+/* 모드 이름 큰 글자 (전환 시 600ms) / 토스트 */
+.mode-title { left: 0; top: 227px; width: 410px; text-align: center; color: var(--wc-accent); opacity: 0; pointer-events: none; }
+.mode-title.is-show { animation: modeTitle 600ms var(--wc-ease-out); }
+@keyframes modeTitle { 0% { opacity: 0; } 20%,70% { opacity: 1; } 100% { opacity: 0; } }
+.toast { left: 55px; top: 72px; width: 300px; height: 56px; border-radius: var(--wc-radius-pill); background: var(--wc-locked-dim); color: var(--wc-locked); display: none; align-items: center; justify-content: center; gap: 8px; }
+.toast > * { position: static; }
+.toast.is-show { display: flex; }
+
+/* 손목 입력 패널 (시계 아래) */
+.wrist { width: 100%; max-width: 500px; }
+.wrist .panel-h .seg-mini { margin-left: auto; color: var(--sim-text-3); font-size: var(--sim-text-size-sm); }
+.wrist-body { padding: 12px; display: grid; gap: 10px; }
+.pad {
+  position: relative; height: 160px; border-radius: var(--sim-radius); touch-action: none; cursor: grab;
+  background: var(--sim-surface-2); border: 1px dashed var(--sim-border);
+  background-image: linear-gradient(var(--sim-border), var(--sim-border)), linear-gradient(var(--sim-border), var(--sim-border));
+  background-size: 1px 100%, 100% 1px; background-position: center; background-repeat: no-repeat;
+}
+.pad:active { cursor: grabbing; }
+.pad-dot { position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; margin: -10px; border-radius: 50%; background: var(--sim-mode-coding); box-shadow: 0 0 0 4px var(--sim-surface); }
+.pad-hint { position: absolute; left: 10px; bottom: 8px; right: 10px; color: var(--sim-text-3); font-size: var(--sim-text-size-sm); }
+.imu { display: grid; grid-template-columns: 28px 1fr 64px; gap: 4px 8px; align-items: center; font-size: var(--sim-text-size-sm); color: var(--sim-text-2); }
+.imu .bar { height: 6px; border-radius: 3px; background: var(--sim-surface-2); position: relative; overflow: hidden; }
+.imu .bar i { position: absolute; left: 50%; top: 0; bottom: 0; background: var(--sim-text-3); }
+.imu output { text-align: right; }
+.wrist-alt { display: none; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--sim-text-2); font-size: var(--sim-text-size-sm); }
+.wrist[data-input="phone"] .pad, .wrist[data-input="replay"] .pad { display: none; }
+.wrist[data-input="phone"] .w-phone, .wrist[data-input="replay"] .w-replay { display: flex; }
+.timeline { flex: 1; min-width: 140px; accent-color: var(--sim-focus); }
+
+/* ------------------------------------------------------------------
+   4. 가상 PC 화면 — 16:10, container query 로 내부 글자 비례
+   ------------------------------------------------------------------ */
+.conn-pill { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--sim-border); background: var(--sim-surface); font-size: var(--sim-text-size-sm); cursor: pointer; }
+.conn-pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--sim-log-media); }
+.conn-pill[data-conn="off"] { color: var(--sim-log-dropped); border-color: var(--sim-log-dropped); }
+.conn-pill[data-conn="off"] i { background: var(--sim-log-dropped); }
+.app-pill { font-size: var(--sim-text-size-sm); color: var(--sim-text-2); }
+.pc-screen { position: relative; aspect-ratio: 16 / 10; container-type: inline-size; overflow: hidden; background: var(--sim-bg); user-select: none; }
+.pc-foot { display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 0 12px; border-top: 1px solid var(--sim-border); font-size: var(--sim-text-size-sm); color: var(--sim-text-2); flex-wrap: wrap; }
+.kbd { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--sim-border); border-bottom-width: 2px; background: var(--sim-surface-2); color: var(--sim-text-1); font: 600 12px var(--sim-font-mono); }
+.kbd.is-new { border-color: var(--site-accent); color: var(--site-accent); }
+.pc-dc { position: absolute; inset: auto 0 0 0; padding: 8px 12px; background: var(--sim-surface); border-top: 2px solid var(--sim-log-dropped); color: var(--sim-log-dropped); font-size: var(--sim-text-size-sm); font-weight: 600; display: none; }
+.col-pc[data-conn="off"] .pc-dc { display: block; }
+.app { position: absolute; inset: 0; display: none; }
+.app.is-active { display: block; }
+.fs { font-size: clamp(9px, 1.5cqw, 14px); }
+
+/* 4-1 가짜 슬라이드 프로그램 */
+.ppt { display: none; grid-template-rows: 5.5cqw 1fr 3.2cqw; height: 100%; background: var(--sim-surface-2); }
+.app.is-active.ppt { display: grid; }
+.ppt-ribbon { display: flex; align-items: center; gap: 2.4cqw; padding: 0 2cqw; background: var(--sim-surface); border-bottom: 1px solid var(--sim-border); color: var(--sim-text-2); }
+.ppt-ribbon b { color: var(--sim-mode-present); }
+.ppt-main { display: grid; grid-template-columns: 15cqw 1fr; min-height: 0; }
+.ppt-rail { overflow: hidden; padding: 1cqw; display: grid; gap: .9cqw; align-content: start; border-right: 1px solid var(--sim-border); }
+.ppt-thumb { display: grid; grid-template-columns: 1.6cqw 1fr; gap: .4cqw; align-items: start; color: var(--sim-text-3); }
+.ppt-thumb .slide { border: 1px solid var(--sim-border); }
+.ppt-thumb.is-cur { color: var(--sim-mode-present); }
+.ppt-thumb.is-cur .slide { outline: 2px solid var(--sim-mode-present); outline-offset: 1px; }
+.ppt-stage { display: grid; place-items: center; padding: 2.4cqw; min-width: 0; }
+.ppt-stage .slide { width: 100%; box-shadow: var(--sim-shadow); }
+.ppt-status { display: flex; align-items: center; gap: 2cqw; padding: 0 2cqw; background: var(--sim-surface); border-top: 1px solid var(--sim-border); color: var(--sim-text-2); }
+.show { position: absolute; inset: 0; background: var(--wc-bg); display: none; place-items: center; }
+.ppt[data-view="show"] .show, .ppt[data-view="black"] .show { display: grid; }
+.ppt[data-view="black"] .show .slide { visibility: hidden; }
+.show .slide { width: 100%; }
+
+/* 슬라이드 공통 — 16:9, 내부 글자는 슬라이드 폭 기준 cqw */
+.slide { aspect-ratio: 16 / 9; container-type: inline-size; position: relative; overflow: hidden; background: var(--sim-surface); color: var(--sim-text-1); }
+.slide .s-in { position: absolute; inset: 0; padding: 7cqw 8cqw; display: flex; flex-direction: column; gap: 2.6cqw; }
+.slide .s-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 1.2cqw; background: var(--sim-mode-present); }
+.slide h3 { margin: 0; font-size: 5.4cqw; line-height: 1.2; font-weight: 800; letter-spacing: -.02em; }
+.slide p { margin: 0; font-size: 2.8cqw; color: var(--sim-text-2); }
+.slide ul { margin: 0; padding-left: 3.4cqw; font-size: 3cqw; line-height: 1.55; }
+.slide li::marker { color: var(--sim-mode-present); }
+.slide .s-no { position: absolute; right: 3cqw; bottom: 2.4cqw; font-size: 1.8cqw; color: var(--sim-text-3); }
+.slide .s-kicker { font-size: 2cqw; color: var(--sim-mode-present); font-weight: 700; letter-spacing: .08em; }
+.slide.k-title .s-in, .slide.k-end .s-in { justify-content: center; }
+.slide.k-title h3, .slide.k-end h3 { font-size: 8.4cqw; }
+.slide .s-split { display: grid; grid-template-columns: 1.4fr 1fr; gap: 4cqw; align-items: center; flex: 1; }
+.slide .s-big { font-size: 9cqw; font-weight: 800; color: var(--sim-mode-present); line-height: 1; text-align: center; }
+.slide .s-big small { display: block; font-size: 2.4cqw; color: var(--sim-text-2); font-weight: 600; margin-top: 1.4cqw; }
+.slide .s-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2cqw; flex: 1; align-content: center; }
+.slide .s-tiles div { border-radius: 1.6cqw; padding: 2.2cqw; background: var(--sim-surface-2); font-size: 2.8cqw; font-weight: 700; }
+.slide .s-tiles small { display: block; font: 500 2cqw var(--sim-font-mono); color: var(--sim-text-3); margin-top: .6cqw; }
+.slide .s-flow { display: flex; align-items: center; gap: 1.6cqw; flex: 1; }
+.slide .s-flow div { flex: 1; text-align: center; padding: 3cqw 1cqw; border-radius: 1.6cqw; border: .3cqw solid var(--sim-mode-present); font-size: 3cqw; font-weight: 700; }
+.slide .s-flow span { color: var(--sim-text-3); font-size: 3cqw; }
+
+/* 4-2 가짜 코드 편집기 */
+.code { display: none; grid-template-columns: 4.5cqw 19cqw 1fr; grid-template-rows: 3.6cqw 1fr 3cqw; height: 100%; background: var(--sim-surface); }
+.app.is-active.code { display: grid; }
+.code-title { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; background: var(--sim-surface-2); border-bottom: 1px solid var(--sim-border); color: var(--sim-text-2); }
+.code-act { background: var(--sim-surface-2); border-right: 1px solid var(--sim-border); display: grid; align-content: start; justify-items: center; gap: 1.6cqw; padding-top: 1.4cqw; color: var(--sim-text-3); }
+.code-act .si { width: 2.6cqw; height: 2.6cqw; }
+.code-side { border-right: 1px solid var(--sim-border); padding: 1cqw 1.2cqw; color: var(--sim-text-2); display: grid; align-content: start; gap: .5cqw; }
+.code-side .cur { color: var(--sim-text-1); background: var(--sim-surface-2); border-radius: 4px; padding: 0 .6cqw; margin: 0 -.6cqw; }
+.code-main { display: grid; grid-template-rows: 3.4cqw 1fr auto; min-width: 0; min-height: 0; position: relative; }
+.code-tabs { display: flex; border-bottom: 1px solid var(--sim-border); background: var(--sim-surface-2); }
+.code-tab { display: flex; align-items: center; gap: .8cqw; padding: 0 1.6cqw; background: var(--sim-surface); border-right: 1px solid var(--sim-border); border-top: 2px solid var(--sim-mode-coding); }
+.code-tab .dirty { width: .9cqw; height: .9cqw; border-radius: 50%; background: var(--sim-text-2); }
+.code-tab[data-dirty="false"] .dirty { display: none; }
+.code-ed { padding: 1cqw 0; font-family: var(--sim-font-mono); overflow: hidden; line-height: 1.7; }
+.code-ed .ln { display: grid; grid-template-columns: 4cqw 1fr; white-space: pre; }
+.code-ed .ln > i { font-style: normal; text-align: right; padding-right: 1.4cqw; color: var(--sim-text-3); }
+.code-ed .ln.is-cur { background: var(--sim-surface-2); }
+.kw { color: var(--sim-mode-coding); } .str { color: var(--sim-mode-meeting); } .cm { color: var(--sim-text-3); font-style: italic; }
+.term { border-top: 1px solid var(--sim-border); background: var(--sim-surface-2); padding: .8cqw 1.6cqw; font-family: var(--sim-font-mono); display: none; }
+.code[data-term="true"] .term { display: block; }
+.code-status { grid-column: 1 / -1; display: flex; align-items: center; gap: 2cqw; padding: 0 1.6cqw; background: var(--sim-mode-coding); color: var(--sim-surface); font-weight: 600; }
+.code[data-debug="true"] .code-status { background: var(--sim-mode-present); }
+.palette { position: absolute; left: 50%; top: 1.2cqw; width: 60%; transform: translateX(-50%); background: var(--sim-surface); border: 1px solid var(--sim-border); border-radius: 8px; box-shadow: var(--sim-shadow); padding: .8cqw; display: none; z-index: 2; }
+.code[data-palette="true"] .palette { display: block; }
+.palette .in { border: 1px solid var(--sim-focus); border-radius: 4px; padding: .5cqw .8cqw; margin-bottom: .6cqw; }
+.palette .it { padding: .4cqw .8cqw; color: var(--sim-text-2); }
+.palette .it.sel { background: var(--sim-surface-2); color: var(--sim-text-1); border-radius: 4px; }
+
+/* 4-3 가짜 회의 창 */
+.meet { display: none; grid-template-rows: 4cqw 1fr 7.5cqw; height: 100%; background: var(--sim-surface-2); }
+.app.is-active.meet { display: grid; }
+.meet-top { display: flex; align-items: center; gap: 1.6cqw; padding: 0 2cqw; background: var(--sim-surface); border-bottom: 1px solid var(--sim-border); color: var(--sim-text-2); }
+.meet-top b { color: var(--sim-text-1); }
+.meet-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1cqw; padding: 1cqw; min-height: 0; }
+.person { position: relative; border-radius: 1cqw; background: var(--sim-surface); display: grid; place-items: center; border: .3cqw solid transparent; }
+.person.is-speaking { border-color: var(--sim-mode-meeting); }
+.avatar { width: 8cqw; height: 8cqw; border-radius: 50%; display: grid; place-items: center; background: var(--sim-surface-2); color: var(--sim-text-2); font-size: 3cqw; font-weight: 700; }
+.person .nm { position: absolute; left: 1cqw; bottom: .8cqw; display: flex; align-items: center; gap: .6cqw; padding: .3cqw .8cqw; border-radius: 4px; background: var(--sim-surface-2); }
+.person .nm .si { width: 1.8cqw; height: 1.8cqw; color: var(--sim-log-dropped); }
+.person .hand { position: absolute; right: 1cqw; top: 1cqw; display: none; padding: .4cqw .8cqw; border-radius: 4px; background: var(--sim-notice-bg); color: var(--sim-notice-text); font-weight: 700; }
+.meet[data-hand="true"] .person.me .hand { display: block; }
+.meet[data-cam="true"] .person.me .avatar { outline: .3cqw solid var(--sim-mode-meeting); outline-offset: .6cqw; }
+.meet-bar { display: flex; align-items: center; justify-content: center; gap: 2cqw; background: var(--sim-surface); border-top: 1px solid var(--sim-border); }
+.mbtn { display: grid; justify-items: center; gap: .3cqw; color: var(--sim-text-2); }
+.mbtn .ic { width: 4.4cqw; height: 4.4cqw; border-radius: 50%; display: grid; place-items: center; background: var(--sim-surface-2); }
+.mbtn .ic .si { width: 2.4cqw; height: 2.4cqw; }
+.mbtn.is-off .ic { color: var(--sim-log-dropped); outline: 2px solid var(--sim-log-dropped); }
+.mbtn.is-on .ic { color: var(--sim-mode-meeting); outline: 2px solid var(--sim-mode-meeting); }
+.mbtn.is-flash .ic { animation: mflash var(--wc-motion-flash) var(--wc-ease-out); }
+@keyframes mflash { 0% { transform: scale(1.15); } 100% { transform: none; } }
+
+/* 가상 마우스 커서 + 클릭 파문 */
+.cursor { position: absolute; left: 62%; top: 58%; width: 20px; height: 20px; pointer-events: none; z-index: 5; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); transition: left 60ms linear, top 60ms linear; }
+.cursor path { fill: var(--sim-text-1); stroke: var(--sim-surface); stroke-width: 1.5; }
+.cursor-ripple { position: absolute; width: 28px; height: 28px; margin: -14px; border-radius: 50%; border: 2px solid var(--sim-mode-coding); pointer-events: none; z-index: 4; animation: rip 300ms var(--wc-ease-out) forwards; }
+@keyframes rip { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
+
+/* ------------------------------------------------------------------
+   5. HID 로그 패널
+   ------------------------------------------------------------------ */
+.log { display: flex; flex-direction: column; height: calc(100vh - 56px - 32px); max-height: 960px; }
+@media (max-width: 1279px) { .log { height: 320px; } }
+@media (max-width: 767px)  { .log { height: 360px; } }
+.log-tools { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--sim-border); flex-wrap: wrap; }
+.fchip { height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--sim-border); background: var(--sim-surface); color: var(--sim-text-2); cursor: pointer; font-size: var(--sim-text-size-sm); display: inline-flex; align-items: center; gap: 6px; }
+.fchip i { width: 8px; height: 8px; border-radius: 2px; background: currentColor; }
+.fchip[aria-pressed="true"] { background: var(--sim-surface-2); color: var(--sim-text-1); font-weight: 600; }
+.fchip.t-key i { background: var(--sim-log-key); } .fchip.t-mouse i { background: var(--sim-log-mouse); }
+.fchip.t-media i { background: var(--sim-log-media); } .fchip.t-sys i { background: var(--sim-log-system); }
+.log-head, .log-row { display: grid; grid-template-columns: 84px 64px minmax(0,1fr) 44px; gap: 8px; align-items: center; padding: 0 12px 0 9px; }
+.log-head { height: 28px; color: var(--sim-text-3); font-size: 11px; border-bottom: 1px solid var(--sim-border); }
+.log-list { flex: 1; overflow: auto; font-size: 13px; }
+.log-row { min-height: 28px; border-left: 3px solid var(--row-c); border-bottom: 1px solid var(--sim-border); }
+.log-row.is-new { animation: rowIn var(--wc-motion-base) var(--wc-ease-out); }
+@keyframes rowIn { from { background: var(--sim-surface-2); } }
+.log-row .tm { color: var(--sim-text-3); font-size: 12px; }
+.log-row .ty { justify-self: start; height: 20px; padding: 0 6px; border-radius: 4px; border: 1px solid var(--row-c); color: var(--row-c); font: 700 10px/18px var(--sim-font-mono); letter-spacing: .04em; }
+.log-row .ct { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-row .ct em { font-style: normal; color: var(--sim-text-3); }
+.log-row .sr2 { color: var(--sim-text-3); font-size: 11px; }
+.log-row[data-t="key"]   { --row-c: var(--sim-log-key); }
+.log-row[data-t="mouse"] { --row-c: var(--sim-log-mouse); }
+.log-row[data-t="media"] { --row-c: var(--sim-log-media); }
+.log-row[data-t="sys"]   { --row-c: var(--sim-log-system); }
+.log-row[data-dropped="true"] { --row-c: var(--sim-log-dropped); }
+.log-row[data-dropped="true"] .ct span { text-decoration: line-through; color: var(--sim-text-3); }
+.log-row[data-dropped="true"] .ct b { color: var(--sim-log-dropped); font-size: 11px; margin-left: 6px; }
+.log-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px; border-top: 1px solid var(--sim-border); color: var(--sim-text-3); font-size: var(--sim-text-size-sm); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor-ripple, .mbtn.is-flash .ic, .log-row.is-new, .voice-dot { animation: none !important; }
+  .cursor, .side-btn, .btn { transition: none !important; }
+}
+
+/* ------------------------------------------------------------------
+   6. 목업 전용 상태 전환 막대 (실제 사이트에는 없음)
+   ------------------------------------------------------------------ */
+.mockbar { margin: 0 16px 16px; padding: 10px 12px; border: 1px dashed var(--sim-border); border-radius: var(--sim-radius); color: var(--sim-text-2); font-size: var(--sim-text-size-sm); display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.mockbar label { display: inline-flex; align-items: center; gap: 6px; }
+.mockbar select { height: 28px; border: 1px solid var(--sim-border); border-radius: 6px; background: var(--sim-surface); padding: 0 6px; }
+</style>
+</head>
+<body>
+<!-- design/icons.svg 인라인 사본 (원본이 바뀌면 교체) -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <!-- 저장 (코딩: Ctrl+S) — 플로피 디스크 -->
+  <symbol id="i-save" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 3h10l4 4v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
+      <path d="M8 3v5h7V3"/>
+      <path d="M7 21v-7h10v7"/>
+    </g>
+  </symbol>
+
+  <!-- 명령 팔레트 (코딩: Ctrl+Shift+P) — ⌘ 기호 -->
+  <symbol id="i-command" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 9V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V9"/>
+    </g>
+  </symbol>
+
+  <!-- 터미널 열기·닫기 (코딩: Ctrl+`) — 창 안의 프롬프트 -->
+  <symbol id="i-terminal" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="2"/>
+      <path d="M7 9l3 3-3 3"/>
+      <path d="M13 15h4"/>
+    </g>
+  </symbol>
+
+  <!-- 디버그 실행 (코딩: F5) — 벌레 -->
+  <symbol id="i-debug" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="8" y="7" width="8" height="13" rx="4"/>
+      <path d="M9.5 7.5L8 4.5M14.5 7.5L16 4.5"/>
+      <path d="M4 11h4M16 11h4M4 16h4M16 16h4"/>
+      <path d="M12 11v9"/>
+    </g>
+  </symbol>
+
+  <!-- 주석 토글 (코딩: Ctrl+/) — 두 개의 사선 // -->
+  <symbol id="i-comment" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 5L6 19"/>
+      <path d="M18 5l-4 14"/>
+    </g>
+  </symbol>
+
+  <!-- 실행 취소 (코딩: Ctrl+Z) — 되돌아가는 화살표 -->
+  <symbol id="i-undo" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 14L4 9l5-5"/>
+      <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>
+    </g>
+  </symbol>
+
+  <!-- 마이크 켜짐 (회의) -->
+  <symbol id="i-mic" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="3" width="6" height="11" rx="3"/>
+      <path d="M5 11a7 7 0 0 0 14 0"/>
+      <path d="M12 18v3"/>
+    </g>
+  </symbol>
+
+  <!-- 마이크 꺼짐 (회의, 음소거) — 사선 -->
+  <symbol id="i-mic-off" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 9.5V6a3 3 0 0 0-5.7-1.3"/>
+      <path d="M9 9v2a3 3 0 0 0 5.1 2.1"/>
+      <path d="M5 11a7 7 0 0 0 11.6 5.3M19 11a7 7 0 0 1-.6 2.8"/>
+      <path d="M12 18v3"/>
+      <path d="M3 3l18 18"/>
+    </g>
+  </symbol>
+
+  <!-- 카메라 켜짐 (회의) — 비디오 카메라 -->
+  <symbol id="i-camera" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="6" width="14" height="12" rx="2"/>
+      <path d="M16 10l6-3.5v11L16 14"/>
+    </g>
+  </symbol>
+
+  <!-- 카메라 꺼짐 (회의) — 사선 -->
+  <symbol id="i-camera-off" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 6h4a2 2 0 0 1 2 2v4"/>
+      <path d="M16 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2"/>
+      <path d="M16 10l6-3.5v11L16 14"/>
+      <path d="M3 3l18 18"/>
+    </g>
+  </symbol>
+
+  <!-- 손 들기 (회의) — 펼친 손바닥 -->
+  <symbol id="i-hand" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 13V6a1.5 1.5 0 0 1 3 0v5"/>
+      <path d="M11 11V4.5a1.5 1.5 0 0 1 3 0V11"/>
+      <path d="M14 11V6a1.5 1.5 0 0 1 3 0v6"/>
+      <path d="M17 10a1.5 1.5 0 0 1 3 0v4a7 7 0 0 1-7 7h-1a7 7 0 0 1-5.6-2.8l-2.9-3.9a1.6 1.6 0 0 1 2.4-2.1L8 14"/>
+    </g>
+  </symbol>
+
+  <!-- BLE 연결됨 (상태줄) — 블루투스 룬 -->
+  <symbol id="i-ble" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 7l10 10-5 5V2l5 5L7 17"/>
+    </g>
+  </symbol>
+
+  <!-- BLE 연결 끊김 (상태줄·전체화면) — 룬 + 사선 -->
+  <symbol id="i-ble-off" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 17l-5 5V12"/>
+      <path d="M12 7.5V2l5 5-2.5 2.5"/>
+      <path d="M7 17l5-5"/>
+      <path d="M3 3l18 18"/>
+    </g>
+  </symbol>
+
+  <!-- 배터리 (상태줄) — 외곽만. 잔량 막대는 코드에서 x=4.5 y=9.5 h=5, w=0~11.5 로 채운다 -->
+  <symbol id="i-battery" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="7" width="17" height="10" rx="2"/>
+      <path d="M22 11v2"/>
+    </g>
+  </symbol>
+
+  <!-- 잠금 (제스처·음성 잠금) — 자물쇠 -->
+  <symbol id="i-lock" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="11" width="14" height="10" rx="2"/>
+      <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+      <path d="M12 15v2"/>
+    </g>
+  </symbol>
+
+  <!-- 슬라이드 (발표 모드 표시) — 스탠드 위 화면 -->
+  <symbol id="i-slides" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="12" rx="1.5"/>
+      <path d="M12 16v4"/>
+      <path d="M8 20h8"/>
+      <path d="M7 12l3-3 2 2 4-4"/>
+    </g>
+  </symbol>
+
+  <!-- 쇼 시작 (발표: F5) — 재생 삼각형 -->
+  <symbol id="i-play" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 4.5v15l12-7.5z"/>
+    </g>
+  </symbol>
+
+  <!-- 쇼 종료 (발표: Esc) — 정지 사각형 -->
+  <symbol id="i-stop" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="6" width="12" height="12" rx="2"/>
+    </g>
+  </symbol>
+
+  <!-- 설정 — 톱니 (링 + 바깥 톱니 8개) -->
+  <symbol id="i-gear" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="6"/>
+      <circle cx="12" cy="12" r="2.5"/>
+      <path d="M12 2.5V6M12 18v3.5M2.5 12H6M18 12h3.5M5.3 5.3l2.5 2.5M16.2 16.2l2.5 2.5M5.3 18.7l2.5-2.5M16.2 7.8l2.5-2.5"/>
+    </g>
+  </symbol>
+
+  <!-- 음성 명령 (발표: "키트, 다음") — 음파 막대 -->
+  <symbol id="i-voice" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 10v4M8 7v10M12 3v18M16 7v10M20 10v4"/>
+    </g>
+  </symbol>
+</svg>
+
+<!-- ================= 1. 상단 툴바 ================= -->
+<header class="tb" role="toolbar" aria-label="시뮬레이터 도구">
+  <div class="brand"><span class="brand-dot" aria-hidden="true"></span>손목 컨트롤러 <small>시뮬레이터</small></div>
+
+  <div class="tb-group tb-input">
+    <span class="tb-label" id="lbl-input">손목 입력</span>
+    <div class="seg" role="group" aria-labelledby="lbl-input">
+      <button type="button" data-input="drag" aria-pressed="true">마우스 드래그</button>
+      <button type="button" data-input="phone" aria-pressed="false" title="스마트폰으로 접속하면 기울기 센서를 씁니다">폰 센서</button>
+      <button type="button" data-input="replay" aria-pressed="false">녹화 재생</button>
+    </div>
+  </div>
+
+  <span class="tb-spacer"></span>
+
+  <div class="tb-group">
+    <button type="button" class="btn voice-btn" id="voiceBtn" data-state="off" aria-pressed="false">
+      <span class="voice-dot" aria-hidden="true"></span>
+      <svg class="si" aria-hidden="true"><use href="#i-voice"/></svg>
+      <span class="voice-txt hide-sm">음성</span>
+    </button>
+    <button type="button" class="btn btn--ghost hide-md" id="themeBtn" title="사이트 테마 (시계 화면은 항상 검정)">테마: 자동</button>
+    <button type="button" class="btn btn--icon btn--ghost" aria-label="설정 (keymap·gesture 편집)"><svg class="si" aria-hidden="true"><use href="#i-gear"/></svg></button>
+    <a class="btn btn--link" href="#install"><span class="hide-sm">시계에&nbsp;</span>설치 <span aria-hidden="true">→</span></a>
+  </div>
+</header>
+<div class="notice" id="voiceNotice" hidden role="status">
+  <svg class="si" aria-hidden="true"><use href="#i-voice"/></svg>
+  <span><b>"키트, 다음"</b>을 기다리는 중 · 브라우저 음성 인식(한국어)으로 사용 흐름만 확인합니다. 실제 시계 음성 엔진의 정확도와는 무관합니다.</span>
+</div>
+
+<main class="layout">
+  <!-- ================= 2. 시계 에뮬레이터 ================= -->
+  <section class="col-watch" aria-label="시계 에뮬레이터">
+    <div class="watch-stage" id="stage">
+      <div class="device">
+        <div class="bezel">
+          <div class="wc-screen" id="screen" data-mode="present" data-conn="on" data-locked="false" data-black="false" data-air="false" data-voice="off" role="application" aria-label="시계 화면 410×502. 클릭=탭, 길게 누름, 좌우 드래그=모드 전환">
+            <!-- 상태줄 -->
+            <span class="sb-dot"></span>
+            <span class="sb-mode t-label" id="sbMode">발표</span>
+            <span class="sb-time t-label" id="sbTime">14:05</span>
+            <svg class="wc-icon wc-icon--sm sb-lock" aria-label="잠금"><use href="#i-lock"/></svg>
+            <svg class="wc-icon wc-icon--sm sb-ble" id="sbBle"><use href="#i-ble"/></svg>
+            <svg class="wc-icon wc-icon--sm sb-bat" viewBox="0 0 24 24"><use href="#i-battery"/><rect x="4.5" y="9.5" height="5" width="8.7" rx="1" fill="currentColor" stroke="none"/></svg>
+            <span class="sb-pct t-caption">76%</span>
+
+            <!-- 발표 -->
+            <div class="mode-view is-active" data-view="present">
+              <div class="zone zone--l" data-zone="l"></div>
+              <div class="zone zone--c" data-zone="c"></div>
+              <div class="zone zone--r" data-zone="r"></div>
+              <div class="timer t-display" id="timer">12:34</div>
+              <div class="chip-black t-caption">암전 중</div>
+              <div class="air-ring"><span class="t-label">포인터</span></div>
+              <div class="voice-band"><svg class="wc-icon wc-icon--sm"><use href="#i-voice"/></svg><span class="t-caption">키트, 다음</span></div>
+              <span class="pz-cap pz-cap--l t-caption">‹ 이전</span>
+              <span class="pz-cap pz-cap--r t-caption">다음 ›</span>
+            </div>
+
+            <!-- 코딩 -->
+            <div class="mode-view" data-view="coding" id="codingView"></div>
+
+            <!-- 회의 -->
+            <div class="mode-view" data-view="meeting">
+              <div class="mchip t-label is-on" style="left:16px" data-app="zoom">Zoom</div>
+              <div class="mchip t-label" style="left:146px" data-app="teams">Teams</div>
+              <div class="mchip t-label" style="left:276px" data-app="meet">Meet</div>
+              <div class="mic-tile" id="micTile" data-on="true" data-act="mic">
+                <svg class="wc-icon wc-icon--lg"><use href="#i-mic"/></svg>
+                <span class="tl t-heading">마이크 켜짐</span>
+              </div>
+              <div class="mtile" style="left:16px" data-act="cam"><svg class="wc-icon"><use href="#i-camera-off"/></svg><span class="tl t-body">카메라</span></div>
+              <div class="mtile" style="left:211px" data-act="hand"><svg class="wc-icon"><use href="#i-hand"/></svg><span class="tl t-body">손 들기</span></div>
+            </div>
+
+            <div class="dc-banner t-body" id="dcBanner"><svg class="wc-icon wc-icon--sm" style="color:var(--wc-disconnected)"><use href="#i-ble-off"/></svg><span>연결 끊김 · 다시 연결 중</span></div>
+            <div class="mode-title t-title" id="modeTitle">발표</div>
+            <div class="toast t-caption" id="toast"><svg class="wc-icon wc-icon--sm"><use href="#i-lock"/></svg><span>제스처·음성 잠김</span></div>
+          </div>
+        </div>
+        <button type="button" class="side-btn side-btn--pwr" id="btnPwr" aria-label="PWR 버튼 (단축키 P)"></button>
+        <span class="hold-ring" id="holdPwr" style="top:150px"></span>
+        <span class="side-lbl side-lbl--pwr">PWR<b>P</b></span>
+        <button type="button" class="side-btn side-btn--boot" id="btnBoot" aria-label="BOOT 버튼, 주 측면 버튼 (단축키 Space)"></button>
+        <span class="hold-ring" id="holdBoot" style="top:250px"></span>
+        <span class="side-lbl side-lbl--boot">BOOT<b>Space</b></span>
+      </div>
+    </div>
+    <div class="watch-caption" id="watchCap">410×502 · 100%</div>
+
+    <!-- 손목 입력 -->
+    <section class="panel wrist" id="wrist" data-input="drag" aria-label="손목 움직임 입력">
+      <div class="panel-h"><h2>손목 움직임</h2><span class="sub" id="wristSub">마우스 드래그로 자이로 값 생성</span></div>
+      <div class="wrist-body">
+        <div class="pad" id="pad" aria-label="손목 패드: 끌면 자이로, 빠르게 튕기면 제스처">
+          <span class="pad-dot" id="padDot"></span>
+          <span class="pad-hint">끌기 = 손목 회전 · 빠르게 튕기기 = 넘기기 제스처 · BOOT 누른 채 끌기 = 에어마우스</span>
+        </div>
+        <div class="wrist-alt w-phone">
+          <span>폰 기울기 센서 사용 중</span><span class="mono">β +12° γ −4°</span>
+          <button type="button" class="btn">센서 권한 요청</button>
+        </div>
+        <div class="wrist-alt w-replay">
+          <span class="mono">imu_rehearsal_01.csv</span>
+          <button type="button" class="btn btn--icon" aria-label="재생"><svg class="si" aria-hidden="true"><use href="#i-play"/></svg></button>
+          <button type="button" class="btn btn--icon" aria-label="정지"><svg class="si" aria-hidden="true"><use href="#i-stop"/></svg></button>
+          <input class="timeline" type="range" min="0" max="100" value="34" aria-label="재생 위치">
+          <span class="mono">00:41 / 02:00 · 1×</span>
+        </div>
+        <div class="imu mono" aria-label="자이로 값">
+          <span>gx</span><span class="bar"><i id="bx" style="width:0"></i></span><output id="ox">+0.0</output>
+          <span>gy</span><span class="bar"><i id="by" style="width:0"></i></span><output id="oy">+0.0</output>
+          <span>gz</span><span class="bar"><i style="width:0"></i></span><output>+0.0</output>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ================= 3. 가상 PC ================= -->
+  <section class="col-pc panel" id="pc" data-conn="on" aria-label="가상 PC 화면">
+    <div class="panel-h">
+      <h2>가상 PC</h2>
+      <span class="app-pill" id="appPill">슬라이드 쇼 · 편집 보기</span>
+      <span class="tb-spacer"></span>
+      <button type="button" class="conn-pill" id="connPill" data-conn="on" title="눌러서 BLE 끊김 흉내"><i></i><span>연결됨 · 손목 컨트롤러</span></button>
+    </div>
+    <div class="pc-screen fs" id="pcScreen">
+      <!-- 3-1 슬라이드 프로그램 -->
+      <div class="app ppt is-active" id="ppt" data-view="edit">
+        <div class="ppt-ribbon"><span>파일</span><span>홈</span><span>삽입</span><span>디자인</span><b>슬라이드 쇼</b></div>
+        <div class="ppt-main">
+          <div class="ppt-rail" id="rail"></div>
+          <div class="ppt-stage" id="stageSlide"></div>
+        </div>
+        <div class="ppt-status"><span id="slideNo">슬라이드 1 / 10</span><span>한국어</span><span class="tb-spacer"></span><span>F5 = 쇼 시작</span></div>
+        <div class="show" id="show"></div>
+      </div>
+      <!-- 3-2 코드 편집기 -->
+      <div class="app code" id="code" data-term="false" data-palette="false" data-debug="false">
+        <div class="code-title">keymap.ts — wrist-controller</div>
+        <div class="code-act"><svg class="si"><use href="#i-save"/></svg><svg class="si"><use href="#i-command"/></svg><svg class="si"><use href="#i-debug"/></svg><svg class="si"><use href="#i-gear"/></svg></div>
+        <div class="code-side"><span>탐색기</span><span>▾ sim</span><span>&nbsp;&nbsp;main.ts</span><span class="cur">&nbsp;&nbsp;keymap.ts</span><span>▾ shared</span><span>&nbsp;&nbsp;keymap.json</span><span>&nbsp;&nbsp;gesture.json</span></div>
+        <div class="code-main">
+          <div class="code-tabs"><div class="code-tab" id="codeTab" data-dirty="true">keymap.ts <span class="dirty" title="저장 안 됨"></span></div></div>
+          <div class="code-ed" id="codeEd"></div>
+          <div class="term" id="term">PS C:\wrist-controller&gt; npm test<br>✓ 공유 테스트 벡터 42개 통과</div>
+          <div class="palette"><div class="in">&gt; 명령 검색</div><div class="it sel">파일: 저장</div><div class="it">보기: 터미널 전환</div><div class="it">디버그: 시작</div></div>
+        </div>
+        <div class="code-status"><span>main</span><span id="codeMsg">줄 7, 열 3</span><span class="tb-spacer"></span><span>TypeScript</span></div>
+      </div>
+      <!-- 3-3 회의 창 -->
+      <div class="app meet" id="meet" data-cam="false" data-hand="false">
+        <div class="meet-top"><b id="meetApp">Zoom</b><span>주간 회의 · 00:18:42</span><span class="tb-spacer"></span><span>참가자 4</span></div>
+        <div class="meet-grid">
+          <div class="person me"><span class="avatar">나</span><span class="hand">✋ 손 듦</span><span class="nm"><svg class="si" id="meMicIc" style="display:none"><use href="#i-mic-off"/></svg>나 (손목 컨트롤러)</span></div>
+          <div class="person is-speaking"><span class="avatar">지원</span><span class="nm">김지원</span></div>
+          <div class="person"><span class="avatar">서준</span><span class="nm"><svg class="si"><use href="#i-mic-off"/></svg>박서준</span></div>
+          <div class="person"><span class="avatar">하늘</span><span class="nm">이하늘</span></div>
+        </div>
+        <div class="meet-bar">
+          <div class="mbtn is-on" id="mbMic"><span class="ic"><svg class="si"><use href="#i-mic"/></svg></span><span>마이크</span></div>
+          <div class="mbtn is-off" id="mbCam"><span class="ic"><svg class="si"><use href="#i-camera-off"/></svg></span><span>카메라</span></div>
+          <div class="mbtn" id="mbHand"><span class="ic"><svg class="si"><use href="#i-hand"/></svg></span><span>손 들기</span></div>
+        </div>
+      </div>
+      <svg class="cursor" id="cursor" viewBox="0 0 20 20" aria-hidden="true"><path d="M2 1.5v15l4.2-4 2.7 6.2 2.6-1.1-2.7-6.1h5.9z"/></svg>
+      <div class="pc-dc" role="status">BLE 연결 끊김 — 시계 입력이 PC에 도착하지 않습니다 (로그에 "버림"으로 표시)</div>
+    </div>
+    <div class="pc-foot">
+      <span>마지막 입력</span><span class="kbd" id="lastKey">—</span>
+      <span class="mono" id="cursorPos">커서 1190, 626</span>
+      <span class="tb-spacer"></span>
+      <span>Windows · 1920×1200</span>
+    </div>
+  </section>
+
+  <!-- ================= 4. HID 로그 ================= -->
+  <aside class="col-log panel log" aria-label="HID 로그">
+    <div class="panel-h"><h2>HID 로그</h2><span class="sub" id="logCount">0건</span><span class="tb-spacer"></span>
+      <button type="button" class="btn btn--ghost" style="height:28px;padding:0 8px">일시정지</button>
+      <button type="button" class="btn btn--ghost" style="height:28px;padding:0 8px" id="logClear">지우기</button>
+      <button type="button" class="btn btn--ghost" style="height:28px;padding:0 8px">JSON</button>
+    </div>
+    <div class="log-tools" role="group" aria-label="종류 필터">
+      <button type="button" class="fchip" aria-pressed="true" data-f="all">전체</button>
+      <button type="button" class="fchip t-key" aria-pressed="false" data-f="key"><i></i>키</button>
+      <button type="button" class="fchip t-mouse" aria-pressed="false" data-f="mouse"><i></i>마우스</button>
+      <button type="button" class="fchip t-media" aria-pressed="false" data-f="media"><i></i>미디어</button>
+      <button type="button" class="fchip t-sys" aria-pressed="false" data-f="sys"><i></i>시스템</button>
+    </div>
+    <div class="log-head"><span>시간</span><span>종류</span><span>내용</span><span>출처</span></div>
+    <div class="log-list" id="logList" role="log" aria-live="polite"></div>
+    <div class="log-foot"><span>마우스 이동은 100ms씩 묶음</span><span style="white-space:nowrap">자동 스크롤 ●</span></div>
+  </aside>
+</main>
+
+<!-- 목업 전용: 상태 전환 (실제 사이트에는 없음) -->
+<div class="mockbar" aria-label="목업 상태 전환">
+  <b>목업 상태 (실제 사이트에는 없음)</b>
+  <label>모드 <select id="mMode"><option value="present">발표</option><option value="coding">코딩</option><option value="meeting">회의</option></select></label>
+  <label>BLE <select id="mConn"><option value="on">연결됨</option><option value="off">끊김</option></select></label>
+  <label>잠금 <select id="mLock"><option value="false">풀림</option><option value="true">잠김</option></select></label>
+  <label>발표 화면 <select id="mView"><option value="edit">편집 보기</option><option value="show">쇼 (F5)</option><option value="black">암전 (B)</option></select></label>
+  <label>에어마우스 <select id="mAir"><option value="false">꺼짐</option><option value="true">켜짐</option></select></label>
+  <label>음성 <select id="mVoice"><option value="off">꺼짐</option><option value="listening">듣는 중</option><option value="heard">인식: 키트, 다음</option><option value="ignored">무시: 다음 단독</option><option value="unsupported">미지원 브라우저</option></select></label>
+</div>
+
+<script>
+/* 목업 동작 — 상태 표시용. 실제 판정 로직은 /sim 과 /shared 가 원본. */
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const root = document.documentElement;
+  const screen = $('#screen');
+  const MODES = ['present', 'coding', 'meeting'];
+  const MODE_KO = { present: '발표', coding: '코딩', meeting: '회의' };
+  const S = { mode: 'present', slide: 0, view: 'edit', conn: 'on', locked: false, mic: true, cam: false, hand: false, app: 'Zoom' };
+
+  /* ---------- 사이트 쪽 모드색 (브랜드 점·마지막 입력 강조) ---------- */
+  const setSiteAccent = () => root.style.setProperty('--site-accent', `var(--sim-mode-${S.mode})`);
+
+  /* ---------- 가짜 슬라이드 10장 ---------- */
+  const SLIDES = [
+    { k: 'title', kicker: '데모 발표 · 2026', h: '손목 컨트롤러', p: '시계 하나로 발표·코딩·회의를 조작합니다' },
+    { k: 'bullets', kicker: '문제', h: '발표 중 노트북으로 돌아가는 순간들', li: ['슬라이드 넘기려고 연단으로 걸어감', '리모컨·레이저 포인터를 따로 챙김', '회의 중 음소거 버튼을 찾느라 허둥댐'] },
+    { k: 'split', kicker: '해결', h: '손목 위의 키보드·마우스', li: ['블루투스 HID — PC에 설치할 것 없음', '키보드 + 마우스 + 미디어키 복합 장치', 'Windows 우선, macOS 지원'], big: '0', bigSub: '설치할 프로그램' },
+    { k: 'bullets', kicker: '하드웨어', h: 'ESP32-S3 2.06" AMOLED 시계', li: ['410×502 AMOLED · 정전식 터치', '6축 IMU · 마이크 · 측면 버튼 2개', '검정 배경 = 픽셀 꺼짐 = 배터리 절약'] },
+    { k: 'split', kicker: '발표 모드', h: '보지 않고 넘긴다', li: ['오른쪽 탭·버튼 → 다음', '왼쪽 탭 → 이전', '중앙 길게 → 화면 암전', '손목 튕김 → 넘기기'], big: '→ ← B', bigSub: '보내는 키' },
+    { k: 'bullets', kicker: '에어마우스', h: '버튼 누른 채 손목으로 포인터', li: ['자이로 각속도 → 커서 이동', '데드존 + 저역 필터로 손떨림 제거', '버튼을 놓으면 즉시 정지, 흐르지 않음'] },
+    { k: 'tiles', kicker: '코딩 모드', h: 'VS Code 단축키 타일 6개', tiles: [['저장', 'Ctrl+S'], ['명령', 'Ctrl+Shift+P'], ['터미널', 'Ctrl+`'], ['디버그', 'F5'], ['주석', 'Ctrl+/'], ['취소', 'Ctrl+Z']] },
+    { k: 'split', kicker: '회의 모드', h: '음소거를 손목에서', li: ['Zoom · Teams · Meet 선택', '마이크 타일을 가장 크게', '카메라 · 손 들기'], big: '3', bigSub: '지원 회의 앱' },
+    { k: 'flow', kicker: '만드는 순서', h: '시뮬레이션부터 시작한다', flow: ['시뮬레이션', '검증', '빌드', '배포'] },
+    { k: 'end', kicker: 'Q&A', h: '감사합니다', p: '"키트, 다음" 이라고 말해 보세요' },
+  ];
+  const slideHTML = (s, i) => {
+    let body = '';
+    if (s.k === 'bullets') body = `<ul>${s.li.map(x => `<li>${x}</li>`).join('')}</ul>`;
+    if (s.k === 'split') body = `<div class="s-split"><ul>${s.li.map(x => `<li>${x}</li>`).join('')}</ul><div class="s-big">${s.big}<small>${s.bigSub}</small></div></div>`;
+    if (s.k === 'tiles') body = `<div class="s-tiles">${s.tiles.map(t => `<div>${t[0]}<small>${t[1]}</small></div>`).join('')}</div>`;
+    if (s.k === 'flow') body = `<div class="s-flow">${s.flow.map(t => `<div>${t}</div>`).join('<span>→</span>')}</div>`;
+    if (s.p) body += `<p>${s.p}</p>`;
+    return `<div class="slide k-${s.k}"><span class="s-bar"></span><div class="s-in"><span class="s-kicker">${s.kicker}</span><h3>${s.h}</h3>${body}</div><span class="s-no">${i + 1} / 10</span></div>`;
+  };
+  $('#rail').innerHTML = SLIDES.map((s, i) => `<div class="ppt-thumb" data-i="${i}"><span>${i + 1}</span>${slideHTML(s, i)}</div>`).join('');
+  const renderSlide = () => {
+    $('#stageSlide').innerHTML = slideHTML(SLIDES[S.slide], S.slide);
+    $('#show').innerHTML = slideHTML(SLIDES[S.slide], S.slide);
+    $$('.ppt-thumb').forEach(t => t.classList.toggle('is-cur', +t.dataset.i === S.slide));
+    $('#slideNo').textContent = `슬라이드 ${S.slide + 1} / 10`;
+    $('#ppt').dataset.view = S.view;
+    $('#appPill').textContent = '슬라이드 쇼 · ' + ({ edit: '편집 보기', show: '쇼 진행 중', black: '쇼 · 화면 암전' })[S.view];
+    const rail = $('#rail'), cur = $('.ppt-thumb.is-cur');
+    if (cur) rail.scrollTop = cur.offsetTop - rail.clientHeight / 2;
+  };
+
+  /* ---------- 가짜 코드 ---------- */
+  const CODE = [
+    ['cm', '// 키맵은 /shared/keymap.json 이 원본'],
+    ['', '<span class="kw">import</span> keymap <span class="kw">from</span> <span class="str">\'../shared/keymap.json\'</span>'],
+    ['', ''],
+    ['', '<span class="kw">export function</span> resolve(mode, input) {'],
+    ['', '  <span class="kw">const</span> set = keymap.modes[mode]'],
+    ['', '  <span class="kw">return</span> set?.[input] ?? <span class="kw">null</span>'],
+    ['', '}'],
+  ];
+  let commented = false;
+  const renderCode = () => {
+    $('#codeEd').innerHTML = CODE.map((l, i) => {
+      let t = l[1];
+      if (i === 4 && commented) t = '<span class="cm">// ' + t.replace(/<[^>]+>/g, '') + '</span>';
+      return `<div class="ln${i === 4 ? ' is-cur' : ''}"><i>${i + 1}</i><span>${t}</span></div>`;
+    }).join('');
+  };
+  renderCode();
+
+  /* ---------- 시계: 코딩 타일 ---------- */
+  const TILES = [
+    ['save', '저장', 'Ctrl+S', 16, 64], ['command', '명령', 'Ctrl+⇧+P', 211, 64],
+    ['terminal', '터미널', 'Ctrl+`', 16, 208], ['debug', '디버그', 'F5', 211, 208],
+    ['comment', '주석', 'Ctrl+/', 16, 352], ['undo', '취소', 'Ctrl+Z', 211, 352],
+  ];
+  $('#codingView').innerHTML = TILES.map(t => `<div class="tile" data-tile="${t[0]}" style="left:${t[3]}px;top:${t[4]}px"><svg class="wc-icon"><use href="#i-${t[0]}"/></svg><span class="tl t-body">${t[1]}</span><span class="th t-caption">${t[2]}</span></div>`).join('');
+
+  /* ---------- HID 로그 ---------- */
+  const t0 = performance.now() - 83000;
+  let logN = 0;
+  const fmt = ms => { const s = ms / 1000; const m = Math.floor(s / 60); return `${String(m).padStart(2, '0')}:${(s % 60).toFixed(3).padStart(6, '0')}`; };
+  const TY = { key: 'KEY', mouse: 'MOUSE', media: 'MEDIA', sys: 'SYS' };
+  function log(t, content, src, opts = {}) {
+    const dropped = opts.dropped || (S.conn === 'off' && t !== 'sys');
+    const row = document.createElement('div');
+    row.className = 'log-row is-new'; row.dataset.t = t; row.dataset.dropped = dropped;
+    row.innerHTML = `<span class="tm mono">${fmt(opts.at ?? performance.now() - t0)}</span><span class="ty">${TY[t]}</span><span class="ct mono"><span>${content}</span>${dropped ? '<b>버림</b>' : ''}</span><span class="sr2">${src}</span>`;
+    const list = $('#logList'); list.appendChild(row); list.scrollTop = list.scrollHeight;
+    $('#logCount').textContent = `${++logN}건`;
+    if (dropped) { const b = $('#dcBanner'); b.classList.remove('is-shake'); void b.offsetWidth; b.classList.add('is-shake'); }
+    return !dropped;
+  }
+  // 예시 기록
+  [['sys', '연결됨 · Windows PC (재연결)', '시스템', 1200], ['sys', '모드 → 발표', '스와이프', 4100], ['key', 'F5 <em>쇼 시작 · 0x3E</em>', '시트', 9800],
+   ['key', '→ <em>Right · 0x4F</em>', '터치', 21400], ['key', '→ <em>Right · 0x4F</em>', '제스처', 38200], ['key', '← <em>Left · 0x50</em>', '터치', 45020],
+   ['mouse', '이동 Δx +38 Δy −12 <em>×18</em>', '에어', 61300], ['mouse', '왼쪽 클릭', '터치', 62010], ['media', '볼륨 − <em>0x00EA</em>', '버튼', 70400],
+   ['key', 'B <em>암전 · 0x05</em>', '길게', 78850]].forEach(r => log(r[0], r[1], r[2], { at: r[3] }));
+  $('#logClear').onclick = () => { $('#logList').innerHTML = ''; logN = 0; $('#logCount').textContent = '0건'; };
+  $$('.fchip').forEach(c => c.onclick = () => {
+    $$('.fchip').forEach(x => x.setAttribute('aria-pressed', x === c));
+    $$('.log-row').forEach(r => r.style.display = (c.dataset.f === 'all' || r.dataset.t === c.dataset.f) ? '' : 'none');
+  });
+
+  const lastKey = k => { const el = $('#lastKey'); el.textContent = k; el.classList.add('is-new'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('is-new'), 1200); };
+
+  /* ---------- 동작 ---------- */
+  function slideStep(d, src) {
+    const ok = log('key', d > 0 ? '→ <em>Right · 0x4F</em>' : '← <em>Left · 0x50</em>', src);
+    if (!ok) return;
+    lastKey(d > 0 ? '→' : '←');
+    S.slide = Math.max(0, Math.min(9, S.slide + d)); renderSlide();
+  }
+  function flashZone(z) { const el = $(`.zone[data-zone="${z}"]`); el.classList.add('is-flash'); requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('is-flash'))); }
+  function setMode(m, dir = 1) {
+    if (m === S.mode) return;
+    S.mode = m; screen.dataset.mode = m;
+    $$('.mode-view').forEach(v => { v.classList.remove('is-active', 'in-right', 'in-left'); if (v.dataset.view === m) { v.classList.add('is-active', dir > 0 ? 'in-right' : 'in-left'); } });
+    $('#sbMode').textContent = MODE_KO[m];
+    const mt = $('#modeTitle'); mt.textContent = MODE_KO[m]; mt.classList.remove('is-show'); void mt.offsetWidth; mt.classList.add('is-show');
+    $$('.app').forEach(a => a.classList.remove('is-active'));
+    $({ present: '#ppt', coding: '#code', meeting: '#meet' }[m]).classList.add('is-active');
+    if (m === 'present') renderSlide();
+    if (m === 'coding') $('#appPill').textContent = '코드 편집기';
+    if (m === 'meeting') $('#appPill').textContent = '회의 · ' + S.app;
+    $('#mMode').value = m; setSiteAccent();
+    log('sys', `모드 → ${MODE_KO[m]}`, '스와이프');
+  }
+  function setConn(c) {
+    S.conn = c; screen.dataset.conn = c; $('#pc').dataset.conn = c;
+    const p = $('#connPill'); p.dataset.conn = c; p.lastElementChild.textContent = c === 'on' ? '연결됨 · 손목 컨트롤러' : '연결 끊김';
+    $('#sbBle').innerHTML = `<use href="#i-${c === 'on' ? 'ble' : 'ble-off'}"/>`;
+    $('#mConn').value = c;
+    log('sys', c === 'on' ? '연결됨 · Windows PC' : '연결 끊김 — 이후 입력은 보내지 않음', '시스템');
+  }
+  function toast(txt) { const t = $('#toast'); t.lastElementChild.textContent = txt; t.classList.add('is-show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('is-show'), 1600); }
+  function setLock(v) { S.locked = v; screen.dataset.locked = v; $('#mLock').value = String(v); toast(v ? '제스처·음성 잠김' : '제스처·음성 풀림'); log('sys', v ? '잠금 켜짐 (제스처·음성)' : '잠금 꺼짐', '버튼'); }
+
+  /* 시계 화면 포인터: 탭 / 길게(600ms) / 가로 스와이프(≥80, 세로<60) */
+  let pd = null;
+  const local = e => { const r = screen.getBoundingClientRect(); const s = r.width / 410; return { x: (e.clientX - r.left) / s, y: (e.clientY - r.top) / s }; };
+  screen.addEventListener('pointerdown', e => {
+    screen.setPointerCapture(e.pointerId);
+    const p = local(e); pd = { ...p, t: performance.now(), held: false, el: e.target.closest('.tile,.mic-tile,.mtile,.mchip') };
+    if (pd.el && pd.el.classList.contains('tile')) pd.el.classList.add('is-pressed');
+    if (S.mode === 'present' && p.x >= 120 && p.x < 290 && p.y >= 64) {
+      pd.timer = setTimeout(() => { pd.held = true; flashZone('c'); if (log('key', 'B <em>암전 · 0x05</em>', '길게')) { lastKey('B'); S.view = S.view === 'black' ? 'show' : (S.view === 'show' ? 'black' : S.view); screen.dataset.black = S.view === 'black'; renderSlide(); } }, 600);
+    }
+  });
+  screen.addEventListener('pointerup', e => {
+    if (!pd) return; clearTimeout(pd.timer);
+    const p = local(e), dx = p.x - pd.x, dy = p.y - pd.y;
+    $$('.tile.is-pressed').forEach(t => setTimeout(() => t.classList.remove('is-pressed'), 160));
+    if (Math.abs(dx) >= 80 && Math.abs(dy) < 60) {
+      const i = MODES.indexOf(S.mode), d = dx < 0 ? 1 : -1;
+      setMode(MODES[(i + d + 3) % 3], d);
+    } else if (!pd.held && Math.abs(dx) < 12 && Math.abs(dy) < 12) {
+      tap(pd);
+    }
+    pd = null;
+  });
+  function tap(p) {
+    if (S.mode === 'present') {
+      if (p.y < 64) return;
+      if (p.x < 120) { flashZone('l'); slideStep(-1, '터치'); }
+      else if (p.x >= 290) { flashZone('r'); slideStep(1, '터치'); }
+      return;
+    }
+    if (S.mode === 'coding' && p.el) {
+      const k = p.el.dataset.tile, t = TILES.find(x => x[0] === k);
+      if (!log('key', `${t[2]} <em>${t[1]}</em>`, '터치')) return;
+      lastKey(t[2]);
+      const c = $('#code');
+      if (k === 'save') { $('#codeTab').dataset.dirty = 'false'; $('#codeMsg').textContent = '저장됨'; }
+      if (k === 'command') c.dataset.palette = c.dataset.palette !== 'true';
+      if (k === 'terminal') c.dataset.term = c.dataset.term !== 'true';
+      if (k === 'debug') { c.dataset.debug = c.dataset.debug !== 'true'; $('#codeMsg').textContent = c.dataset.debug === 'true' ? '디버깅 중' : '줄 5, 열 3'; }
+      if (k === 'comment') { commented = !commented; renderCode(); $('#codeTab').dataset.dirty = 'true'; }
+      if (k === 'undo') { commented = false; renderCode(); }
+      return;
+    }
+    if (S.mode === 'meeting' && p.el) {
+      if (p.el.classList.contains('mchip')) {
+        $$('.mchip').forEach(c => c.classList.toggle('is-on', c === p.el));
+        S.app = p.el.textContent; $('#meetApp').textContent = S.app; $('#appPill').textContent = '회의 · ' + S.app; return;
+      }
+      const KEYS = { Zoom: { mic: 'Alt+A', cam: 'Alt+V', hand: 'Alt+Y' }, Teams: { mic: 'Ctrl+Shift+M', cam: 'Ctrl+Shift+O', hand: 'Ctrl+Shift+K' }, Meet: { mic: 'Ctrl+D', cam: 'Ctrl+E', hand: 'Ctrl+Alt+H' } };
+      const a = p.el.dataset.act, key = KEYS[S.app][a];
+      if (!log('key', `${key} <em>${({ mic: '마이크', cam: '카메라', hand: '손 들기' })[a]}</em>`, '터치')) return;
+      lastKey(key);
+      if (a === 'mic') { S.mic = !S.mic; const m = $('#micTile'); m.dataset.on = S.mic; m.querySelector('use').setAttribute('href', S.mic ? '#i-mic' : '#i-mic-off'); m.querySelector('.tl').textContent = S.mic ? '마이크 켜짐' : '마이크 꺼짐'; const b = $('#mbMic'); b.className = 'mbtn is-flash ' + (S.mic ? 'is-on' : 'is-off'); b.querySelector('use').setAttribute('href', S.mic ? '#i-mic' : '#i-mic-off'); $('#meMicIc').style.display = S.mic ? 'none' : ''; }
+      if (a === 'cam') { S.cam = !S.cam; p.el.querySelector('use').setAttribute('href', S.cam ? '#i-camera' : '#i-camera-off'); $('#meet').dataset.cam = S.cam; const b = $('#mbCam'); b.className = 'mbtn is-flash ' + (S.cam ? 'is-on' : 'is-off'); b.querySelector('use').setAttribute('href', S.cam ? '#i-camera' : '#i-camera-off'); }
+      if (a === 'hand') { S.hand = !S.hand; $('#meet').dataset.hand = S.hand; $('#mbHand').className = 'mbtn is-flash ' + (S.hand ? 'is-on' : ''); }
+    }
+  }
+
+  /* 측면 버튼: 짧게(<400ms) = 주 동작, 2초 = 잠금 토글. PWR 은 화면 켜기·끄기 자리(목업에선 로그만) */
+  function sideButton(btn, ring, onShort, label) {
+    let t = 0, timer = 0, longDone = false;
+    const down = () => { btn.classList.add('is-pressed'); ring.classList.add('is-on'); t = performance.now(); longDone = false; timer = setTimeout(() => { longDone = true; ring.classList.remove('is-on'); setLock(!S.locked); }, 2000); };
+    const up = () => { if (!t) return; btn.classList.remove('is-pressed'); ring.classList.remove('is-on'); clearTimeout(timer); if (!longDone && performance.now() - t < 400) onShort(); t = 0; };
+    btn.addEventListener('pointerdown', down); btn.addEventListener('pointerup', up); btn.addEventListener('pointerleave', up);
+    return { down, up };
+  }
+  const boot = sideButton($('#btnBoot'), $('#holdBoot'), () => { if (S.mode === 'present') slideStep(1, '버튼'); else log('sys', 'BOOT 짧게 (이 모드에선 동작 없음)', '버튼'); });
+  const pwr = sideButton($('#btnPwr'), $('#holdPwr'), () => log('sys', 'PWR 짧게 → 시계 화면 켜기/끄기', '버튼'));
+  const typing = e => /INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
+  document.addEventListener('keydown', e => { if (e.repeat || typing(e)) return; if (e.code === 'Space') { e.preventDefault(); boot.down(); } if (e.code === 'KeyP') pwr.down(); });
+  document.addEventListener('keyup', e => { if (typing(e)) return; if (e.code === 'Space') { e.preventDefault(); boot.up(); } if (e.code === 'KeyP') pwr.up(); });
+
+  /* 손목 패드: 드래그 → 자이로 값, 빠른 튕김 → 제스처(목업: 속도 임계 단순화) */
+  const pad = $('#pad'), dot = $('#padDot');
+  let pp = null, lastFlick = 0;
+  pad.addEventListener('pointerdown', e => { pad.setPointerCapture(e.pointerId); pp = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+  pad.addEventListener('pointermove', e => {
+    if (!pp) return; const r = pad.getBoundingClientRect();
+    const dx = e.clientX - pp.x, dy = e.clientY - pp.y;
+    dot.style.left = `calc(50% + ${Math.max(-r.width / 2, Math.min(r.width / 2, dx))}px)`; dot.style.top = `calc(50% + ${Math.max(-80, Math.min(80, dy))}px)`;
+    const gx = (dy * 2).toFixed(1), gy = (dx * 2).toFixed(1);
+    $('#ox').textContent = (gx > 0 ? '+' : '') + gx; $('#oy').textContent = (gy > 0 ? '+' : '') + gy;
+    const bar = (el, v) => { const w = Math.min(50, Math.abs(v) / 6); el.style.width = w + '%'; el.style.left = v < 0 ? (50 - w) + '%' : '50%'; };
+    bar($('#bx'), +gx); bar($('#by'), +gy);
+  });
+  pad.addEventListener('pointerup', e => {
+    if (!pp) return; const dt = performance.now() - pp.t, dx = e.clientX - pp.x;
+    dot.style.left = '50%'; dot.style.top = '50%'; ['#ox', '#oy'].forEach(s => $(s).textContent = '+0.0'); ['#bx', '#by'].forEach(s => $(s).style.width = 0);
+    if (S.mode === 'present' && dt < 180 && Math.abs(dx) > 60) {
+      if (S.locked) log('sys', '튕김 감지 — 잠금 중이라 무시', '제스처');
+      else if (performance.now() - lastFlick < 800) log('sys', '튕김 감지 — 0.8초 재인식 금지', '제스처');
+      else { lastFlick = performance.now(); slideStep(dx > 0 ? 1 : -1, '제스처'); }
+    }
+    pp = null;
+  });
+
+  /* 툴바: 입력 방식 / 테마 / 음성 */
+  $$('.tb-input .seg button').forEach(b => b.onclick = () => {
+    $$('.tb-input .seg button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    $('#wrist').dataset.input = b.dataset.input;
+    $('#wristSub').textContent = ({ drag: '마우스 드래그로 자이로 값 생성', phone: 'DeviceOrientation → 자이로 값', replay: '시계에서 녹화한 IMU CSV 재생' })[b.dataset.input];
+    log('sys', '손목 입력 → ' + b.textContent, '사이트');
+  });
+  const THEMES = ['auto', 'light', 'dark'], TH_KO = { auto: '자동', light: '라이트', dark: '다크' };
+  let th = 0;
+  $('#themeBtn').onclick = () => { th = (th + 1) % 3; const v = THEMES[th]; if (v === 'auto') root.removeAttribute('data-theme'); else root.dataset.theme = v; $('#themeBtn').textContent = '테마: ' + TH_KO[v]; };
+  function setVoice(v) {
+    const b = $('#voiceBtn'); b.dataset.state = v; b.setAttribute('aria-pressed', v !== 'off' && v !== 'unsupported');
+    b.disabled = v === 'unsupported';
+    b.title = v === 'unsupported' ? '이 브라우저는 Web Speech API를 지원하지 않습니다 (Chrome·Edge 권장)' : '';
+    $('.voice-txt').textContent = ({ off: '음성', listening: '듣는 중', heard: '인식됨', ignored: '무시됨', unsupported: '음성 불가' })[v];
+    $('#voiceNotice').hidden = v === 'off' || v === 'unsupported';
+    screen.dataset.voice = v === 'off' || v === 'unsupported' ? 'off' : 'listening';
+    $('#mVoice').value = v;
+    if (v === 'heard') { log('sys', '음성 "키트, 다음" 인식', '음성'); if (S.mode === 'present') slideStep(1, '음성'); }
+    if (v === 'ignored') log('sys', '음성 "다음" 단독 — 호출어 없음, 무시', '음성');
+  }
+  $('#voiceBtn').onclick = () => setVoice($('#voiceBtn').dataset.state === 'off' ? 'listening' : 'off');
+
+  /* 목업 상태 막대 */
+  $('#mMode').onchange = e => setMode(e.target.value);
+  $('#mConn').onchange = e => setConn(e.target.value);
+  $('#mLock').onchange = e => setLock(e.target.value === 'true');
+  $('#mView').onchange = e => { S.view = e.target.value; screen.dataset.black = S.view === 'black'; renderSlide(); log('key', S.view === 'edit' ? 'Esc <em>쇼 종료 · 0x29</em>' : S.view === 'show' ? 'F5 <em>쇼 시작 · 0x3E</em>' : 'B <em>암전 · 0x05</em>', '목업'); };
+  $('#mAir').onchange = e => { screen.dataset.air = e.target.value; $('#cursor').style.left = '40%'; };
+  $('#mVoice').onchange = e => setVoice(e.target.value);
+  $('#connPill').onclick = () => setConn(S.conn === 'on' ? 'off' : 'on');
+
+  /* 가상 커서: PC 화면 클릭 위치로 이동 + 파문 (목업 표시용) */
+  $('#pcScreen').addEventListener('click', e => {
+    const r = e.currentTarget.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    const c = $('#cursor'); c.style.left = x + 'px'; c.style.top = y + 'px';
+    const rp = document.createElement('span'); rp.className = 'cursor-ripple'; rp.style.left = x + 'px'; rp.style.top = y + 'px';
+    e.currentTarget.appendChild(rp); setTimeout(() => rp.remove(), 320);
+    $('#cursorPos').textContent = `커서 ${Math.round(x / r.width * 1920)}, ${Math.round(y / r.height * 1200)}`;
+  });
+
+  /* 시계 축척: 브레이크포인트별 --s */
+  function fit() {
+    const w = innerWidth;
+    // 모바일은 실제 열 폭 기준 (innerWidth 는 스크롤바·확대에 따라 달라짐)
+    const s = w >= 1600 ? 1 : w >= 1024 ? .75 : w >= 768 ? .6 : Math.min(1, $('.col-watch').clientWidth / 500);
+    $('#stage').style.setProperty('--s', s.toFixed(3));
+    $('#watchCap').textContent = `410×502 · ${Math.round(s * 100)}%`;
+  }
+  addEventListener('resize', fit); fit();
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(document.body);
+
+  /* 시각·경과 시간 */
+  const tick = () => { const d = new Date(); $('#sbTime').textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  tick(); setInterval(tick, 10000);
+  let el = 754; setInterval(() => { el++; $('#timer').textContent = `${String(Math.floor(el / 60)).padStart(2, '0')}:${String(el % 60).padStart(2, '0')}`; }, 1000);
+
+  setSiteAccent(); renderSlide();
+})();
+</script>
+</body>
+</html>

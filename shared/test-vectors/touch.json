@@ -1,0 +1,2075 @@
+{
+  "suite": "touch",
+  "description": "터치 판정(TouchGesture) — 손 뗄 때 전송, 12px 탭 취소, 600ms 길게, 스와이프 80/60/1.5/800(쇼 중 140/50), 위에서 당기기 72/48/40/600. 기본: 발표 모드, PowerPoint, Windows, 연결됨.",
+  "cases": [
+    {
+      "id": "send-on-release",
+      "desc": "발표 오른쪽 누름: 누르는 순간에는 아무것도 보내지 않고, 뗄 때 다음(→) 1회",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 350,
+          "y": 260,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        },
+        {
+          "at": 50,
+          "poll": true,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        },
+        {
+          "at": 120,
+          "touch": "up",
+          "x": 350,
+          "y": 260,
+          "expect": {
+            "inputs": [
+              {
+                "t": "tap",
+                "x": 350,
+                "y": 260
+              }
+            ],
+            "keys": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "RIGHT"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "move-11-is-tap",
+      "desc": "이동 11px(12 미만) = 탭",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 340,
+          "y": 260
+        },
+        {
+          "at": 50,
+          "touch": "move",
+          "x": 351,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "up",
+          "x": 351,
+          "y": 260,
+          "expect": {
+            "inputs": [
+              {
+                "t": "tap",
+                "x": 340,
+                "y": 260
+              }
+            ],
+            "keys": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "RIGHT"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "move-12-cancels",
+      "desc": "이동 12px = 탭 취소(아무것도 안 보냄)",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 340,
+          "y": 260
+        },
+        {
+          "at": 50,
+          "touch": "move",
+          "x": 352,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "up",
+          "x": 352,
+          "y": 260,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "move-13-cancels",
+      "desc": "이동 13px = 탭 취소",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 340,
+          "y": 260
+        },
+        {
+          "at": 50,
+          "touch": "move",
+          "x": 327,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "up",
+          "x": 327,
+          "y": 260,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "move-diag-11-is-tap",
+      "desc": "대각선 (8, 8) = 11.3px → 탭",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 340,
+          "y": 260
+        },
+        {
+          "at": 50,
+          "touch": "move",
+          "x": 348,
+          "y": 268
+        },
+        {
+          "at": 100,
+          "touch": "up",
+          "x": 348,
+          "y": 268,
+          "expect": {
+            "inputs": [
+              {
+                "t": "tap",
+                "x": 340,
+                "y": 260
+              }
+            ],
+            "keys": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "RIGHT"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "move-diag-13-cancels",
+      "desc": "대각선 (9, 9) = 12.7px → 취소",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 340,
+          "y": 260
+        },
+        {
+          "at": 50,
+          "touch": "move",
+          "x": 349,
+          "y": 269
+        },
+        {
+          "at": 100,
+          "touch": "up",
+          "x": 349,
+          "y": 269,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "zone-held-600-no-tap",
+      "desc": "오른쪽 영역을 600ms 이상 누르고 떼면 보내지 않음(탭은 600ms 전에 뗀 것만)",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 350,
+          "y": 260
+        },
+        {
+          "at": 300,
+          "poll": true
+        },
+        {
+          "at": 600,
+          "touch": "up",
+          "x": 350,
+          "y": 260,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "zone-599-is-tap",
+      "desc": "599ms 에 떼면 탭",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 350,
+          "y": 260
+        },
+        {
+          "at": 599,
+          "touch": "up",
+          "x": 350,
+          "y": 260,
+          "expect": {
+            "inputs": [
+              {
+                "t": "tap",
+                "x": 350,
+                "y": 260
+              }
+            ],
+            "keys": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "RIGHT"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "center-long-360",
+      "desc": "발표 가운데(암전)만 360ms: 359ms 는 아직, 360ms 에 길게 누름 = 암전(.). 그 뒤 떼도 탭 없음",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 260
+        },
+        {
+          "at": 359,
+          "poll": true,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        },
+        {
+          "at": 360,
+          "poll": true,
+          "expect": {
+            "inputs": [
+              {
+                "t": "longPress",
+                "x": 205,
+                "y": 260
+              }
+            ],
+            "keys": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "PERIOD"
+              }
+            ]
+          }
+        },
+        {
+          "at": 800,
+          "touch": "up",
+          "x": 205,
+          "y": 260,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "center-release-359-no-blackout",
+      "desc": "가운데를 359ms 에 떼면 암전 없음(탭도 동작 없음)",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 260
+        },
+        {
+          "at": 300,
+          "poll": true,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        },
+        {
+          "at": 359,
+          "touch": "up",
+          "x": 205,
+          "y": 260,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "meeting-tile-hold-still-600",
+      "desc": "다른 길게 누르기는 600ms 그대로: 회의 마이크 타일 360ms 에는 아직 길게 아님, 599ms 에 떼면 탭",
+      "init": {
+        "mode": "meeting"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 230
+        },
+        {
+          "at": 360,
+          "poll": true,
+          "expect": {
+            "inputs": []
+          }
+        },
+        {
+          "at": 599,
+          "touch": "up",
+          "x": 205,
+          "y": 230,
+          "expect": {
+            "inputs": [
+              {
+                "t": "tap",
+                "x": 205,
+                "y": 230
+              }
+            ],
+            "keys": [
+              {
+                "t": "key",
+                "mods": [
+                  "alt"
+                ],
+                "key": "A"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "center-long-cancel-on-move",
+      "desc": "가운데를 누른 채 12px 움직이면 길게 누름 취소",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 260
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 205,
+          "y": 272
+        },
+        {
+          "at": 700,
+          "poll": true,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        },
+        {
+          "at": 800,
+          "touch": "up",
+          "x": 205,
+          "y": 272,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "center-short-tap-nothing",
+      "desc": "가운데 짧은 탭은 아무것도 보내지 않음",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "up",
+          "x": 205,
+          "y": 260,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "swipe-dx-79-no",
+      "desc": "|dx| 79 = 스와이프 아님(이동했으므로 탭도 아님)",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 260.5,
+          "y": 260
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 221,
+          "y": 260
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 221,
+          "y": 260,
+          "expect": {
+            "inputs": [],
+            "state": {
+              "mode": "present"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "swipe-dx-80-left",
+      "desc": "|dx| 80 = 왼쪽 스와이프 → 다음 모드(실행), 키 없음",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 260,
+          "y": 260
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 220,
+          "y": 260
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 220,
+          "y": 260,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "left"
+              }
+            ],
+            "keys": [],
+            "state": {
+              "mode": "launch"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "swipe-dx-80-right",
+      "desc": "오른쪽 스와이프 → 이전 모드(시계)",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 340,
+          "y": 260
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 380,
+          "y": 260
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 380,
+          "y": 260,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "right"
+              }
+            ],
+            "keys": [],
+            "state": {
+              "mode": "clock"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "swipe-dy-59-ok",
+      "desc": "|dx| 100, |dy| 59 (< 60, 100 > 1.5·59) = 스와이프",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 250,
+          "y": 289.5
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 200,
+          "y": 319
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 200,
+          "y": 319,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "left"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "swipe-dy-60-no",
+      "desc": "|dy| 60 = 스와이프 아님",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 250,
+          "y": 290
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 200,
+          "y": 320
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 200,
+          "y": 320,
+          "expect": {
+            "inputs": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "swipe-ratio-no",
+      "desc": "|dx| 80, |dy| 55: 80 ≤ 1.5·55 = 82.5 → 스와이프 아님",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 260,
+          "y": 287.5
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 220,
+          "y": 315
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 220,
+          "y": 315,
+          "expect": {
+            "inputs": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "swipe-ratio-ok",
+      "desc": "|dx| 90, |dy| 55: 90 > 82.5 → 스와이프",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 255,
+          "y": 287.5
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 210,
+          "y": 315
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 210,
+          "y": 315,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "left"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "swipe-800ms-ok",
+      "desc": "800ms 에 떼면 스와이프",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 260
+        },
+        {
+          "at": 400,
+          "touch": "move",
+          "x": 250,
+          "y": 260
+        },
+        {
+          "at": 800,
+          "touch": "move",
+          "x": 200,
+          "y": 260
+        },
+        {
+          "at": 800,
+          "touch": "up",
+          "x": 200,
+          "y": 260,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "left"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "swipe-801ms-no",
+      "desc": "801ms 에 떼면 스와이프 아님",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 260
+        },
+        {
+          "at": 400.5,
+          "touch": "move",
+          "x": 250,
+          "y": 260
+        },
+        {
+          "at": 801,
+          "touch": "move",
+          "x": 200,
+          "y": 260
+        },
+        {
+          "at": 801,
+          "touch": "up",
+          "x": 200,
+          "y": 260,
+          "expect": {
+            "inputs": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "show-swipe-139-no",
+      "desc": "쇼 진행 중 발표: |dx| 139 = 모드 전환 아님",
+      "init": {
+        "mode": "present",
+        "show": {
+          "running": true,
+          "startedAt": 0,
+          "blackout": false
+        }
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 230.5,
+          "y": 260
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 161,
+          "y": 260
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 161,
+          "y": 260,
+          "expect": {
+            "inputs": [],
+            "state": {
+              "mode": "present"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "show-swipe-140-left",
+      "desc": "쇼 진행 중 발표: |dx| 140 = 모드 전환",
+      "init": {
+        "mode": "present",
+        "show": {
+          "running": true,
+          "startedAt": 0,
+          "blackout": false
+        }
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 230,
+          "y": 260
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 160,
+          "y": 260
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 160,
+          "y": 260,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "left"
+              }
+            ],
+            "state": {
+              "mode": "launch"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "show-swipe-dy-50-no",
+      "desc": "쇼 진행 중 발표: |dy| 50 = 모드 전환 아님",
+      "init": {
+        "mode": "present",
+        "show": {
+          "running": true,
+          "startedAt": 0,
+          "blackout": false
+        }
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 200,
+          "y": 285
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 100,
+          "y": 310
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 100,
+          "y": 310,
+          "expect": {
+            "inputs": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "statusbar-swipe-mode",
+      "desc": "상태줄(y < 72)에서 시작한 가로 스와이프도 모드 전환",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 30
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 250,
+          "y": 32
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 200,
+          "y": 34
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 200,
+          "y": 34,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "left"
+              }
+            ],
+            "state": {
+              "mode": "launch"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "pull-48-sheet",
+      "desc": "위에서 당기기: 시작 y 71, 아래로 48 = 쇼 시트 열림",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 71
+        },
+        {
+          "at": 150,
+          "touch": "move",
+          "x": 205,
+          "y": 95
+        },
+        {
+          "at": 300,
+          "touch": "move",
+          "x": 205,
+          "y": 119
+        },
+        {
+          "at": 300,
+          "touch": "up",
+          "x": 205,
+          "y": 119,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "down"
+              }
+            ],
+            "state": {
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "pull-47-no",
+      "desc": "아래로 47 = 당기기 아님",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 71
+        },
+        {
+          "at": 150,
+          "touch": "move",
+          "x": 205,
+          "y": 94.5
+        },
+        {
+          "at": 300,
+          "touch": "move",
+          "x": 205,
+          "y": 118
+        },
+        {
+          "at": 300,
+          "touch": "up",
+          "x": 205,
+          "y": 118,
+          "expect": {
+            "inputs": [],
+            "state": {
+              "sheet": {
+                "open": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "pull-start-72-no",
+      "desc": "시작 y 72 = 당기기 후보 아님(본문 터치)",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 72
+        },
+        {
+          "at": 150,
+          "touch": "move",
+          "x": 205,
+          "y": 112
+        },
+        {
+          "at": 300,
+          "touch": "move",
+          "x": 205,
+          "y": 152
+        },
+        {
+          "at": 300,
+          "touch": "up",
+          "x": 205,
+          "y": 152,
+          "expect": {
+            "inputs": [],
+            "state": {
+              "sheet": {
+                "open": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "pull-dx-39-ok",
+      "desc": "|dx| 39 = 당기기",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 30
+        },
+        {
+          "at": 150,
+          "touch": "move",
+          "x": 224.5,
+          "y": 60
+        },
+        {
+          "at": 300,
+          "touch": "move",
+          "x": 244,
+          "y": 90
+        },
+        {
+          "at": 300,
+          "touch": "up",
+          "x": 244,
+          "y": 90,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "down"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "pull-dx-40-no",
+      "desc": "|dx| 40 = 당기기 아님",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 30
+        },
+        {
+          "at": 150,
+          "touch": "move",
+          "x": 225,
+          "y": 60
+        },
+        {
+          "at": 300,
+          "touch": "move",
+          "x": 245,
+          "y": 90
+        },
+        {
+          "at": 300,
+          "touch": "up",
+          "x": 245,
+          "y": 90,
+          "expect": {
+            "inputs": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "pull-600ms-ok",
+      "desc": "600ms 에 떼면 당기기",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 30
+        },
+        {
+          "at": 300,
+          "touch": "move",
+          "x": 205,
+          "y": 60
+        },
+        {
+          "at": 600,
+          "touch": "move",
+          "x": 205,
+          "y": 90
+        },
+        {
+          "at": 600,
+          "touch": "up",
+          "x": 205,
+          "y": 90,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "down"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "pull-601ms-no",
+      "desc": "601ms 에 떼면 당기기 아님",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 30
+        },
+        {
+          "at": 300.5,
+          "touch": "move",
+          "x": 205,
+          "y": 60
+        },
+        {
+          "at": 601,
+          "touch": "move",
+          "x": 205,
+          "y": 90
+        },
+        {
+          "at": 601,
+          "touch": "up",
+          "x": 205,
+          "y": 90,
+          "expect": {
+            "inputs": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "pull-launch-settings",
+      "desc": "발표 외 모드 당기기 = 설정 화면 요청(코어 입력 없음)",
+      "init": {
+        "mode": "launch"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 20
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 205,
+          "y": 60
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 205,
+          "y": 100
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 205,
+          "y": 100,
+          "expect": {
+            "inputs": [],
+            "settingsRequest": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "sheet-button-on-release",
+      "desc": "시트 쇼 시작 버튼: 누를 때는 보내지 않고 뗄 때 F5",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 20
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 205,
+          "y": 120
+        },
+        {
+          "at": 150,
+          "touch": "up",
+          "x": 205,
+          "y": 120,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "down"
+              }
+            ],
+            "state": {
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        },
+        {
+          "at": 1000,
+          "touch": "down",
+          "x": 100,
+          "y": 150,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        },
+        {
+          "at": 1100,
+          "touch": "up",
+          "x": 100,
+          "y": 150,
+          "expect": {
+            "inputs": [
+              {
+                "t": "tap",
+                "x": 100,
+                "y": 150
+              }
+            ],
+            "keys": [
+              {
+                "t": "key",
+                "mods": [],
+                "key": "F5"
+              }
+            ],
+            "state": {
+              "show": {
+                "running": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "sheet-button-drag-cancels",
+      "desc": "시트 버튼을 누르고 12px 이상 끌면 취소",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 20
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 205,
+          "y": 120
+        },
+        {
+          "at": 150,
+          "touch": "up",
+          "x": 205,
+          "y": 120,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "down"
+              }
+            ],
+            "state": {
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        },
+        {
+          "at": 1000,
+          "touch": "down",
+          "x": 100,
+          "y": 150
+        },
+        {
+          "at": 1050,
+          "touch": "move",
+          "x": 100,
+          "y": 170
+        },
+        {
+          "at": 1100,
+          "touch": "up",
+          "x": 100,
+          "y": 170,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "sheet-settings-row",
+      "desc": "시트 설정 행 탭 = 시트 닫기(swipe up) + 설정 화면 요청",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 20
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 205,
+          "y": 120
+        },
+        {
+          "at": 150,
+          "touch": "up",
+          "x": 205,
+          "y": 120,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "down"
+              }
+            ],
+            "state": {
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        },
+        {
+          "at": 1000,
+          "touch": "down",
+          "x": 205,
+          "y": 280
+        },
+        {
+          "at": 1100,
+          "touch": "up",
+          "x": 205,
+          "y": 280,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "up"
+              }
+            ],
+            "keys": [],
+            "settingsRequest": true,
+            "state": {
+              "sheet": {
+                "open": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "sheet-blocks-mode-swipe",
+      "desc": "시트가 열려 있으면 가로 스와이프로 모드가 바뀌지 않음",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 20
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 205,
+          "y": 120
+        },
+        {
+          "at": 150,
+          "touch": "up",
+          "x": 205,
+          "y": 120,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "down"
+              }
+            ],
+            "state": {
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        },
+        {
+          "at": 1000,
+          "touch": "down",
+          "x": 300,
+          "y": 200
+        },
+        {
+          "at": 1100,
+          "touch": "move",
+          "x": 250,
+          "y": 200
+        },
+        {
+          "at": 1200,
+          "touch": "move",
+          "x": 180,
+          "y": 200
+        },
+        {
+          "at": 1200,
+          "touch": "up",
+          "x": 180,
+          "y": 200,
+          "expect": {
+            "inputs": [],
+            "state": {
+              "mode": "present",
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "sheet-swipe-up-closes",
+      "desc": "시트 위로 48px 쓸기 = 닫기",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 20
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 205,
+          "y": 120
+        },
+        {
+          "at": 150,
+          "touch": "up",
+          "x": 205,
+          "y": 120,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "down"
+              }
+            ],
+            "state": {
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        },
+        {
+          "at": 1000,
+          "touch": "down",
+          "x": 205,
+          "y": 300
+        },
+        {
+          "at": 1100,
+          "touch": "move",
+          "x": 205,
+          "y": 252
+        },
+        {
+          "at": 1150,
+          "touch": "up",
+          "x": 205,
+          "y": 252,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "up"
+              }
+            ],
+            "state": {
+              "sheet": {
+                "open": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "sheet-outside-tap-closes",
+      "desc": "시트 바깥(y ≥ 344) 탭 = 닫기, 키 없음",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 20
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 205,
+          "y": 120
+        },
+        {
+          "at": 150,
+          "touch": "up",
+          "x": 205,
+          "y": 120,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "down"
+              }
+            ],
+            "state": {
+              "sheet": {
+                "open": true
+              }
+            }
+          }
+        },
+        {
+          "at": 1000,
+          "touch": "down",
+          "x": 205,
+          "y": 420
+        },
+        {
+          "at": 1100,
+          "touch": "up",
+          "x": 205,
+          "y": 420,
+          "expect": {
+            "inputs": [
+              {
+                "t": "tap",
+                "x": 205,
+                "y": 420
+              }
+            ],
+            "keys": [],
+            "state": {
+              "sheet": {
+                "open": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-tile-on-release",
+      "desc": "실행 타일: 누를 때 없음, 뗄 때 Ctrl+Alt+1",
+      "init": {
+        "mode": "launch"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 100,
+          "y": 126,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        },
+        {
+          "at": 150,
+          "touch": "up",
+          "x": 100,
+          "y": 126,
+          "expect": {
+            "inputs": [
+              {
+                "t": "tap",
+                "x": 100,
+                "y": 126
+              }
+            ],
+            "keys": [
+              {
+                "t": "key",
+                "mods": [
+                  "ctrl",
+                  "alt"
+                ],
+                "key": "1"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-tile-long-600",
+      "desc": "실행 타일 600ms = 길게(대안 실행). 뗄 때 탭 없음",
+      "init": {
+        "mode": "launch"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 300,
+          "y": 262
+        },
+        {
+          "at": 599,
+          "poll": true,
+          "expect": {
+            "inputs": []
+          }
+        },
+        {
+          "at": 600,
+          "poll": true,
+          "expect": {
+            "inputs": [
+              {
+                "t": "longPress",
+                "x": 300,
+                "y": 262
+              }
+            ]
+          }
+        },
+        {
+          "at": 700,
+          "touch": "up",
+          "x": 300,
+          "y": 262,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-tile-move-12-cancels",
+      "desc": "실행 타일을 누르고 12px 움직이면 보내지 않음",
+      "init": {
+        "mode": "launch"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 100,
+          "y": 126
+        },
+        {
+          "at": 50,
+          "touch": "move",
+          "x": 112,
+          "y": 126
+        },
+        {
+          "at": 100,
+          "touch": "up",
+          "x": 112,
+          "y": 126,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-page-swipe",
+      "desc": "실행 모드 세로 스와이프(위로 80) = 2쪽, 키 없음",
+      "init": {
+        "mode": "launch"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 200,
+          "y": 300
+        },
+        {
+          "at": 100,
+          "touch": "move",
+          "x": 200,
+          "y": 260
+        },
+        {
+          "at": 200,
+          "touch": "move",
+          "x": 200,
+          "y": 220
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 200,
+          "y": 220,
+          "expect": {
+            "inputs": [
+              {
+                "t": "swipe",
+                "dir": "up"
+              }
+            ],
+            "keys": [],
+            "state": {
+              "launchPage": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meeting-tile-on-release",
+      "desc": "회의 마이크 타일: 뗄 때 Alt+A(Zoom)",
+      "init": {
+        "mode": "meeting"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 205,
+          "y": 230,
+          "expect": {
+            "inputs": [],
+            "keys": []
+          }
+        },
+        {
+          "at": 120,
+          "touch": "up",
+          "x": 205,
+          "y": 230,
+          "expect": {
+            "inputs": [
+              {
+                "t": "tap",
+                "x": 205,
+                "y": 230
+              }
+            ],
+            "keys": [
+              {
+                "t": "key",
+                "mods": [
+                  "alt"
+                ],
+                "key": "A"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "waiting-no-zones",
+      "desc": "첫 연결 전(연결 대기): 탭·스와이프 없음, 당기기 = 설정 화면 요청",
+      "init": {
+        "mode": "present",
+        "connected": false,
+        "everConnected": false
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 350,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "up",
+          "x": 350,
+          "y": 260,
+          "expect": {
+            "inputs": []
+          }
+        },
+        {
+          "at": 1000,
+          "touch": "down",
+          "x": 300,
+          "y": 260
+        },
+        {
+          "at": 1100,
+          "touch": "move",
+          "x": 200,
+          "y": 260
+        },
+        {
+          "at": 1150,
+          "touch": "up",
+          "x": 200,
+          "y": 260,
+          "expect": {
+            "inputs": [],
+            "state": {
+              "mode": "present"
+            }
+          }
+        },
+        {
+          "at": 2000,
+          "touch": "down",
+          "x": 205,
+          "y": 20
+        },
+        {
+          "at": 2100,
+          "touch": "move",
+          "x": 205,
+          "y": 120
+        },
+        {
+          "at": 2150,
+          "touch": "up",
+          "x": 205,
+          "y": 120,
+          "expect": {
+            "inputs": [],
+            "settingsRequest": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "screen-off-ignored",
+      "desc": "화면이 꺼져 있으면 터치를 버린다",
+      "init": {
+        "mode": "present",
+        "screenOn": false
+      },
+      "steps": [
+        {
+          "at": 0,
+          "touch": "down",
+          "x": 350,
+          "y": 260
+        },
+        {
+          "at": 100,
+          "touch": "up",
+          "x": 350,
+          "y": 260,
+          "expect": {
+            "inputs": []
+          }
+        }
+      ]
+    }
+  ]
+}

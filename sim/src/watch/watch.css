@@ -1,0 +1,370 @@
+/* =====================================================================
+   시계 에뮬레이터 스타일 — 담당: watch 모듈. 클래스 접두사 .watch-* (시계 화면 루트는 공용 .wc-screen, 아이콘 .wc-icon)
+   명세: design/v2/README.md(01~10 보다 우선). 좌표는 410×502 절대 px, 색·글꼴은 tokens.css 토큰만.
+
+   시계 화면(.wc-screen) 안 규칙(README 0.2·0.3 — 펌웨어와 같은 그림):
+     - CSS transition·animation·transform scale·opacity·box-shadow·gradient·filter 를 쓰지 않는다.
+     - 움직임은 watch/*.ts 가 setTimeout 단계로 색·위치(left/top)를 바꾼다(계단식).
+     - 글자 크기는 kr_20/24/28/32 · num_128 다섯 가지만(페어링 끝자리 칩 48px 만 예외 — 펌웨어 Montserrat 48).
+     - 테두리는 .watch-bd 의 ::after(색 --bd-c, 두께 --bd-w)로 그린다 — 두께가 바뀌어도 안쪽 글자가 움직이지 않게.
+   ===================================================================== */
+
+/* ---------- 글꼴: Pretendard 서브셋(글자 범위 = firmware/main/fonts/charset.txt, tools/gen_fonts.py) ---------- */
+@font-face { font-family: "WC Pretendard"; font-weight: 500; src: url('./fonts/wc-pretendard-500.woff2') format('woff2'); font-display: block; }
+@font-face { font-family: "WC Pretendard"; font-weight: 600; src: url('./fonts/wc-pretendard-600.woff2') format('woff2'); font-display: block; }
+@font-face { font-family: "WC Pretendard"; font-weight: 700; src: url('./fonts/wc-pretendard-700.woff2') format('woff2'); font-display: block; }
+
+/* ---------- 바깥: 기기 모형 (시계 화면 밖 — 시뮬레이터 UI) ---------- */
+.watch-root { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.watch-wrap { position: relative; flex: none; }
+.watch-device {
+  position: absolute; left: 0; top: 0; width: 500px; height: 542px;
+  transform-origin: 0 0;
+}
+.watch-bezel {
+  position: absolute; left: 0; top: 0; width: 450px; height: 542px;
+  border-radius: 84px; background: var(--sim-bezel);
+  box-shadow: inset 0 0 0 2px var(--sim-bezel-edge), var(--sim-shadow);
+}
+.watch-bezel::after {
+  content: ""; position: absolute; inset: 6px; border-radius: 78px;
+  box-shadow: inset 0 0 0 1px var(--sim-bezel-edge); pointer-events: none; opacity: .6;
+}
+.watch-screen {
+  position: absolute; left: 20px; top: 20px; z-index: 1;
+  touch-action: none; cursor: pointer; outline: none;
+  -webkit-tap-highlight-color: transparent;
+  font-family: var(--wc-font-family);
+}
+.watch-screen:focus-visible { outline: 2px solid var(--sim-focus); outline-offset: 2px; }
+
+/* 측면 버튼: 보이는 12×64, 히트 영역 34×88 */
+.watch-side {
+  position: absolute; left: 448px; width: 12px; height: 64px; padding: 0; margin: 0;
+  background: var(--sim-side-button); border: 1px solid var(--sim-bezel-edge); border-left: none;
+  border-radius: 0 6px 6px 0; cursor: pointer; touch-action: none;
+  transition: transform var(--wc-motion-release) var(--wc-ease-out), background var(--wc-motion-release);
+}
+.watch-side::before { content: ""; position: absolute; top: -12px; bottom: -12px; left: 0; right: -16px; }
+.watch-side--pwr { top: 250px; }
+.watch-side--boot { top: 150px; }
+.watch-side.is-press {
+  transform: translateX(-4px); background: var(--sim-bezel);
+  transition-duration: var(--wc-motion-press);
+}
+.watch-side:focus-visible { outline: 2px solid var(--sim-focus); outline-offset: 2px; }
+.watch-sidebar {
+  position: absolute; left: 462px; width: 3px; height: 64px; border-radius: 2px;
+  background: var(--wc-locked); transform-origin: 50% 100%; transform: scaleY(0); visibility: hidden;
+  pointer-events: none;
+}
+.watch-sidebar--pwr { top: 250px; }
+.watch-sidebar--boot { top: 150px; }
+.watch-sidebar.is-on { visibility: visible; }
+.watch-sidelabel {
+  position: absolute; left: 468px; width: 34px; display: flex; flex-direction: column; gap: 2px;
+  font-family: var(--sim-font-mono); color: var(--sim-text-3); pointer-events: none; line-height: 1.1;
+}
+.watch-sidelabel b { font-size: 11px; font-weight: 700; }
+.watch-sidelabel span { font-size: 10px; }
+.watch-sidelabel--pwr { top: 266px; }
+.watch-sidelabel--boot { top: 166px; }
+.watch-caption {
+  margin-top: 6px; min-height: 18px; font-size: 12px; color: var(--sim-text-3);
+  font-family: var(--sim-font-mono); text-align: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .watch-side, .watch-sidebar { transition: none; }
+}
+
+/* =====================================================================
+   시계 화면 안
+   ===================================================================== */
+.watch-screen .watch-a { position: absolute; box-sizing: border-box; }
+.watch-screen .wc-icon { display: block; }
+.watch-root .is-hidden { display: none !important; }
+
+/* 글꼴 5종(README 1.2) */
+.watch-kr20 { font-size: var(--wc-kr20-size); line-height: var(--wc-kr20-line); font-weight: var(--wc-kr20-weight); }
+.watch-kr24 { font-size: var(--wc-kr24-size); line-height: var(--wc-kr24-line); font-weight: var(--wc-kr24-weight); }
+.watch-kr28 { font-size: var(--wc-kr28-size); line-height: var(--wc-kr28-line); font-weight: var(--wc-kr28-weight); }
+.watch-kr32 { font-size: var(--wc-kr32-size); line-height: var(--wc-kr32-line); font-weight: var(--wc-kr32-weight); }
+.watch-c { text-align: center; }
+.watch-r { text-align: right; }
+
+/* 테두리(두께가 바뀌어도 안쪽이 움직이지 않음) */
+.watch-bd { --bd-c: transparent; --bd-w: 1px; }
+.watch-bd::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  border: var(--bd-w) solid var(--bd-c);
+}
+
+/* 점멸 500/500ms — watch.ts 가 화면 루트에 is-blink-off 를 번갈아 단다 */
+.watch-screen.is-blink-off .watch-blink { visibility: hidden; }
+
+/* 층 순서 */
+.watch-body { left: 0; top: 0; width: 410px; height: 502px; z-index: 1; }
+.watch-set { z-index: 3; }
+.watch-sb { z-index: 4; }
+.watch-banner { z-index: 5; }
+.watch-sheet { z-index: 6; }
+.watch-toast { z-index: 7; }
+.watch-dlg { z-index: 8; }
+.watch-offcover { z-index: 9; left: 0; top: 0; width: 410px; height: 502px; background: var(--wc-bg); }
+
+/* 모드 본문 — 현재 모드만 보인다(전환은 즉시 교체) */
+.watch-view { position: absolute; left: 0; top: 0; width: 410px; height: 502px; visibility: hidden; }
+.watch-view.is-shown { visibility: visible; }
+
+/* ---------- 상태줄 0,0,410,56 (README 2.1) ---------- */
+.watch-sb { left: 0; top: 0; width: 410px; height: 56px; pointer-events: none; }
+.watch-sb__chip { border-radius: var(--wc-radius-pill); }
+.watch-sb.is-inv .watch-sb__chip { background: var(--wc-accent); }
+.watch-sb__name { left: 36px; top: 11px; width: 64px; height: 30px; color: var(--wc-accent); text-align: center; white-space: nowrap; overflow: hidden; }
+.watch-sb.is-inv .watch-sb__name { color: var(--wc-text-on-accent); }
+.watch-sb.is-off .watch-sb__name { color: var(--wc-text-3); }
+.watch-sb.is-off.is-inv .watch-sb__name { color: var(--wc-text-on-accent); }
+.watch-sb:not([data-ctx="mode"]) .watch-sb__chip { display: none; }
+.watch-sb:not([data-ctx="mode"]) .watch-sb__name { width: 150px; text-align: left; color: var(--wc-text-2); }
+.watch-sb[data-ctx="settings"] .watch-sb__name { color: var(--wc-accent); }
+.watch-sb__time { left: 116px; top: 13px; width: 70px; height: 26px; color: var(--wc-text-1); text-align: center; white-space: nowrap; }
+.watch-sb .wc-icon { position: absolute; top: 12px; }
+.watch-sb__lock { left: 218px; color: var(--wc-locked); }
+.watch-sb__ble { left: 252px; color: var(--wc-text-2); }
+.watch-sb[data-ble="off"] .watch-sb__ble { color: var(--wc-danger); }
+.watch-sb[data-ble="wait"] .watch-sb__ble { color: var(--wc-waiting); }
+.watch-sb__bat { left: 288px; }
+.watch-sb__pct { left: 318px; top: 13px; width: 52px; height: 26px; text-align: right; white-space: nowrap; }
+.watch-sb[data-bat="ok"] .watch-sb__bat, .watch-sb[data-bat="ok"] .watch-sb__pct { color: var(--wc-text-2); }
+.watch-sb[data-bat="warn"] .watch-sb__bat, .watch-sb[data-bat="warn"] .watch-sb__pct { color: var(--wc-warning); }
+.watch-sb[data-bat="danger"] .watch-sb__bat, .watch-sb[data-bat="danger"] .watch-sb__pct { color: var(--wc-danger); }
+.watch-sb[data-bat="charge"] .watch-sb__bat, .watch-sb[data-bat="charge"] .watch-sb__pct { color: var(--wc-success); }
+.watch-sb__rail { border-radius: 2px; background: var(--wc-border); }
+.watch-sb__rail.is-on { background: var(--wc-accent); }
+.watch-sb.is-off .watch-sb__rail.is-on { background: var(--wc-text-3); }
+.watch-sb__rail.is-show { background: var(--wc-mode-present-dim-border); }
+
+/* ---------- 큰 숫자 5칸 num_128 (시계·발표 공용) ---------- */
+.watch-dg {
+  font-size: var(--wc-num128-size); line-height: var(--wc-num128-line); font-weight: var(--wc-num128-weight);
+  text-align: center; color: var(--wc-text-1); white-space: nowrap; overflow: visible;
+}
+
+/* ---------- 시계 모드 (README 3.1) ---------- */
+.watch-clock .watch-dg { color: var(--wc-mode-clock); }
+.watch-clock .watch-dg--colon { color: var(--wc-text-2); }
+.watch-daterow { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.watch-date { color: var(--wc-text-2); white-space: nowrap; }
+.watch-dow {
+  box-sizing: border-box; width: 52px; height: 40px; border-radius: 20px; border: 2px solid var(--wc-border);
+  color: var(--wc-text-2); display: flex; align-items: center; justify-content: center; flex: none;
+}
+.watch-dow[data-dow="sat"] { color: var(--wc-mode-launch); border-color: var(--wc-mode-launch-dim-border); }
+.watch-dow[data-dow="sun"] { color: var(--wc-danger); border-color: var(--wc-danger-dim-border); }
+
+/* ---------- 발표 모드 (README 3.2) ---------- */
+.watch-zone { background: var(--wc-accent-dim-border); pointer-events: none; }
+.watch-zone[data-step="2"] { background: var(--wc-accent-dim); }
+.watch-edge { border-radius: 2px; background: var(--wc-text-disabled); }
+.watch-edge[data-step="1"] { background: var(--wc-accent-strong); }
+.watch-edge[data-step="2"] { background: var(--wc-accent); }
+.watch-arrow { color: var(--wc-accent-strong); }
+.watch-arrow svg { display: block; width: 48px; height: 48px; }
+.watch-pdot { border-radius: 50%; border: 2px solid var(--wc-text-3); }
+.watch-present[data-phase="run"] .watch-pdot { border: none; background: var(--wc-accent); }
+.watch-present[data-phase="ended"] .watch-pdot { border: none; border-radius: 0; background: var(--wc-text-2); }
+.watch-pstate { color: var(--wc-text-2); white-space: nowrap; }
+.watch-present .wc-icon.watch-plock { position: absolute; color: var(--wc-locked); }
+.watch-plock__t { color: var(--wc-locked); white-space: nowrap; }
+.watch-screen.is-blink-off .watch-present[data-phase="run"] .watch-dg--colon { color: var(--wc-text-disabled); }
+.watch-present.is-black .watch-dg { color: var(--wc-text-2); }
+.watch-starthint { color: var(--wc-text-3); white-space: nowrap; }
+.watch-chip {
+  border-radius: var(--wc-radius-sm); background: var(--wc-accent); color: var(--wc-text-on-accent);
+  display: flex; align-items: center; justify-content: center; white-space: nowrap;
+}
+.watch-gauge { border-radius: 4px; background: var(--wc-surface-2); overflow: hidden; }
+.watch-gauge__fill { left: 0; top: 0; width: 0; height: 8px; background: var(--wc-accent); }
+.watch-hint { color: var(--wc-text-3); white-space: nowrap; }
+/* 끊김: 모든 글자 text-3 (우선순위 끊김 > 암전 > 기본) */
+.watch-present.is-off .watch-dg, .watch-present.is-off .watch-pstate, .watch-present.is-off .watch-hint,
+.watch-present.is-off .watch-starthint, .watch-present.is-off .watch-plock__t { color: var(--wc-text-3); }
+.watch-screen.is-blink-off .watch-present.is-off[data-phase="run"] .watch-dg--colon { color: var(--wc-text-disabled); }
+/* 에어마우스: 링 125,180,160×160(3px) · 점 199,254,12 · 라벨 0,352 · 안내 0,388 */
+.watch-ring { border-radius: 50%; border: 3px solid var(--wc-accent); }
+.watch-ring.is-click { background: var(--wc-accent-dim); }
+.watch-ring__dot { border-radius: 50%; background: var(--wc-accent); }
+.watch-air-label { color: var(--wc-accent); white-space: nowrap; }
+.watch-air-help { color: var(--wc-text-2); white-space: nowrap; }
+.watch-present:not(.is-air) .watch-ring, .watch-present:not(.is-air) .watch-ring__dot,
+.watch-present:not(.is-air) .watch-air-label, .watch-present:not(.is-air) .watch-air-help { display: none; }
+.watch-present.is-air .watch-digits, .watch-present.is-air .watch-hint, .watch-present.is-air .watch-starthint,
+.watch-present.is-air .watch-gauge, .watch-present.is-air .watch-chip { display: none; }
+.watch-present.is-lockpend .watch-ring { border-color: var(--wc-locked); }
+.watch-present.is-lockpend .watch-ring__dot { background: var(--wc-locked); }
+
+/* ---------- 실행 모드 2×3 타일 183×124 × 2쪽 ---------- */
+.watch-tile { border-radius: var(--wc-radius-md); background: var(--wc-surface-1); overflow: hidden; --bd-c: var(--wc-border); }
+.watch-tile .wc-icon.watch-tile__icon { position: absolute; left: 16px; top: 18px; color: var(--wc-accent); }
+.watch-tile__label { color: var(--wc-text-1); white-space: nowrap; overflow: hidden; }
+.watch-tile__hint { color: var(--wc-text-3); white-space: nowrap; overflow: hidden; }
+.watch-tile__bar { border-radius: 2px; background: var(--wc-accent); }
+.watch-tile.is-press { background: var(--wc-accent-dim); --bd-c: var(--wc-accent); --bd-w: 2px; }
+.watch-tile.is-ok { --bd-c: var(--wc-accent); --bd-w: 2px; }
+.watch-tile.is-dis, .watch-launch.is-off .watch-tile { background: var(--wc-bg); --bd-c: var(--wc-border); --bd-w: 1px; }
+.watch-tile.is-dis .wc-icon, .watch-tile.is-dis .watch-tile__label,
+.watch-launch.is-off .watch-tile .wc-icon, .watch-launch.is-off .watch-tile__label { color: var(--wc-text-disabled); }
+.watch-tile.is-dis .watch-tile__hint { color: var(--wc-text-disabled); }
+.watch-launch.is-off .watch-tile:not(.is-dis) .watch-tile__hint { visibility: hidden; }
+/* 쪽 탭 앱 135,466 / 업무 235,466 · 밑줄 28×3 at y 492 */
+.watch-tab { color: var(--wc-text-disabled); white-space: nowrap; pointer-events: none; }
+.watch-tab.is-on { color: var(--wc-text-1); }
+.watch-tab__line { position: absolute; top: 26px; left: calc(50% - 14px); width: 28px; height: 3px; background: var(--wc-accent); display: none; }
+.watch-tab.is-on .watch-tab__line { display: block; }
+
+/* ---------- 회의 모드 (README 3.4, 색은 1.1 토큰) ---------- */
+.watch-mchip {
+  border-radius: var(--wc-radius-pill); background: var(--wc-surface-1); color: var(--wc-text-2);
+  display: flex; align-items: center; justify-content: center; white-space: nowrap;
+}
+.watch-mchip.is-sel { background: var(--wc-accent-dim); color: var(--wc-accent-strong); --bd-c: var(--wc-accent); --bd-w: 2px; }
+.watch-mchip.is-press { background: var(--wc-surface-3); }
+
+.watch-mtile { border-radius: var(--wc-radius-md); background: var(--wc-surface-1); overflow: hidden; --bd-c: var(--wc-border); }
+.watch-mtile--big { border-radius: var(--wc-radius-lg); }
+.watch-mtile .wc-icon.watch-mtile__icon { position: absolute; color: var(--wc-text-2); }
+.watch-mtile__label { color: var(--wc-text-1); white-space: nowrap; overflow: hidden; }
+.watch-mtile__state { color: var(--wc-text-2); white-space: nowrap; overflow: hidden; }
+.watch-mtile__hint { color: var(--wc-text-3); white-space: nowrap; overflow: hidden; }
+.watch-mtile__badge { border-radius: var(--wc-radius-sm); border: 1px solid var(--wc-border); color: var(--wc-text-3); line-height: 32px; white-space: nowrap; }
+.watch-mtile__sub { color: var(--wc-text-2); white-space: nowrap; overflow: hidden; }
+.watch-mtile__bar { border-radius: 2px; background: var(--wc-text-2); }
+/* 추정 상태 */
+.watch-mtile[data-est="on"] { background: var(--wc-accent-dim); --bd-c: var(--wc-accent-dim-border); --bd-w: 2px; }
+.watch-mtile[data-est="on"] .wc-icon { color: var(--wc-accent); }
+.watch-mtile[data-est="on"] .watch-mtile__badge { color: var(--wc-text-2); border-color: var(--wc-accent-dim-border); }
+.watch-mtile--mic[data-est="off"] { background: var(--wc-danger-dim); --bd-c: var(--wc-danger); --bd-w: 2px; }
+.watch-mtile--mic[data-est="off"] .wc-icon { color: var(--wc-danger); }
+.watch-mtile--mic[data-est="off"] .watch-mtile__badge { color: var(--wc-text-2); border-color: var(--wc-danger); }
+.watch-mtile--hand[data-est="down"] .wc-icon { color: var(--wc-accent); }
+.watch-mtile--hand[data-est="up"] { background: var(--wc-accent-dim); --bd-c: var(--wc-accent); --bd-w: 2px; }
+.watch-mtile--hand[data-est="up"] .wc-icon { color: var(--wc-accent-strong); }
+.watch-mtile--hand[data-est="up"] .watch-mtile__state { color: var(--wc-text-1); }
+/* 눌림·탭 확정(테두리 색 strong → accent → 원래) */
+.watch-mtile.is-press { --bd-c: var(--wc-accent); --bd-w: 2px; }
+.watch-mtile[data-ok="1"] { --bd-c: var(--wc-accent-strong); --bd-w: 2px; }
+.watch-mtile[data-ok="2"] { --bd-c: var(--wc-accent); --bd-w: 2px; }
+/* 비활성(키 없음)·연결 끊김 */
+.watch-mtile.is-dis, .watch-meeting.is-off .watch-mtile { background: var(--wc-bg); --bd-c: var(--wc-border); --bd-w: 1px; }
+.watch-mtile.is-dis .wc-icon, .watch-mtile.is-dis .watch-mtile__label, .watch-mtile.is-dis .watch-mtile__state,
+.watch-mtile.is-dis .watch-mtile__sub, .watch-mtile.is-dis .watch-mtile__badge,
+.watch-meeting.is-off .watch-mtile .wc-icon, .watch-meeting.is-off .watch-mtile__label,
+.watch-meeting.is-off .watch-mtile__state, .watch-meeting.is-off .watch-mtile__sub,
+.watch-meeting.is-off .watch-mtile__badge { color: var(--wc-text-disabled); border-color: var(--wc-border); }
+.watch-mtile.is-dis .watch-mtile__hint, .watch-meeting.is-off .watch-mtile__hint { visibility: hidden; }
+
+/* ---------- 연결 대기(페어링) (README 3.5) ---------- */
+.watch-wait .wc-icon.watch-wait__icon { position: absolute; color: var(--wc-text-2); }
+.watch-wait__guide { color: var(--wc-text-2); white-space: nowrap; }
+.watch-wait__name { color: var(--wc-text-1); white-space: nowrap; overflow: hidden; }
+.watch-wait__tail {
+  border-radius: var(--wc-radius-md); background: var(--wc-surface-1); --bd-c: var(--wc-border);
+  display: flex; align-items: center; justify-content: center; padding-left: 8px;
+  font-size: 48px; line-height: 72px; font-weight: 600; letter-spacing: 8px; color: var(--wc-text-1);
+}
+.watch-wait__num { border-radius: 50%; background: var(--wc-surface-3); color: var(--wc-text-1); text-align: center; line-height: 24px; }
+.watch-wait__step { color: var(--wc-text-2); white-space: nowrap; }
+.watch-wait__tip { color: var(--wc-text-3); white-space: nowrap; }
+.watch-wait__dot { border-radius: 50%; background: var(--wc-surface-3); }
+.watch-wait__dot.is-on { background: var(--wc-text-1); }
+
+/* ---------- 쇼 시트 (README 2.4 A, 덮개 없음) ---------- */
+.watch-sheet { background: var(--wc-surface-2); border-radius: 0 0 var(--wc-radius-lg) var(--wc-radius-lg); }
+.watch-sheet__ttl { color: var(--wc-text-1); white-space: nowrap; }
+.watch-sheet__time { color: var(--wc-text-2); white-space: nowrap; }
+.watch-sheet__grab { border-radius: 2px; background: var(--wc-text-disabled); }
+.watch-sbtn { border-radius: var(--wc-radius-md); background: var(--wc-surface-1); --bd-c: var(--wc-border); }
+.watch-sbtn .wc-icon.watch-sbtn__ic { position: absolute; color: var(--wc-accent); }
+.watch-sbtn__lbl { color: var(--wc-text-1); white-space: nowrap; }
+.watch-sbtn__key { color: var(--wc-text-3); white-space: nowrap; }
+.watch-sbtn.is-rec { background: var(--wc-accent-dim); --bd-c: var(--wc-accent-dim-border); }
+.watch-sbtn.is-press { background: var(--wc-accent-dim); --bd-c: var(--wc-accent); --bd-w: 2px; }
+.watch-sbtn.is-dis { background: var(--wc-bg); --bd-c: var(--wc-border); --bd-w: 1px; }
+.watch-sbtn.is-dis .watch-sbtn__lbl, .watch-sbtn.is-dis .wc-icon { color: var(--wc-text-disabled); }
+.watch-sbtn.is-dis .watch-sbtn__key { display: none; }
+.watch-sheet__set { border-radius: var(--wc-radius-md); background: var(--wc-surface-1); }
+.watch-sheet__set.is-press { background: var(--wc-surface-3); }
+.watch-sheet__setttl { color: var(--wc-text-1); white-space: nowrap; }
+.watch-sheet__setsub { color: var(--wc-text-2); white-space: nowrap; }
+.watch-sheet__setarrow { color: var(--wc-text-3); }
+
+/* ---------- 연결 끊김 배너 16,414,378×72 (README 2.2) ---------- */
+.watch-banner { border-radius: 16px; background: var(--wc-danger-dim); --bd-c: var(--wc-danger); --bd-w: 2px; pointer-events: none; }
+.watch-banner .wc-icon.watch-banner__ic { position: absolute; color: var(--wc-danger); }
+.watch-banner__ok { border-radius: 50%; background: var(--wc-success); }
+.watch-banner__ttl { color: var(--wc-text-1); white-space: nowrap; }
+.watch-banner.is-re { background: var(--wc-surface-2); --bd-c: var(--wc-success); }
+
+/* ---------- 토스트 16,64,378×64 (README 2.3, 06 5장 종류) ---------- */
+.watch-toast { border-radius: var(--wc-radius-md); background: var(--wc-surface-2); --bd-c: var(--wc-border); --bd-w: 2px; pointer-events: none; }
+.watch-toast .wc-icon.watch-toast__ic { position: absolute; width: 24px; height: 24px; color: var(--wc-text-2); }
+.watch-toast__dot { border-radius: 50%; background: var(--wc-success); }
+.watch-toast__t { color: var(--wc-text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.watch-toast[data-kind="lock"] { background: var(--wc-locked-dim); --bd-c: var(--wc-locked); }
+.watch-toast[data-kind="lock"] .wc-icon { color: var(--wc-locked); }
+.watch-toast[data-kind="warn"] { background: var(--wc-warning-dim); --bd-c: var(--wc-warning); }
+.watch-toast[data-kind="warn"] .wc-icon { color: var(--wc-warning); }
+.watch-toast[data-kind="error"] { background: var(--wc-danger-dim); --bd-c: var(--wc-danger); }
+.watch-toast[data-kind="error"] .wc-icon { color: var(--wc-danger); }
+
+/* ---------- 시계 안 설정 화면 (상태줄 아래 y 56~502 스크롤, README 3.5) ---------- */
+.watch-set {
+  left: 0; top: 56px; width: 410px; height: 446px; background: var(--wc-bg);
+  overflow-x: hidden; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain;
+}
+.watch-set::-webkit-scrollbar { display: none; }
+/* 마지막 행 끝(y 840) + 아래 여백 40, 끊김 중 112 */
+.watch-set__content { position: relative; width: 410px; height: 824px; }
+.watch-set__content.is-banner { height: 896px; }
+.watch-set .wc-icon { position: absolute; }
+.watch-set__ttlicon { color: var(--wc-accent); }
+.watch-set__sec { color: var(--wc-text-2); white-space: nowrap; }
+.watch-set__desc { color: var(--wc-text-3); white-space: nowrap; }
+.watch-set__ver { color: var(--wc-text-1); }
+.watch-seg {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: var(--wc-radius-md); background: var(--wc-surface-1); color: var(--wc-text-2); white-space: nowrap;
+}
+.watch-seg__dot { display: none; width: 10px; height: 10px; border-radius: 50%; background: var(--wc-accent); flex: none; }
+.watch-seg.is-sel { background: var(--wc-accent-dim); --bd-c: var(--wc-accent); --bd-w: 2px; color: var(--wc-text-1); }
+.watch-seg.is-sel .watch-seg__dot { display: block; }
+.watch-seg.is-press { background: var(--wc-surface-3); }
+.watch-set__row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 24px;
+  border-radius: var(--wc-radius-md); background: var(--wc-surface-1); color: var(--wc-text-1);
+}
+.watch-set__row > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.watch-set__row--c { justify-content: center; }
+.watch-set__row.is-press { background: var(--wc-surface-2); }
+.watch-set__row.is-dis { background: var(--wc-bg); --bd-c: var(--wc-border); color: var(--wc-text-disabled); }
+.watch-set__arrow { color: var(--wc-text-3); flex: none; white-space: nowrap; }
+.watch-set__row.is-dis .watch-set__arrow { color: var(--wc-text-disabled); }
+.watch-set--picker { overflow: hidden; }
+.watch-set__pick { justify-content: flex-start; }
+.watch-set__suffix { color: var(--wc-text-3); flex: none; }
+.watch-set__check { margin-left: auto; color: var(--wc-accent); visibility: hidden; }
+.watch-set__pick.is-sel { background: var(--wc-accent-dim); --bd-c: var(--wc-accent); --bd-w: 2px; }
+.watch-set__pick.is-sel .watch-set__check { visibility: visible; }
+
+/* 이름 바꾸기 확인 — 덮개 대신 화면 전체를 불투명 검정으로(README 3.5·4.3) */
+.watch-dlg { left: 0; top: 0; width: 410px; height: 502px; background: var(--wc-bg); }
+.watch-dlg__card { border-radius: var(--wc-radius-lg); background: var(--wc-surface-2); }
+.watch-dlg__old { color: var(--wc-text-3); text-decoration: line-through; white-space: nowrap; overflow: hidden; }
+.watch-dlg__new { color: var(--wc-text-1); white-space: nowrap; overflow: hidden; }
+.watch-dlg__desc { color: var(--wc-text-2); }
+.watch-dlg__btn {
+  display: flex; align-items: center; justify-content: center; border-radius: var(--wc-radius-md);
+  background: var(--wc-surface-3); color: var(--wc-text-1);
+}
+.watch-dlg__btn--ok { background: var(--wc-accent-dim); --bd-c: var(--wc-accent); --bd-w: 2px; }
+.watch-dlg__btn.is-press { background: var(--wc-surface-1); }

@@ -1,0 +1,529 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrist-controller.local/schema/test-vector.schema.json",
+  "title": "공유 테스트 벡터",
+  "description": "형식 설명은 /shared/test-vectors/README.md",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "suite",
+        "cases"
+      ],
+      "properties": {
+        "suite": {
+          "const": "keymap"
+        },
+        "description": {
+          "type": "string"
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "mode",
+              "app",
+              "os",
+              "action",
+              "expect"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string"
+              },
+              "app": {
+                "type": "string"
+              },
+              "os": {
+                "enum": [
+                  "win",
+                  "mac"
+                ]
+              },
+              "action": {
+                "type": "string"
+              },
+              "expect": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "chord",
+                  "label"
+                ],
+                "properties": {
+                  "chord": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "required": [
+                      "mods",
+                      "key"
+                    ],
+                    "properties": {
+                      "mods": {
+                        "type": "array"
+                      },
+                      "key": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "modifier": {
+                    "type": "string",
+                    "pattern": "^0x[0-9A-F]{2}$"
+                  },
+                  "usage": {
+                    "type": "string",
+                    "pattern": "^0x[0-9A-F]{2}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "suite",
+        "cases"
+      ],
+      "properties": {
+        "suite": {
+          "enum": [
+            "mode",
+            "gesture",
+            "airmouse"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "steps"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "desc": {
+                "type": "string"
+              },
+              "checklist": {
+                "type": "string"
+              },
+              "init": {
+                "type": "object"
+              },
+              "configPatch": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "keymap": {
+                    "type": "object"
+                  },
+                  "gesture": {
+                    "type": "object"
+                  }
+                }
+              },
+              "steps": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/step"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "suite",
+        "cases"
+      ],
+      "properties": {
+        "suite": {
+          "const": "macro"
+        },
+        "description": {
+          "type": "string"
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "steps",
+              "expect"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "desc": {
+                "type": "string"
+              },
+              "os": {
+                "enum": [
+                  "win",
+                  "mac"
+                ]
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "expect": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reports"
+                ],
+                "properties": {
+                  "reports": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "r"
+                      ],
+                      "properties": {
+                        "r": {
+                          "enum": [
+                            "kbd",
+                            "consumer",
+                            "wait"
+                          ]
+                        },
+                        "mod": {
+                          "type": "integer"
+                        },
+                        "usage": {
+                          "type": "integer"
+                        },
+                        "ms": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "hid": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "t",
+            "mods",
+            "key"
+          ],
+          "properties": {
+            "t": {
+              "const": "key"
+            },
+            "mods": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "ctrl",
+                  "shift",
+                  "alt",
+                  "gui"
+                ]
+              }
+            },
+            "key": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "t",
+            "dx",
+            "dy"
+          ],
+          "properties": {
+            "t": {
+              "const": "mouseMove"
+            },
+            "dx": {
+              "type": "integer"
+            },
+            "dy": {
+              "type": "integer"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "t",
+            "button",
+            "down"
+          ],
+          "properties": {
+            "t": {
+              "const": "mouseButton"
+            },
+            "button": {
+              "enum": [
+                "left",
+                "right",
+                "middle"
+              ]
+            },
+            "down": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "t",
+            "usage"
+          ],
+          "properties": {
+            "t": {
+              "const": "consumer"
+            },
+            "usage": {
+              "type": "integer"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "t",
+            "steps"
+          ],
+          "properties": {
+            "t": {
+              "const": "macro"
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "expect": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hid": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hid"
+          }
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hid"
+          }
+        },
+        "dropped": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hid"
+          }
+        },
+        "mouse": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "dx": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "dy": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "count": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        },
+        "droppedMouse": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "count": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        },
+        "state": {
+          "type": "object"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "t"
+            ]
+          }
+        },
+        "noEvents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "step": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "at",
+            "input"
+          ],
+          "properties": {
+            "at": {
+              "type": "number"
+            },
+            "input": {
+              "type": "object",
+              "required": [
+                "t"
+              ],
+              "properties": {
+                "t": {
+                  "enum": [
+                    "tap",
+                    "longPress",
+                    "swipe",
+                    "button",
+                    "imu",
+                    "tick",
+                    "connection",
+                    "setMode",
+                    "setApp",
+                    "setOs",
+                    "setSensitivity",
+                    "setLocked"
+                  ]
+                }
+              }
+            },
+            "expect": {
+              "$ref": "#/$defs/expect"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "imu"
+          ],
+          "properties": {
+            "imu": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "start",
+                "dt",
+                "samples"
+              ],
+              "properties": {
+                "start": {
+                  "type": "number"
+                },
+                "dt": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "samples": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  }
+                }
+              }
+            },
+            "expect": {
+              "$ref": "#/$defs/expect"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

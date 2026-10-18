@@ -1,0 +1,88 @@
+I (100) esp_image: segment 1: paddr=000efee4 vaddr=40800000 sizeI (335) esp_image: segment 3: paddr=002280a8 vaddr=40800134 size=18f04h (102148) load
+I (357) esp_image: segment 4: paddr=00240fb4 vaddr=40819040 size=04600h ( 17920) load
+I (367) boot: Loaded app from partition at offset 0x90000
+I (367) boot: Disabling RNG early entropy source...
+I (368) cpu_start: Unicore app
+I (376) cpu_start: Pro cpu start user code
+I (377) cpu_start: cpu freq: 160000000 Hz
+I (377) app_init: Application information:
+I (377) app_init: Project name:     wrist_controller
+I (377) app_init: App version:      0.0.0-dev.36bed79
+I (378) app_init: Compile time:     Oct 16 2026 09:26:34
+I (378) app_init: ELF file SHA256:  2a1957ff5...
+I (378) app_init: ESP-IDF:          v5.5.5
+I (378) efuse_init: Min chip rev:     v0.0
+I (379) efuse_init: Max chip rev:     v0.99 
+I (379) efuse_init: Chip rev:         v0.2
+I (379) heap_init: Initializing. RAM available for dynamic allocation:
+I (380) heap_init: At 4081F610 len 0005D000 (372 KiB): RAM
+I (380) heap_init: At 4087C610 len 00002F54 (11 KiB): RAM
+I (380) heap_init: At 50000000 len 00003FE8 (15 KiB): RTCRAM
+I (381) spi_flash: detected chip: generic
+I (381) spi_flash: flash io: qio
+I (382) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (382) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (383) main_task: Started on CPU0
+I (383) main_task: Calling app_main()
+I (383) wc: 손목 컨트롤러 펌웨어 0.0.0-dev.36bed79 (키맵 70cb20a3bb55a8f4)
+I (383) wc: [메모리 부팅] 내부 RAM 여유 383536 B, 최대 블록 352256 B, 최저 여유 383536 B, DMA 여유 368932 B
+I (390) wc: 모드 present, OS win, 장치 이름 '손목 컨트롤러'
+I (391) LVGL: Starting LVGL task
+I (391) ESP32-C6-Touch-AMOLED-2.06: Initialize SPI bus
+I (392) sh8601: LCD panel create success, version: 2.0.0
+E (715) sh8601: swap_xy is not supported by this panel
+I (743) wc_ui: LVGL 그리기 버퍼 40줄 × 2 = 65600바이트(DMA 내부 RAM)
+W (743) i2c.master: Please check pull-up resistances whether be connected properly. Otherwise unexpected behavior would happen. For more detailed information, please read docs
+I (765) wc_ui: 터치 FT3168 초기화 완료(INT 구동 읽기)
+I (794) wc: [메모리 화면 후] 내부 RAM 여유 294472 B, 최대 블록 278528 B, 최저 여유 294276 B, DMA 여유 279868 B
+I (976) wc_ui: 화면 객체 생성 완료
+I (976) wc: [메모리 UI 후] 내부 RAM 여유 272348 B, 최대 블록 253952 B, 최저 여유 271164 B, DMA 여유 257744 B
+I (977) BLE_INIT: Using main XTAL as clock source, chip ver: 2
+I (977) BLE_INIT: ble controller commit:[4adb29e,7f63735]
+I (983) BLE_INIT: Bluetooth MAC: 98:a3:16:a6:2d:3a
+I (983) phy_init: phy_version 344,0b4366d,Apr 10 2026,13:53:11
+W (983) phy_init: failed to load RF calibration data (0x1102), falling back to full calibration
+I (1040) phy_init: Saving new calibration data due to checksum failure or outdated calibration data, mode(2)
+I (1053) phy: libbtbb version: e4897a5, Apr 10 2026, 13:53:26
+I (1057) wc_ble: NimBLE 호스트 태스크 시작
+I (1062) NimBLE: GAP procedure initiated: stop advertising.
+
+I (1063) wc_ble: HID 시작
+I (1063) wc_ble: BLE HID 초기화 완료(맵 144바이트)
+I (1063) wc: [메모리 BLE 후] 내부 RAM 여유 230960 B, 최대 블록 212992 B, 최저 여유 230960 B, DMA 여유 216356 B
+I (1064) NimBLE: GAP procedure initiated: advertise; 
+I (1065) NimBLE: disc_mode=2
+I (1065) NimBLE:  adv_channel_map=0 own_addr_type=0 adv_filter_policy=0 adv_itvl_min=48 adv_itvl_max=80
+I (1065) NimBLE: 
+
+I (1066) wc_ble: 광고 시작 '손목 컨트롤러'
+I (1086) wc_imu: QMI8658 주소 0x6B, 자이로 ±1024 dps(32.0 LSB/dps), 가속도 ±4g, ~125Hz
+I (1087) MODEL_LOADER: The storage free size is 6528 KB
+I (1087) MODEL_LOADER: The partition size is 512 KB
+I (1088) MODEL_LOADER: Successfully load srmodels
+Quantized wakenet9s: wakenet9_tts2h12_Hi,ESP_3_0.630_0.635, tigger:v4, mode:1, p:0
+I (1145) ES7210: Work in Slave mode
+I (1152) ES7210: Enable ES7210_INPUT_MIC1
+I (1155) ES7210: Enable ES7210_INPUT_MIC2
+I (1161) wc_voice: WakeNet 'wn9s_hiesp' 준비(내부 RAM 34584 B 사용, 덩어리 1024 B)
+I (1161) wc: [메모리 음성 후] 내부 RAM 여유 174932 B, 최대 블록 155648 B, 최저 여유 174932 B, DMA 여유 160328 B
+I (1162) wc_pmu: AXP2101 찾음(읽기 전용)
+I (1163) main_task: Returned from app_main()
+I (1211) I2S_IF: Paired data: 0x4084b514, current mode: record, paired in_enable: 0, paired out_enable: 0
+I (1211) I2S_IF: STD: RX, data_bit: 16, slot_bit: 16, ws_width: 16, slot_mode: MONO, slot_mask: 0x1
+I (1211) I2S_IF: STD: RX, sample_rate_hz: 16000, mclk_multiple: 256, clk_src: 5
+I (1212) I2S_IF: STD: TX, data_bit: 16, slot_bit: 16, ws_width: 16, slot_mode: MONO, slot_mask: 0x1
+I (1213) I2S_IF: STD: TX, sample_rate_hz: 16000, mclk_multiple: 256, clk_src: 5
+I (1214) ES7210: Bits 16
+I (1222) ES7210: Enable ES7210_INPUT_MIC1
+I (1224) ES7210: Enable ES7210_INPUT_MIC2
+I (1232) ES7210: Unmuted
+I (1232) Adev_Codec: Open codec device OK
+I (1234) wc_voice: 듣기 시작(16000 Hz)
+W (21183) wc_ui: 터치 I2C 실패 0회(확인 읽기 6회), 칩 리셋 0회 — 최근 10초, 실패는 '터치 없음'으로 처리
+I (21212) wc: 화면 자동 꺼짐(20s 무입력)
+I (21270) wc_voice: 듣기 멈춤
+W (31203) wc_ui: 터치 I2C 실패 0회(확인 읽기 10회), 칩 리셋 0회 — 최근 10초, 실패는 '터치 없음'으로 처리
+W (41203) wc_ui: 터치 I2C 실패 0회(확인 읽기 10회), 칩 리셋 0회 — 최근 10초, 실패는 '터치 없음'으로 처리
+W (51203) wc_ui: 터치 I2C 실패 0회(확인 읽기 10회), 칩 리셋 0회 — 최근 10초, 실패는 '터치 없음'으로 처리
+W (61203) wc_ui: 터치 I2C 실패 0회(확인 읽기 6회), 칩 리셋 0회 — 최근 10초, 실패는 '터치 없음'으로 처리

@@ -1,0 +1,8 @@
+{
+  "name": "wrist-controller-fonts",
+  "private": true,
+  "description": "LVGL 글꼴 생성 도구(lv_font_conv) — 버전 고정. tools/gen_fonts.py 가 부른다",
+  "devDependencies": {
+    "lv_font_conv": "1.5.3"
+  }
+}

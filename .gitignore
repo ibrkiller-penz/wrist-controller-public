@@ -1,0 +1,10 @@
+# 원래 펌웨어 백업은 Wi-Fi 정보 등이 들어 있을 수 있어 저장소에 올리지 않는다
+backup/*.bin
+node_modules/
+sim/dist/
+firmware/build/
+.claude/
+__pycache__/
+*.pyc
+firmware-dl/
+.firebase/

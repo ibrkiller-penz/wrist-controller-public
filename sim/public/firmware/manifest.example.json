@@ -1,0 +1,12 @@
+{
+  "name": "손목 컨트롤러",
+  "version": "0.0.0-example",
+  "new_install_prompt_erase": true,
+  "new_install_improv_wait_time": 0,
+  "builds": [
+    {
+      "chipFamily": "ESP32-C6",
+      "parts": [{ "path": "wrist-controller-v0.0.0-merged.bin", "offset": 0 }]
+    }
+  ]
+}

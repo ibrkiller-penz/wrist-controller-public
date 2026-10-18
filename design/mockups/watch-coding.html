@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>코딩 모드 목업</title>
+<!--
+  코딩 모드 2×3 타일 목업 (디자인팀 3번)
+  명세: ../watch-coding-meeting.md 1절. 토큰: ../tokens.css, 아이콘: ../icons.svg
+  아이콘은 외부 <use> 참조라 file:// 로는 안 보인다 → design 폴더에서
+  python -m http.server 8000 후 http://localhost:8000/mockups/watch-coding.html
+-->
+<link rel="stylesheet" href="../tokens.css">
+<style>
+  /* ---------- 페이지 바깥(시뮬레이션 사이트 톤, --sim-*) ---------- */
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--sim-bg); color: var(--sim-text-1);
+         font-family: var(--sim-font-family); font-size: var(--sim-text-size); line-height: 1.5; }
+  header, main { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: var(--sim-text-size-lg); margin: 32px 0 12px; }
+  p  { margin: 4px 0; color: var(--sim-text-2); }
+  code { font-family: var(--sim-font-mono); font-size: 13px; }
+  .notice { background: var(--sim-notice-bg); color: var(--sim-notice-text);
+            padding: 8px 12px; border-radius: var(--sim-radius); margin-top: 12px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-top: 16px; }
+  .controls label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .controls select { font: inherit; color: var(--sim-text-1); background: var(--sim-surface-2);
+                     border: 1px solid var(--sim-border); border-radius: 6px; padding: 2px 6px; }
+  .live { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .bezel { padding: 14px; background: var(--sim-bezel); border: 2px solid var(--sim-bezel-edge);
+           border-radius: 78px; box-shadow: var(--sim-shadow); width: max-content; }
+  .log { flex: 1 1 280px; min-width: 260px; max-width: 480px; background: var(--sim-surface);
+         border: 1px solid var(--sim-border); border-radius: var(--sim-radius-lg); overflow: hidden; }
+  .log h3 { margin: 0; padding: 8px 12px; font-size: var(--sim-text-size); background: var(--sim-surface-2);
+            border-bottom: 1px solid var(--sim-border); }
+  .log ol { list-style: none; margin: 0; padding: 8px 12px; height: 440px; overflow: auto;
+            font-family: var(--sim-font-mono); font-size: 13px; }
+  .log li { padding: 2px 0; color: var(--sim-text-2); }
+  .log .k { color: var(--sim-log-key); } .log .d { color: var(--sim-log-dropped); } .log .s { color: var(--sim-log-system); }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(438px, 1fr)); gap: 24px; }
+  figure { margin: 0; }
+  figcaption { margin-top: 8px; color: var(--sim-text-2); max-width: 438px; }
+  figcaption b { color: var(--sim-text-1); }
+
+  /* ---------- 시계 화면 안쪽(--wc-*) — 좌표는 410×502 기준 ---------- */
+  .wc-screen * { position: absolute; margin: 0; }
+  .wc-screen .wc-icon, .wc-screen svg * { position: static; }
+
+  /* 상태줄 (system.md 3.1) */
+  .sb-dot  { left: 40px; top: 23px; width: 10px; height: 10px; border-radius: 50%; background: var(--wc-accent); }
+  .sb-name { left: 58px; top: 14px; width: 100px; height: 28px; color: var(--wc-accent);
+             font: var(--wc-type-label-weight) var(--wc-type-label-size)/var(--wc-type-label-line) var(--wc-font-family); }
+  .sb-time { left: 170px; top: 14px; width: 70px; text-align: center; color: var(--wc-text-1);
+             font: var(--wc-type-label-weight) var(--wc-type-label-size)/var(--wc-type-label-line) var(--wc-font-family); }
+  .sb-lock { left: 244px; top: 14px; color: var(--wc-locked); }
+  .sb-ble  { left: 274px; top: 14px; color: var(--wc-text-2); }
+  .sb-bat  { left: 306px; top: 14px; width: 28px; height: 28px; color: var(--wc-text-2); }
+  .sb-bat i { left: 5.25px; top: 11.1px; height: 5.8px; border-radius: 1px; background: currentColor; }
+  .sb-pct  { left: 336px; top: 16px; width: 40px; color: var(--wc-text-2);
+             font: var(--wc-type-caption-weight) var(--wc-type-caption-size)/var(--wc-type-caption-line) var(--wc-font-family); }
+  .is-disc .sb-dot { background: var(--wc-text-3); }
+  .is-disc .sb-name { color: var(--wc-text-3); }
+  .is-disc .sb-ble { color: var(--wc-disconnected); animation: blink var(--wc-motion-blink) steps(1, end) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* 코딩 타일 183×132 (watch-coding-meeting.md 1.2) */
+  .tile { width: 183px; height: 132px; border-radius: var(--wc-radius-md); background: var(--wc-surface-1);
+          border: 0; padding: 0; cursor: pointer; color: var(--wc-text-1); font-family: var(--wc-font-family);
+          transform: scale(1); transition: transform var(--wc-motion-release) var(--wc-ease-out);
+          -webkit-tap-highlight-color: transparent; touch-action: none; }
+  .tile .ic { left: 20px; top: 16px; color: var(--wc-accent); }
+  .tile .lb { left: 20px; top: 68px; max-width: 143px; white-space: nowrap; text-align: left;
+              font: var(--wc-type-body-weight) var(--wc-type-body-size)/var(--wc-type-body-line) var(--wc-font-family); }
+  .tile .hn { left: 20px; top: 100px; max-width: 151px; white-space: nowrap; color: var(--wc-text-3);
+              font: var(--wc-type-caption-weight) var(--wc-type-caption-size)/var(--wc-type-caption-line) var(--wc-font-mono); }
+  /* 테두리 전용 레이어: 눌림(고정) / 플래시(opacity 1→0) */
+  .tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit;
+                 box-shadow: inset 0 0 0 2px var(--wc-accent); opacity: 0; pointer-events: none; }
+  .tile.is-pressed { transform: scale(var(--wc-press-scale)); transition-duration: var(--wc-motion-press);
+                     background: var(--wc-accent-dim); }
+  .tile.is-pressed::after { opacity: 1; }
+  .tile.is-pressed .ic { color: var(--wc-accent-strong); }
+  .tile.is-pressed .hn { color: var(--wc-text-2); }
+  .tile.is-flash::after { animation: flash var(--wc-motion-flash) var(--wc-ease-out) forwards; }
+  .tile.is-flash-still::after { opacity: .5; }  /* 정적 그림용: 플래시 중간 프레임 */
+  @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
+  .tile.is-disabled, .is-disc .tile { background: var(--wc-bg); box-shadow: inset 0 0 0 1px var(--wc-border); cursor: default; }
+  .tile.is-disabled .ic, .tile.is-disabled .lb, .is-disc .tile .ic, .is-disc .tile .lb { color: var(--wc-text-disabled); }
+  .tile.is-disabled .hn, .is-disc .tile .hn { display: none; }
+
+  /* 연결 끊김 배너 (system.md 5.1) */
+  .banner { left: 16px; top: 414px; width: 378px; height: 72px; border-radius: var(--wc-radius-md);
+            background: var(--wc-disconnected-dim); box-shadow: inset 0 0 0 2px var(--wc-disconnected);
+            display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--wc-text-1);
+            font: var(--wc-type-body-weight) var(--wc-type-body-size)/var(--wc-type-body-line) var(--wc-font-family); }
+  .banner > * { position: static; }
+  .banner .wc-icon { color: var(--wc-disconnected); }
+  .banner.is-shake { animation: shake var(--wc-motion-flash) linear; }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 12.5% { transform: translateX(-6px); }
+    37.5% { transform: translateX(6px); } 62.5% { transform: translateX(-6px); } 87.5% { transform: translateX(6px); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>코딩 모드 — 2×3 타일</h1>
+  <p>410×502 실제 크기(1 CSS px = 1 화면 px). 명세: <code>design/watch-coding-meeting.md</code> 1절.</p>
+  <p>타일을 누르면 누르는 순간 HID 로그에 키가 찍히고(전송 0ms), 80ms 눌림 → 손을 떼면 160ms 복귀 + 400ms 테두리 플래시.</p>
+  <div class="notice">아이콘이 안 보이면 <code>file://</code>로 연 것이다. <code>design</code> 폴더에서 <code>python -m http.server 8000</code> 후 <code>http://localhost:8000/mockups/watch-coding.html</code>로 연다.</div>
+  <div class="controls" role="group" aria-label="목업 조건">
+    <label>운영체제
+      <select id="os"><option value="win">Windows</option><option value="mac">macOS</option></select>
+    </label>
+    <label><input type="checkbox" id="disc"> 연결 끊김</label>
+    <label><input type="checkbox" id="locked"> 제스처·음성 잠금</label>
+    <label><input type="checkbox" id="dis-debug"> 디버그 키 비어 있음(비활성)</label>
+  </div>
+</header>
+
+<main>
+  <h2>직접 눌러 보기</h2>
+  <div class="live">
+    <div class="bezel"><div id="live"></div></div>
+    <section class="log" aria-label="HID 로그">
+      <h3>HID 로그 (목업)</h3>
+      <ol id="log"></ol>
+    </section>
+  </div>
+
+  <h2>상태 모음</h2>
+  <div class="gallery" id="gallery"></div>
+</main>
+
+<script>
+/* 키·라벨은 실제 구현에서 /shared/keymap.json 에서 읽는다. 여기 값은 목업용 사본. */
+const TILES = [
+  { id: 'save',    icon: 'i-save',     label: '저장',   win: 'Ctrl+S',       mac: 'Cmd+S',       x: 16,  y: 64  },
+  { id: 'cmd',     icon: 'i-command',  label: '명령',   win: 'Ctrl+Shift+P', mac: 'Cmd+Shift+P', x: 211, y: 64  },
+  { id: 'term',    icon: 'i-terminal', label: '터미널', win: 'Ctrl+`',       mac: 'Ctrl+`',      x: 16,  y: 208 },
+  { id: 'debug',   icon: 'i-debug',    label: '디버그', win: 'F5',           mac: 'F5',          x: 211, y: 208 },
+  { id: 'comment', icon: 'i-comment',  label: '주석',   win: 'Ctrl+/',       mac: 'Cmd+/',       x: 16,  y: 352 },
+  { id: 'undo',    icon: 'i-undo',     label: '취소',   win: 'Ctrl+Z',       mac: 'Cmd+Z',       x: 211, y: 352 },
+];
+const icon = (id, cls = '') => `<svg class="wc-icon ${cls}" aria-hidden="true"><use href="../icons.svg#${id}"/></svg>`;
+
+function statusbar(o) {
+  const bat = o.battery ?? 76;
+  return `
+    <span class="sb-dot"></span><span class="sb-name">코딩</span>
+    <span class="sb-time">14:32</span>
+    ${o.locked ? `<span class="sb-lock">${icon('i-lock', 'wc-icon--sm')}</span>` : ''}
+    <span class="sb-ble">${icon(o.disc ? 'i-ble-off' : 'i-ble', 'wc-icon--sm')}</span>
+    <span class="sb-bat">${icon('i-battery', 'wc-icon--sm')}<i style="width:${(13.4 * bat / 100).toFixed(1)}px"></i></span>
+    <span class="sb-pct">${bat}%</span>`;
+}
+
+/* o = { os, disc, locked, disabled:[id], pressed:id, flashStill:id } */
+function screen(o) {
+  const tiles = TILES.map(t => {
+    const cls = ['tile',
+      (o.disabled || []).includes(t.id) && 'is-disabled',
+      o.pressed === t.id && 'is-pressed',
+      o.flashStill === t.id && 'is-flash-still'].filter(Boolean).join(' ');
+    const hint = o.os === 'mac' ? t.mac : t.win;
+    return `<button type="button" class="${cls}" data-id="${t.id}" style="left:${t.x}px;top:${t.y}px"
+              aria-label="${t.label} ${hint}">
+              <span class="ic">${icon(t.icon)}</span><span class="lb">${t.label}</span><span class="hn">${hint}</span>
+            </button>`;
+  }).join('');
+  const banner = o.disc ? `<div class="banner">${icon('i-ble-off', 'wc-icon--sm')}<span>연결 끊김 · 다시 연결 중</span></div>` : '';
+  return `<div class="wc-screen${o.disc ? ' is-disc' : ''}" data-mode="coding">${statusbar(o)}${tiles}${banner}</div>`;
+}
+
+/* ---------- 인터랙티브 ---------- */
+const $ = id => document.getElementById(id);
+const logEl = $('log');
+function log(text, cls) {
+  const li = document.createElement('li');
+  const t = new Date().toLocaleTimeString('en-GB');
+  li.innerHTML = `${t} <span class="${cls}">${text}</span>`;
+  logEl.prepend(li);
+}
+function opts() {
+  return { os: $('os').value, disc: $('disc').checked, locked: $('locked').checked,
+           disabled: $('dis-debug').checked ? ['debug'] : [] };
+}
+function renderLive() {
+  $('live').innerHTML = screen(opts());
+  $('live').querySelectorAll('.tile').forEach(bind);
+}
+function bind(el) {
+  const t = TILES.find(x => x.id === el.dataset.id);
+  el.addEventListener('pointerdown', e => {
+    const o = opts(); const hint = o.os === 'mac' ? t.mac : t.win;
+    if (o.disc) {                                   // 끊김: 보내지 않고, 쌓지도 않는다
+      const b = $('live').querySelector('.banner');
+      b.classList.remove('is-shake'); void b.offsetWidth; b.classList.add('is-shake');
+      log(`버림 · ${hint} (${t.label})`, 'd'); return;
+    }
+    if (el.classList.contains('is-disabled')) return; // 비활성: 아무 것도 안 함
+    el.setPointerCapture(e.pointerId);
+    log(`키 ${hint} · ${t.label}`, 'k');            // 누르는 순간 전송 (0ms)
+    el.classList.remove('is-flash');
+    el.classList.add('is-pressed');
+  });
+  const up = () => {
+    if (!el.classList.contains('is-pressed')) return;
+    el.classList.remove('is-pressed');
+    void el.offsetWidth; el.classList.add('is-flash'); // 400ms 플래시
+  };
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+  el.addEventListener('animationend', () => el.classList.remove('is-flash'));
+}
+['os', 'disc', 'locked', 'dis-debug'].forEach(id => $(id).addEventListener('change', () => {
+  if (id === 'disc') log($('disc').checked ? '연결 끊김' : '연결됨', 's');
+  if (id === 'locked') log($('locked').checked ? '제스처·음성 잠김 (타일은 동작)' : '잠금 풀림', 's');
+  renderLive();
+}));
+renderLive();
+
+/* ---------- 상태 모음 (정적) ---------- */
+const FRAMES = [
+  [{ os: 'win' }, '<b>기본</b> — 면 surface-1, 아이콘 accent(파랑), 라벨 text-1, 힌트 text-3 mono.'],
+  [{ os: 'win', pressed: 'save' }, '<b>눌림</b> (저장) — accent-dim 면 + 2px accent 테두리, 아이콘 accent-strong, scale 0.96. 이 순간 Ctrl+S 전송.'],
+  [{ os: 'win', flashStill: 'save' }, '<b>손 뗀 직후</b> (저장) — 테두리만 400ms 동안 opacity 1→0 (중간 프레임).'],
+  [{ os: 'win', disabled: ['debug'] }, '<b>비활성</b> (디버그) — keymap 키가 비었을 때. 검정 면 + 1px border, text-disabled, 힌트 숨김.'],
+  [{ os: 'win', locked: true }, '<b>잠금</b> — 상태줄 자물쇠(locked 보라)만. 터치는 그대로 동작하므로 타일은 흐리게 하지 않는다.'],
+  [{ os: 'win', disc: true }, '<b>연결 끊김</b> — 모든 타일 끊김 표현, 상태줄 BLE 점멸, 배너. 탭하면 배너가 흔들리고 키는 버린다.'],
+  [{ os: 'mac' }, '<b>macOS 힌트</b> — 설정의 운영체제 값으로 힌트만 바뀐다. 터미널은 양쪽 모두 Ctrl+`.'],
+];
+$('gallery').innerHTML = FRAMES.map(([o, cap]) =>
+  `<figure><div class="bezel">${screen(o)}</div><figcaption>${cap}</figcaption></figure>`).join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+/* 따라 하기 안내서 스타일 — 클래스 접두사 .gd-*  색은 tokens.css 의 --sim-*·--wc-mode-* 만 쓴다(라이트/다크 자동). */
+.gd-main { max-width: 760px; margin: 0 auto; padding: 20px 16px 64px; display: flex; flex-direction: column; gap: 16px; font-size: 16px; line-height: 1.65; }
+.gd-main a { color: var(--sim-focus); font-weight: 600; text-decoration: none; }
+.gd-main a:hover { text-decoration: underline; }
+.gd-nav { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px; margin: 0; }
+.gd-title { margin: 4px 0 0; font-size: 28px; line-height: 1.25; }
+.gd-lead { margin: 0; color: var(--sim-text-2); }
+
+.gd-toc { background: var(--sim-surface); border: 1px solid var(--sim-border); border-radius: 16px; padding: 14px 18px; }
+.gd-toc strong { display: block; margin-bottom: 4px; }
+.gd-toc ol { margin: 0; padding-left: 22px; columns: 2 220px; column-gap: 24px; }
+.gd-toc li { break-inside: avoid; }
+
+.gd-card { background: var(--sim-surface); border: 1px solid var(--sim-border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; scroll-margin-top: 12px; }
+.gd-card > h2 { margin: 0; font-size: 20px; line-height: 1.3; display: flex; align-items: center; gap: 10px; }
+.gd-card h3 { margin: 8px 0 0; font-size: 17px; }
+.gd-card p, .gd-card ul, .gd-card ol { margin: 0; }
+.gd-card ul, .gd-card ol { padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
+.gd-n { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; padding: 0 8px; flex: none; border-radius: 15px; background: var(--sim-surface-2); color: var(--sim-text-2); font-size: 14px; font-weight: 700; }
+.gd-sub { color: var(--sim-text-2); font-size: 14px; }
+
+.gd-warn, .gd-tip { padding: 10px 14px; border-radius: 10px; font-size: 15px; }
+.gd-warn { background: var(--sim-notice-bg); color: var(--sim-notice-text); }
+.gd-tip { background: var(--sim-surface-2); color: var(--sim-text-1); }
+
+.gd-main code { font-family: var(--sim-font-mono); font-size: 0.9em; background: var(--sim-surface-2); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+.gd-main kbd { font-family: var(--sim-font-mono); font-size: 0.85em; border: 1px solid var(--sim-border); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; background: var(--sim-surface); white-space: nowrap; }
+.gd-cmdwrap { position: relative; }
+pre.gd-cmd { margin: 0; padding: 12px 14px; padding-right: 64px; background: var(--sim-surface-2); border-radius: 10px; overflow-x: auto; font-size: 13px; line-height: 1.5; }
+pre.gd-cmd code { background: none; padding: 0; overflow-wrap: normal; white-space: pre; }
+.gd-copy { position: absolute; top: 6px; right: 6px; border: 1px solid var(--sim-border); background: var(--sim-surface); border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
+
+.gd-tablewrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+.gd-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.gd-table th, .gd-table td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--sim-border); }
+.gd-table th { font-size: 13px; color: var(--sim-text-2); font-weight: 700; background: var(--sim-surface-2); }
+.gd-table td:first-child { font-weight: 600; white-space: nowrap; }
+
+.gd-figure { margin: 0; }
+.gd-figure svg { display: block; width: 100%; height: auto; }
+.gd-figure figcaption { font-size: 13px; color: var(--sim-text-2); margin-top: 6px; }
+
+.gd-modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.gd-mode { border-radius: 12px; padding: 10px 12px; border: 1px solid var(--sim-border); border-left: 6px solid var(--m, var(--sim-border)); font-size: 14px; line-height: 1.5; }
+.gd-mode b { display: block; font-size: 16px; }
+.gd-mode[data-m="clock"] { --m: var(--wc-mode-clock); }
+.gd-mode[data-m="present"] { --m: var(--wc-mode-present); }
+.gd-mode[data-m="launch"] { --m: var(--wc-mode-launch); }
+.gd-mode[data-m="meeting"] { --m: var(--wc-mode-meeting); }
+
+.gd-faq details { border-top: 1px solid var(--sim-border); padding: 10px 0; }
+.gd-faq details:first-of-type { border-top: 0; }
+.gd-faq summary { cursor: pointer; font-weight: 700; }
+.gd-faq details > *:not(summary) { margin-top: 8px; }
+.gd-foot { font-size: 13px; color: var(--sim-text-3); margin: 0; }
+
+@media (max-width: 420px) {
+  .gd-main { font-size: 15px; }
+  .gd-title { font-size: 24px; }
+  .gd-card { padding: 16px; }
+  .gd-table { font-size: 14px; }
+  .gd-table th, .gd-table td { padding: 7px 6px; }
+}
+
+/* 좁은 화면: 긴 명령(pre)이 목록 항목을 넓히지 않게 — flex 자식의 기본 min-width:auto 를 끈다 */
+.gd-card li, .gd-cmdwrap, .gd-faq details { min-width: 0; max-width: 100%; }
+pre.gd-cmd { max-width: 100%; }

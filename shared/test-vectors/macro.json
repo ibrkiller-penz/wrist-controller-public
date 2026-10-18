@@ -1,0 +1,356 @@
+{
+  "suite": "macro",
+  "description": "매크로 단계 → HID 보고서 열(키보드 [수정자, 키] 누름 → [0,0] 뗌, 글자 사이 15ms, 소비자 키 → 0). 근거: docs/research/launcher.md 3장.",
+  "cases": [
+    {
+      "id": "win-r-run",
+      "desc": "Win+R → 300ms → \"ex\" → 50ms → Enter",
+      "steps": [
+        {
+          "chord": {
+            "mods": [
+              "gui"
+            ],
+            "key": "R"
+          }
+        },
+        {
+          "wait": 300
+        },
+        {
+          "text": "ex"
+        },
+        {
+          "wait": 50
+        },
+        {
+          "chord": {
+            "mods": [],
+            "key": "ENTER"
+          }
+        }
+      ],
+      "expect": {
+        "reports": [
+          {
+            "r": "kbd",
+            "mod": 8,
+            "usage": 21
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          },
+          {
+            "r": "wait",
+            "ms": 300
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 8
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          },
+          {
+            "r": "wait",
+            "ms": 15
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 27
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          },
+          {
+            "r": "wait",
+            "ms": 50
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 40
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          }
+        ],
+        "label": "Win+R → ex → Enter"
+      }
+    },
+    {
+      "id": "text-shift-and-symbols",
+      "desc": "대문자·기호는 Shift, 콜론 = Shift+SEMICOLON, 슬래시 = SLASH, 공백 = SPACE",
+      "steps": [
+        {
+          "text": "A:/ 1"
+        }
+      ],
+      "expect": {
+        "reports": [
+          {
+            "r": "kbd",
+            "mod": 2,
+            "usage": 4
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          },
+          {
+            "r": "wait",
+            "ms": 15
+          },
+          {
+            "r": "kbd",
+            "mod": 2,
+            "usage": 51
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          },
+          {
+            "r": "wait",
+            "ms": 15
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 56
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          },
+          {
+            "r": "wait",
+            "ms": 15
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 44
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          },
+          {
+            "r": "wait",
+            "ms": 15
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 30
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "consumer-mute",
+      "steps": [
+        {
+          "consumer": "MUTE"
+        }
+      ],
+      "expect": {
+        "reports": [
+          {
+            "r": "consumer",
+            "usage": 226
+          },
+          {
+            "r": "consumer",
+            "usage": 0
+          }
+        ],
+        "label": "Mute"
+      }
+    },
+    {
+      "id": "mac-spotlight",
+      "os": "mac",
+      "steps": [
+        {
+          "chord": {
+            "mods": [
+              "gui"
+            ],
+            "key": "SPACE"
+          }
+        },
+        {
+          "wait": 300
+        },
+        {
+          "text": "Excel"
+        },
+        {
+          "wait": 300
+        },
+        {
+          "chord": {
+            "mods": [],
+            "key": "ENTER"
+          }
+        }
+      ],
+      "expect": {
+        "reports": [
+          {
+            "r": "kbd",
+            "mod": 8,
+            "usage": 44
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          },
+          {
+            "r": "wait",
+            "ms": 300
+          },
+          {
+            "r": "kbd",
+            "mod": 2,
+            "usage": 8
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          },
+          {
+            "r": "wait",
+            "ms": 15
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 27
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          },
+          {
+            "r": "wait",
+            "ms": 15
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 6
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          },
+          {
+            "r": "wait",
+            "ms": 15
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 8
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          },
+          {
+            "r": "wait",
+            "ms": 15
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 15
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          },
+          {
+            "r": "wait",
+            "ms": 300
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 40
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          }
+        ],
+        "label": "Cmd+Space → Excel → Return"
+      }
+    },
+    {
+      "id": "wait-clamped",
+      "desc": "대기는 0~3000ms 로 자른다",
+      "steps": [
+        {
+          "wait": 5000
+        },
+        {
+          "chord": {
+            "mods": [
+              "ctrl"
+            ],
+            "key": "T"
+          }
+        }
+      ],
+      "expect": {
+        "reports": [
+          {
+            "r": "wait",
+            "ms": 3000
+          },
+          {
+            "r": "kbd",
+            "mod": 1,
+            "usage": 23
+          },
+          {
+            "r": "kbd",
+            "mod": 0,
+            "usage": 0
+          }
+        ],
+        "label": "Ctrl+T"
+      }
+    }
+  ]
+}

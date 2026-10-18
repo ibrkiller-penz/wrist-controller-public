@@ -1,0 +1,150 @@
+/* 가상 PC 스타일 — 담당: pc 모듈. 클래스 접두사: .pc-*  (명세: design/simulator-layout.md 5장) */
+
+.pc-panel { background: var(--sim-surface); border: 1px solid var(--sim-border); border-radius: var(--sim-radius-lg, 16px); overflow: hidden; min-width: 0; }
+.pc-spacer { flex: 1; }
+.pc-mono { font-family: var(--sim-font-mono); font-variant-numeric: tabular-nums; }
+
+/* 헤더 44 */
+.pc-head { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 6px 12px 6px 16px; background: var(--sim-surface-2); border-bottom: 1px solid var(--sim-border); flex-wrap: wrap; }
+.pc-head__title { margin: 0; font-size: 14px; font-weight: 700; }
+.pc-head__app { font-size: var(--sim-text-size-sm, 12px); color: var(--sim-text-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc-conn { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--sim-border); background: var(--sim-surface); color: var(--sim-text-1); font-size: var(--sim-text-size-sm, 12px); cursor: pointer; white-space: nowrap; transition: transform var(--wc-motion-release); }
+.pc-conn:active { transform: scale(0.96); transition-duration: var(--wc-motion-press); }
+.pc-conn i { width: 8px; height: 8px; border-radius: 50%; background: var(--sim-log-media); }
+.pc-conn[data-conn="off"] { color: var(--sim-log-dropped); border-color: var(--sim-log-dropped); }
+.pc-conn[data-conn="off"] i { background: var(--sim-log-dropped); }
+
+/* 화면 16:10 (가상 1920×1200). 내부 글자는 화면 폭 비례(cqw) */
+.pc-screen { position: relative; aspect-ratio: 16 / 10; container-type: inline-size; overflow: hidden; background: var(--sim-bg); user-select: none; }
+.pc-app { position: absolute; inset: 0; display: none; font-size: clamp(9px, 1.5cqw, 14px); line-height: 1.4; color: var(--sim-text-1); }
+.pc-screen[data-app="present"] .pc-ppt,
+.pc-screen[data-app="launch"] .pc-desk,
+.pc-screen[data-app="clock"] .pc-desk,
+.pc-screen[data-app="meeting"] .pc-meet { display: grid; }
+.pc-ic { width: 1em; height: 1em; fill: none; stroke: currentColor; }
+
+/* 끊김 띠 */
+.pc-dc { position: absolute; inset: auto 0 0 0; z-index: 7; padding: 8px 12px; background: var(--sim-surface); border-top: 2px solid var(--sim-log-dropped); color: var(--sim-log-dropped); font-size: var(--sim-text-size-sm, 12px); font-weight: 600; display: none; }
+.pc-panel[data-conn="off"] .pc-dc { display: block; }
+
+/* 반응 없음 등 짧은 알림 */
+.pc-toast { position: absolute; left: 50%; bottom: 6%; z-index: 6; max-width: 86%; padding: 6px 12px; border-radius: 999px; background: var(--sim-text-1); color: var(--sim-surface); font-size: var(--sim-text-size-sm, 12px); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; opacity: 0; transform: translate(-50%, 6px); transition: opacity var(--wc-motion-base) var(--wc-ease-out), transform var(--wc-motion-base) var(--wc-ease-out); }
+.pc-toast.is-shown { opacity: 0.92; transform: translate(-50%, 0); }
+
+/* 하단 줄 */
+.pc-foot { display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 6px 12px; border-top: 1px solid var(--sim-border); font-size: var(--sim-text-size-sm, 12px); color: var(--sim-text-2); flex-wrap: wrap; }
+.pc-kbd { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--sim-border); border-bottom-width: 2px; background: var(--sim-surface-2); color: var(--sim-text-1); font: 600 12px var(--sim-font-mono); white-space: nowrap; transition: color var(--wc-motion-base), border-color var(--wc-motion-base); }
+.pc-kbd.is-new[data-mode="present"] { border-color: var(--sim-mode-present); color: var(--sim-mode-present); }
+.pc-kbd.is-new[data-mode="launch"] { border-color: var(--sim-mode-coding); color: var(--sim-mode-coding); }
+.pc-kbd.is-new[data-mode="meeting"] { border-color: var(--sim-mode-meeting); color: var(--sim-mode-meeting); }
+
+/* ------------------------------------------------------------------ 슬라이드 프로그램 */
+.pc-ppt { grid-template-rows: 5.5cqw minmax(0, 1fr) 3.2cqw; background: var(--sim-surface-2); }
+.pc-ppt__ribbon { display: flex; align-items: center; gap: 2.4cqw; padding: 0 2cqw; background: var(--sim-surface); border-bottom: 1px solid var(--sim-border); color: var(--sim-text-2); overflow: hidden; white-space: nowrap; }
+.pc-ppt__ribbon b { color: var(--sim-mode-present); }
+.pc-ppt__main { display: grid; grid-template-columns: 15cqw minmax(0, 1fr); min-height: 0; }
+.pc-ppt__rail { overflow: hidden; padding: 1cqw; display: grid; gap: 0.9cqw; align-content: start; border-right: 1px solid var(--sim-border); }
+.pc-ppt__thumb { display: grid; grid-template-columns: 1.6cqw minmax(0, 1fr); gap: 0.4cqw; align-items: start; color: var(--sim-text-3); font-size: 1.1cqw; }
+.pc-ppt__thumb .pc-slide { border: 1px solid var(--sim-border); }
+.pc-ppt__thumb.is-cur { color: var(--sim-mode-present); }
+.pc-ppt__thumb.is-cur .pc-slide { outline: 2px solid var(--sim-mode-present); outline-offset: 1px; }
+.pc-ppt__stage { display: grid; place-items: center; padding: 2.4cqw; min-width: 0; min-height: 0; }
+.pc-ppt__stage .pc-slide { width: 100%; max-height: 100%; box-shadow: var(--sim-shadow); }
+.pc-ppt__status { display: flex; align-items: center; gap: 2cqw; padding: 0 2cqw; background: var(--sim-surface); border-top: 1px solid var(--sim-border); color: var(--sim-text-2); white-space: nowrap; overflow: hidden; }
+.pc-ppt__show { position: absolute; inset: 0; z-index: 2; background: var(--wc-bg); display: none; place-items: center; }
+.pc-ppt[data-view="show"] .pc-ppt__show,
+.pc-ppt[data-view="black"] .pc-ppt__show { display: grid; }
+.pc-ppt[data-view="black"] .pc-ppt__show .pc-slide { visibility: hidden; }
+.pc-ppt__show .pc-slide { width: 100%; }
+
+/* 슬라이드 공통 — 16:9, 내부 글자는 슬라이드 폭 기준 cqw */
+.pc-slide { aspect-ratio: 16 / 9; container-type: inline-size; position: relative; overflow: hidden; background: var(--sim-surface); color: var(--sim-text-1); }
+.pc-s-in { position: absolute; inset: 0; padding: 7cqw 8cqw; display: flex; flex-direction: column; gap: 2.6cqw; }
+.pc-s-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 1.2cqw; background: var(--sim-mode-present); }
+.pc-slide h3 { margin: 0; font-size: 5.4cqw; line-height: 1.2; font-weight: 800; letter-spacing: -0.02em; }
+.pc-slide p { margin: 0; font-size: 2.8cqw; color: var(--sim-text-2); }
+.pc-slide ul { margin: 0; padding-left: 3.4cqw; font-size: 3cqw; line-height: 1.55; }
+.pc-slide li::marker { color: var(--sim-mode-present); }
+.pc-s-no { position: absolute; right: 3cqw; bottom: 2.4cqw; font-size: 1.8cqw; color: var(--sim-text-3); }
+.pc-s-kicker { font-size: 2cqw; color: var(--sim-mode-present); font-weight: 700; letter-spacing: 0.08em; }
+.pc-slide--title .pc-s-in, .pc-slide--end .pc-s-in { justify-content: center; }
+.pc-slide--title h3, .pc-slide--end h3 { font-size: 8.4cqw; }
+.pc-s-split { display: grid; grid-template-columns: 1.4fr 1fr; gap: 4cqw; align-items: center; flex: 1; }
+.pc-s-big { font-size: 9cqw; font-weight: 800; color: var(--sim-mode-present); line-height: 1; text-align: center; }
+.pc-s-big small { display: block; font-size: 2.4cqw; color: var(--sim-text-2); font-weight: 600; margin-top: 1.4cqw; }
+.pc-s-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2cqw; flex: 1; align-content: center; }
+.pc-s-tiles div { border-radius: 1.6cqw; padding: 2.2cqw; background: var(--sim-surface-2); font-size: 2.8cqw; font-weight: 700; }
+.pc-s-tiles small { display: block; font: 500 2cqw var(--sim-font-mono); color: var(--sim-text-3); margin-top: 0.6cqw; }
+.pc-s-flow { display: flex; align-items: center; gap: 1.6cqw; flex: 1; }
+.pc-s-flow div { flex: 1; text-align: center; padding: 3cqw 1cqw; border-radius: 1.6cqw; border: 0.3cqw solid var(--sim-mode-present); font-size: 3cqw; font-weight: 700; }
+.pc-s-flow span { color: var(--sim-text-3); font-size: 3cqw; }
+
+/* ------------------------------------------------------------------ 바탕화면·작업표시줄 (실행 모드) */
+.pc-desk { grid-template-rows: minmax(0, 1fr) 5cqw; background: linear-gradient(160deg, #1d3a6b, #0f1e38); color: #fff; }
+.pc-desk__wall { grid-row: 1; grid-column: 1; display: flex; align-items: flex-start; justify-content: center; padding-top: 2cqw; }
+.pc-desk__hint { font-size: 0.9em; opacity: 0.75; text-align: center; padding: 0 4cqw; }
+.pc-desk__wins { grid-row: 1; grid-column: 1; position: relative; }
+.pc-desk__win { position: absolute; left: calc(8% + var(--i) * 4%); top: calc(14% + var(--i) * 5%); width: 52%; height: 56%; background: var(--sim-surface); color: var(--sim-text-1); border: 1px solid var(--sim-border); border-radius: 8px; box-shadow: var(--sim-shadow); display: grid; grid-template-rows: 3.6cqw 1fr; overflow: hidden; opacity: 0.85; }
+.pc-desk__win.is-front { z-index: 2; opacity: 1; outline: 2px solid var(--sim-mode-coding); }
+.pc-desk__wt { background: var(--sim-surface-2); display: flex; align-items: center; padding: 0 1.4cqw; font-weight: 700; }
+.pc-desk__wb { display: flex; align-items: center; justify-content: center; color: var(--sim-text-2); padding: 1cqw; text-align: center; word-break: break-all; }
+.pc-desk__bar { grid-row: 2; grid-column: 1; display: flex; align-items: center; gap: 1.2cqw; padding: 0 1.4cqw; background: rgba(0, 0, 0, 0.55); white-space: nowrap; overflow: hidden; }
+.pc-desk__start { font-size: 1.4em; }
+.pc-desk__apps { display: flex; gap: 0.8cqw; }
+.pc-desk__app { display: inline-flex; align-items: center; gap: 0.5cqw; padding: 0.4cqw 0.9cqw; border-radius: 6px; border-bottom: 2px solid transparent; opacity: 0.8; }
+.pc-desk__app b { font: 600 0.8em var(--sim-font-mono); opacity: 0.7; }
+.pc-desk__app.is-open { border-bottom-color: rgba(255, 255, 255, 0.6); opacity: 1; }
+.pc-desk__app.is-front { background: rgba(255, 255, 255, 0.18); border-bottom-color: #6ea8ff; }
+.pc-desk__msg { opacity: 0.85; overflow: hidden; text-overflow: ellipsis; }
+.pc-desk__display { position: absolute; right: 2cqw; top: 2cqw; z-index: 4; display: none; flex-direction: column; gap: 0.6cqw; padding: 1.2cqw; background: var(--sim-surface); color: var(--sim-text-1); border-radius: 8px; box-shadow: var(--sim-shadow); }
+.pc-desk__display .is-sel { font-weight: 700; color: var(--sim-mode-coding); }
+.pc-desk[data-display="true"] .pc-desk__display { display: flex; }
+.pc-desk__lock { position: absolute; inset: 0; z-index: 5; display: none; align-items: center; justify-content: center; background: rgba(5, 10, 20, 0.92); font-size: 1.2em; text-align: center; padding: 4cqw; }
+.pc-desk[data-locked="true"] .pc-desk__lock { display: flex; }
+
+/* ------------------------------------------------------------------ 회의 창 */
+.pc-meet { grid-template-rows: 4cqw minmax(0, 1fr) 9cqw; background: var(--sim-surface-2); }
+.pc-meet__top { display: flex; align-items: center; gap: 1.6cqw; padding: 0 2cqw; background: var(--sim-surface); border-bottom: 1px solid var(--sim-border); color: var(--sim-text-2); white-space: nowrap; overflow: hidden; }
+.pc-meet__top b { color: var(--sim-text-1); }
+.pc-meet__clock { font-variant-numeric: tabular-nums; }
+.pc-meet__grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1cqw; padding: 1cqw; min-height: 0; }
+.pc-person { position: relative; border-radius: 1cqw; background: var(--sim-surface); display: grid; place-items: center; border: 0.3cqw solid transparent; min-height: 0; }
+.pc-person.is-speaking { border-color: var(--sim-mode-meeting); }
+.pc-person__avatar { width: 8cqw; height: 8cqw; border-radius: 50%; display: grid; place-items: center; background: var(--sim-surface-2); color: var(--sim-text-2); font-size: 2.6cqw; font-weight: 700; }
+.pc-person__nm { position: absolute; left: 1cqw; bottom: 0.8cqw; display: flex; align-items: center; gap: 0.6cqw; padding: 0.3cqw 0.8cqw; border-radius: 4px; background: var(--sim-surface-2); white-space: nowrap; }
+.pc-person__nm .pc-ic { width: 1.8cqw; height: 1.8cqw; color: var(--sim-log-dropped); }
+.pc-person__mute { display: none; }
+.pc-meet[data-mic="false"] .pc-person__mute { display: inline; }
+.pc-person__hand { position: absolute; right: 1cqw; top: 1cqw; display: none; padding: 0.4cqw 0.8cqw; border-radius: 4px; background: var(--sim-notice-bg); color: var(--sim-notice-text); font-weight: 700; }
+.pc-meet[data-hand="true"] .pc-person__hand { display: block; }
+.pc-meet[data-cam="true"] .pc-person--me .pc-person__avatar { outline: 0.3cqw solid var(--sim-mode-meeting); outline-offset: 0.6cqw; background: var(--sim-mode-meeting); color: var(--sim-surface); }
+.pc-meet__bar { display: flex; align-items: center; justify-content: center; gap: 3cqw; background: var(--sim-surface); border-top: 1px solid var(--sim-border); }
+.pc-mbtn { display: grid; justify-items: center; gap: 0.2cqw; color: var(--sim-text-2); }
+.pc-mbtn small { font: 500 0.85em var(--sim-font-mono); color: var(--sim-text-3); }
+.pc-mbtn__ic { width: 4.4cqw; height: 4.4cqw; border-radius: 50%; display: grid; place-items: center; background: var(--sim-surface-2); }
+.pc-mbtn__ic .pc-ic { width: 2.4cqw; height: 2.4cqw; }
+.pc-mbtn.is-off .pc-mbtn__ic { color: var(--sim-log-dropped); outline: 2px solid var(--sim-log-dropped); }
+.pc-mbtn.is-on .pc-mbtn__ic { color: var(--sim-mode-meeting); outline: 2px solid var(--sim-mode-meeting); }
+.pc-mbtn.is-flash .pc-mbtn__ic { animation: pc-mflash var(--wc-motion-flash) var(--wc-ease-out); }
+@keyframes pc-mflash { 0% { transform: scale(1.15); } 100% { transform: none; } }
+
+/* ------------------------------------------------------------------ 가상 마우스 커서 + 클릭 파문 */
+.pc-cursor { position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; pointer-events: none; z-index: 5; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); transition: left 60ms linear, top 60ms linear, opacity var(--wc-motion-base); }
+.pc-cursor path { fill: var(--sim-text-1); stroke: var(--sim-surface); stroke-width: 1.5; }
+.pc-ppt__show ~ .pc-cursor path { fill: var(--sim-text-1); }
+.pc-cursor.is-hidden { opacity: 0; }
+.pc-ripple { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; border: 2px solid var(--sim-mode-coding); pointer-events: none; z-index: 4; animation: pc-rip 300ms var(--wc-ease-out) forwards; }
+@keyframes pc-rip { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
+
+/* 폰: 썸네일 열 숨김 */
+@media (max-width: 767px) {
+  .pc-ppt__main { grid-template-columns: minmax(0, 1fr); }
+  .pc-ppt__rail { display: none; }
+  .pc-conn { height: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-ripple, .pc-mbtn.is-flash .pc-mbtn__ic { animation: none !important; }
+  .pc-cursor, .pc-toast, .pc-kbd, .pc-conn { transition: none !important; }
+}
+.pc-kbd.is-new[data-mode="clock"] { border-color: var(--sim-mode-clock, #888); color: var(--sim-mode-clock, #888); }

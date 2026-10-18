@@ -1,0 +1,816 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrist-controller.local/schema/keymap.schema.json",
+  "title": "손목 컨트롤러 keymap.json",
+  "description": "세 모드(present/coding/meeting) x 앱 x OS(win/mac) 키 배치. 동작 id 집합은 모드별로 고정(코어 로직이 id 로 찾는다). 배열 순서 = 시계 화면 배치 순서(코딩 2x3 타일은 왼쪽 위부터 행 우선).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "settings",
+    "modeOrder",
+    "modes"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "$comment": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deviceName",
+        "os",
+        "mode",
+        "sensitivity",
+        "primaryButton"
+      ],
+      "properties": {
+        "deviceName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 29,
+          "description": "BLE 장치 이름 기본값(사용자가 시계 설정에서 바꿀 수 있음)"
+        },
+        "deviceNameMaxBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 29,
+          "description": "UTF-8 바이트 상한(광고 패킷 제한)"
+        },
+        "os": {
+          "enum": [
+            "win",
+            "mac"
+          ]
+        },
+        "mode": {
+          "enum": [
+            "clock",
+            "present",
+            "launch",
+            "meeting"
+          ]
+        },
+        "sensitivity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "에어마우스 감도 단계 인덱스(gesture.json airMouse.sensitivity)"
+        },
+        "primaryButton": {
+          "enum": [
+            "boot",
+            "pwr"
+          ],
+          "description": "넘기기·에어마우스를 맡는 주 측면 버튼"
+        }
+      }
+    },
+    "modeOrder": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "clock",
+          "present",
+          "launch",
+          "meeting"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "description": "좌우 스와이프 순환 순서(맨 앞 = 기본 시작 모드로 권장)"
+    },
+    "modes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clock",
+        "present",
+        "launch",
+        "meeting"
+      ],
+      "properties": {
+        "clock": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "defaultApp",
+            "appOrder",
+            "apps"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "defaultApp": {
+              "enum": [
+                "clock"
+              ]
+            },
+            "appOrder": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "clock"
+                ]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "apps": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "clock"
+              ],
+              "properties": {
+                "clock": {
+                  "$ref": "#/$defs/appEmpty"
+                }
+              }
+            }
+          }
+        },
+        "present": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "defaultApp",
+            "appOrder",
+            "apps"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "defaultApp": {
+              "enum": [
+                "powerpoint",
+                "slides"
+              ]
+            },
+            "appOrder": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "powerpoint",
+                  "slides"
+                ]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "apps": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "powerpoint",
+                "slides"
+              ],
+              "properties": {
+                "powerpoint": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/app"
+                    },
+                    {
+                      "properties": {
+                        "actions": {
+                          "items": {
+                            "properties": {
+                              "id": {
+                                "enum": [
+                                  "next",
+                                  "prev",
+                                  "blackout",
+                                  "showStart",
+                                  "showEnd"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "slides": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/app"
+                    },
+                    {
+                      "properties": {
+                        "actions": {
+                          "items": {
+                            "properties": {
+                              "id": {
+                                "enum": [
+                                  "next",
+                                  "prev",
+                                  "blackout",
+                                  "showStart",
+                                  "showEnd"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "launch": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "defaultApp",
+            "appOrder",
+            "apps"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "defaultApp": {
+              "enum": [
+                "launcher"
+              ]
+            },
+            "appOrder": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "launcher"
+                ]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "apps": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "launcher"
+              ],
+              "properties": {
+                "launcher": {
+                  "$ref": "#/$defs/app"
+                }
+              }
+            }
+          }
+        },
+        "meeting": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "defaultApp",
+            "appOrder",
+            "apps"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "defaultApp": {
+              "enum": [
+                "zoom",
+                "teams",
+                "meet"
+              ]
+            },
+            "appOrder": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "zoom",
+                  "teams",
+                  "meet"
+                ]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "apps": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "zoom",
+                "teams",
+                "meet"
+              ],
+              "properties": {
+                "zoom": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/app"
+                    },
+                    {
+                      "properties": {
+                        "actions": {
+                          "items": {
+                            "properties": {
+                              "id": {
+                                "enum": [
+                                  "mic",
+                                  "camera",
+                                  "hand"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "teams": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/app"
+                    },
+                    {
+                      "properties": {
+                        "actions": {
+                          "items": {
+                            "properties": {
+                              "id": {
+                                "enum": [
+                                  "mic",
+                                  "camera",
+                                  "hand"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "meet": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/app"
+                    },
+                    {
+                      "properties": {
+                        "actions": {
+                          "items": {
+                            "properties": {
+                              "id": {
+                                "enum": [
+                                  "mic",
+                                  "camera",
+                                  "hand"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "chord": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "키 조합. null = 이 OS 에서 동작 없음(타일 비활성).",
+      "additionalProperties": false,
+      "required": [
+        "mods",
+        "key"
+      ],
+      "properties": {
+        "mods": {
+          "type": "array",
+          "description": "수정자. mac Cmd=gui, Option=alt",
+          "items": {
+            "enum": [
+              "ctrl",
+              "shift",
+              "alt",
+              "gui"
+            ]
+          },
+          "uniqueItems": true,
+          "maxItems": 4
+        },
+        "key": {
+          "description": "HID 키 이름 (hid-usage.json keys)",
+          "enum": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J",
+            "K",
+            "L",
+            "M",
+            "N",
+            "O",
+            "P",
+            "Q",
+            "R",
+            "S",
+            "T",
+            "U",
+            "V",
+            "W",
+            "X",
+            "Y",
+            "Z",
+            "ENTER",
+            "ESCAPE",
+            "BACKSPACE",
+            "TAB",
+            "SPACE",
+            "MINUS",
+            "EQUAL",
+            "LEFTBRACKET",
+            "RIGHTBRACKET",
+            "BACKSLASH",
+            "SEMICOLON",
+            "QUOTE",
+            "GRAVE",
+            "COMMA",
+            "PERIOD",
+            "SLASH",
+            "CAPSLOCK",
+            "F1",
+            "F2",
+            "F3",
+            "F4",
+            "F5",
+            "F6",
+            "F7",
+            "F8",
+            "F9",
+            "F10",
+            "F11",
+            "F12",
+            "PRINTSCREEN",
+            "SCROLLLOCK",
+            "PAUSE",
+            "INSERT",
+            "HOME",
+            "PAGEUP",
+            "DELETE",
+            "END",
+            "PAGEDOWN",
+            "RIGHT",
+            "LEFT",
+            "DOWN",
+            "UP",
+            "LANG1",
+            "LANG2"
+          ]
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "icon",
+        "win",
+        "mac"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][A-Za-z0-9]*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8,
+          "description": "시계 타일 라벨(5글자 이하 권장)"
+        },
+        "icon": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^i-[a-z0-9-]+$",
+          "description": "design/icons.svg 심볼 id"
+        },
+        "win": {
+          "$ref": "#/$defs/binding"
+        },
+        "mac": {
+          "$ref": "#/$defs/binding"
+        },
+        "note": {
+          "type": "string"
+        },
+        "winAlt": {
+          "$ref": "#/$defs/binding",
+          "description": "타일 길게 누르기(Windows). 없거나 null = 길게 누르기 없음"
+        },
+        "macAlt": {
+          "$ref": "#/$defs/binding",
+          "description": "타일 길게 누르기(macOS)"
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^[\\x20-\\x7E]{0,96}$",
+          "description": "매크로 text 의 {url} 자리. 비어 있으면 {url} 을 쓰는 동작은 비활성"
+        }
+      }
+    },
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "actions"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "description": "단축키 공식 출처 URL"
+        },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        }
+      }
+    },
+    "macroStep": {
+      "description": "매크로 한 단계: chord(누름→뗌) / wait(ms) / text(출력 가능한 ASCII, US 배열 키로 입력) / consumer(미디어 키)",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "chord"
+          ],
+          "properties": {
+            "chord": {
+              "$ref": "#/$defs/chordObj"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "wait"
+          ],
+          "properties": {
+            "wait": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "text"
+          ],
+          "properties": {
+            "text": {
+              "type": "string",
+              "pattern": "^[\\x20-\\x7E]{1,96}$",
+              "description": "{url} = 동작의 url 값으로 바뀐다"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "consumer"
+          ],
+          "properties": {
+            "consumer": {
+              "enum": [
+                "MUTE",
+                "VOLUME_UP",
+                "VOLUME_DOWN",
+                "PLAY_PAUSE",
+                "NEXT_TRACK",
+                "PREV_TRACK"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "macro": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "steps"
+      ],
+      "properties": {
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "items": {
+            "$ref": "#/$defs/macroStep"
+          }
+        }
+      }
+    },
+    "chordObj": {
+      "type": "object",
+      "description": "키 조합",
+      "additionalProperties": false,
+      "required": [
+        "mods",
+        "key"
+      ],
+      "properties": {
+        "mods": {
+          "type": "array",
+          "description": "수정자. mac Cmd=gui, Option=alt",
+          "items": {
+            "enum": [
+              "ctrl",
+              "shift",
+              "alt",
+              "gui"
+            ]
+          },
+          "uniqueItems": true,
+          "maxItems": 4
+        },
+        "key": {
+          "description": "HID 키 이름 (hid-usage.json keys)",
+          "enum": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J",
+            "K",
+            "L",
+            "M",
+            "N",
+            "O",
+            "P",
+            "Q",
+            "R",
+            "S",
+            "T",
+            "U",
+            "V",
+            "W",
+            "X",
+            "Y",
+            "Z",
+            "ENTER",
+            "ESCAPE",
+            "BACKSPACE",
+            "TAB",
+            "SPACE",
+            "MINUS",
+            "EQUAL",
+            "LEFTBRACKET",
+            "RIGHTBRACKET",
+            "BACKSLASH",
+            "SEMICOLON",
+            "QUOTE",
+            "GRAVE",
+            "COMMA",
+            "PERIOD",
+            "SLASH",
+            "CAPSLOCK",
+            "F1",
+            "F2",
+            "F3",
+            "F4",
+            "F5",
+            "F6",
+            "F7",
+            "F8",
+            "F9",
+            "F10",
+            "F11",
+            "F12",
+            "PRINTSCREEN",
+            "SCROLLLOCK",
+            "PAUSE",
+            "INSERT",
+            "HOME",
+            "PAGEUP",
+            "DELETE",
+            "END",
+            "PAGEDOWN",
+            "RIGHT",
+            "LEFT",
+            "DOWN",
+            "UP",
+            "LANG1",
+            "LANG2"
+          ]
+        }
+      }
+    },
+    "binding": {
+      "description": "동작 하나: 키 조합(한 번 누름) 또는 매크로. null = 이 OS 에서 동작 없음(타일 비활성)",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/chordObj"
+        },
+        {
+          "$ref": "#/$defs/macro"
+        }
+      ]
+    },
+    "appEmpty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "actions"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+/* 사이트 공통 바탕 — 담당: 개발 리드. 모듈 CSS 는 각자 src/<module>/<module>.css 에 둔다. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--sim-bg);
+  color: var(--sim-text-1);
+  font-family: var(--sim-font-family);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--sim-focus); outline-offset: 2px; }
+.sim-visually-hidden {
+  position: absolute !important; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0; padding: 0; margin: -1px;
+}

@@ -1,0 +1,119 @@
+{
+  "$schema": "./schema/gesture.schema.json",
+  "$comment": "손목 제스처·에어마우스·터치·버튼 판정 기준값. 단위: 각속도 deg/s(Dps), 시간 ms, 거리 px(시계 화면 410x502 기준). 모든 필터는 샘플 수가 아니라 dt(ms) 기반. flick.cooldownMs(800)만 작업지시서 확정값이고 나머지는 설계 제안(docs/research/web-and-algorithms.md 6장) — 2단계 녹화 데이터로 다시 조정한다. 터치 판정(touch)은 design/v2/README.md 1.4 확정값: 탭 = 이동 12px 미만·600ms 전에 뗌, 모든 키는 손 뗄 때 전송, 가로 스와이프 |dx|≥80·|dy|<60·|dx|>1.5|dy|·800ms 이내(쇼 진행 중 발표 |dx|≥140·|dy|<50), 위에서 당기기 시작 y<72·아래로 ≥48·|dx|<40·600ms 이내.",
+  "version": 1,
+  "imu": {
+    "sampleRateHz": 100,
+    "gyroRangeDps": 1024,
+    "axisMap": {
+      "yaw": "gz",
+      "pitch": "gx",
+      "roll": "gy"
+    },
+    "axisSign": {
+      "yaw": 1,
+      "pitch": 1,
+      "roll": 1
+    },
+    "biasCalib": {
+      "enabled": true,
+      "stillThresholdDps": 3.0,
+      "stillMs": 1000,
+      "trackTauMs": 5000
+    }
+  },
+  "airMouse": {
+    "enabled": false,
+    "holdToStartMs": 250,
+    "startSuppressMs": 50,
+    "deadzoneDps": {
+      "enter": 2.0,
+      "exit": 1.5
+    },
+    "lowpassTauMs": 30,
+    "curve": {
+      "exponent": 1.3,
+      "maxPxPerReport": 40
+    },
+    "sensitivity": [
+      {
+        "name": "낮음",
+        "gain": 0.6
+      },
+      {
+        "name": "보통",
+        "gain": 1.0
+      },
+      {
+        "name": "높음",
+        "gain": 1.6
+      }
+    ],
+    "invertY": false
+  },
+  "flick": {
+    "axis": "roll",
+    "prefilterTauMs": 10,
+    "peakThresholdDps": 220,
+    "adaptive": {
+      "enabled": true,
+      "windowMs": 2000,
+      "rmsMultiplier": 4.0
+    },
+    "axisDominanceRatio": 1.5,
+    "minAboveMs": 30,
+    "maxAboveMs": 200,
+    "rebound": {
+      "required": true,
+      "windowMs": 250,
+      "minRatio": 0.3,
+      "minDps": 80
+    },
+    "quietBefore": {
+      "windowMs": 300,
+      "guardMs": 50,
+      "maxRmsDps": 80
+    },
+    "cooldownMs": 800,
+    "outwardSign": 1,
+    "inAction": "next"
+  },
+  "touch": {
+    "tapMaxMovePx": 12,
+    "holdMs": 600,
+    "blackoutHoldMs": 360,
+    "swipeMinPx": 80,
+    "swipeMaxOffAxisPx": 60,
+    "swipeAxisRatio": 1.5,
+    "swipeMaxMs": 800,
+    "showSwipeMinPx": 140,
+    "showSwipeMaxOffAxisPx": 50,
+    "sheetPullMinPx": 48,
+    "pullMaxOffAxisPx": 40,
+    "pullMaxMs": 600,
+    "topEdgePx": 72,
+    "settingsCloseMinPx": 40,
+    "settingsCloseAxisRatio": 1.2
+  },
+  "button": {
+    "longPressMs": 2000
+  },
+  "timing": {
+    "sheetAutoCloseMs": 3000,
+    "meetingEstimateResetMs": 30000,
+    "settingsIdleCloseMs": 30000
+  },
+  "power": {
+    "screenOffMs": 20000,
+    "brightnessPercent": 80,
+    "batteryPollMs": 5000,
+    "wristRaise": {
+      "enabled": true,
+      "faceAxis": 2,
+      "faceSign": 1,
+      "faceUpMinG": 0.6,
+      "minDeltaG": 0.35,
+      "windowMs": 600
+    }
+  }
+}

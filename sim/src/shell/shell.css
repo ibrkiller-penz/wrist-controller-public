@@ -1,0 +1,48 @@
+/* 셸(툴바·3열 배치) — 담당: 개발 리드. 배치 원본: design/simulator-layout.md 2~3장 */
+.sim-toolbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 12px;
+  min-height: 56px; padding: 0 16px;
+  background: var(--sim-surface); border-bottom: 1px solid var(--sim-border);
+}
+.sim-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; white-space: nowrap; }
+.sim-brand__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--sim-mode-present); transition: background 200ms; }
+.sim-brand[data-mode="launch"] .sim-brand__dot { background: var(--sim-mode-coding); }
+.sim-brand[data-mode="meeting"] .sim-brand__dot { background: var(--sim-mode-meeting); }
+.sim-brand__sub { font-weight: 400; font-size: 12px; color: var(--sim-text-3); }
+.sim-toolbar__slot { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.sim-toolbar__spacer { flex: 1; }
+.sim-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 36px; padding: 0 12px; border-radius: var(--sim-radius, 10px);
+  border: 1px solid var(--sim-border); background: var(--sim-surface); color: var(--sim-text-1);
+  cursor: pointer; white-space: nowrap;
+}
+.sim-btn:hover { background: var(--sim-surface-2); }
+.sim-btn:active { transform: scale(0.96); }
+.sim-btn svg { width: 18px; height: 18px; }
+.sim-conn { font-weight: 600; }
+.sim-conn[data-connected="false"] { color: var(--sim-log-dropped); border-color: var(--sim-log-dropped); }
+.sim-link { color: var(--sim-focus); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.sim-notice-slot:empty { display: none; }
+
+.sim-layout {
+  display: grid; gap: var(--sim-gap, 16px); padding: 16px;
+  grid-template-columns: auto minmax(0, 1fr) 360px;
+  grid-template-areas: "watch pc log";
+  align-items: start;
+}
+.sim-col-watch { grid-area: watch; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sim-col-pc { grid-area: pc; min-width: 0; }
+.sim-col-log { grid-area: log; min-width: 0; }
+@media (max-width: 1599px) { .sim-layout { grid-template-columns: auto minmax(0, 1fr) 320px; } }
+@media (max-width: 1279px) {
+  .sim-layout { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "watch pc" "watch log"; }
+  .sim-brand__sub { display: none; }
+}
+@media (max-width: 767px) {
+  .sim-toolbar { flex-wrap: wrap; padding: 8px 16px; }
+  .sim-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "watch" "pc" "log"; padding: 12px 16px; }
+  .sim-btn { min-height: 44px; }
+}
+.sim-brand[data-mode="clock"] .sim-brand__dot { background: var(--sim-mode-clock, #888); }
