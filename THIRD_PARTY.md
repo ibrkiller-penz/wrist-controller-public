@@ -9,7 +9,7 @@
 | --- | --- | --- | --- | --- |
 | [Pretendard](https://github.com/orioncactus/pretendard) (Kil Hyung-jin) | 1.3.9 | SIL Open Font License 1.1, 예약 글꼴 이름 "Pretendard" | 포함: 원본 `tools/fonts/pretendard/*.otf`, 서브셋 `sim/src/watch/fonts/*.woff2`, LVGL 비트맵 `firmware/main/fonts/kr_*.c`·`num_128.c` | 라이선스 전문: `tools/fonts/pretendard/LICENSE.txt`. 서브셋은 OFL 의 '수정본'이다(아래 주의) |
 
-> 주의(OFL 예약 이름): 서브셋·변환본은 예약 글꼴 이름 "Pretendard" 를 글꼴 이름으로 쓰면 안 된다. 웹 CSS 이름이 `WC Pretendard` 이므로 공개 전 `WC Sans` 처럼 바꾸거나 woff2 내부 이름을 확인하는 것을 권한다.
+> 주의(OFL 예약 이름): 서브셋·변환본은 예약 글꼴 이름 "Pretendard" 를 글꼴 이름으로 쓰면 안 된다. 웹 CSS 이름이 `WC Pretendard` 이므로 공개 전 `WC Sans` 처럼 바꾸거나 woff2 내부 이름을 확인하는 것을 권한다(docs/PUBLIC_CHECK.md).
 
 ## 시계 펌웨어(ESP32-C6)
 

@@ -1,7 +1,7 @@
 // 자동 생성 파일 — 손으로 고치지 마세요.
 // 생성: python tools/gen_keymap_header.py
 // 원본: shared/keymap.json, shared/gesture.json, shared/hid-usage.json
-// 원본 해시(sha256 앞 16자, 줄바꿈 LF 기준): 8ecf87460f4e2dfe
+// 원본 해시(sha256 앞 16자, 줄바꿈 LF 기준): f682c9bdbdbdf9f8
 // 키 배치를 바꾸려면 shared/keymap.json 을 고치고 이 스크립트를 다시 실행한다.
 #pragma once
 
@@ -9,7 +9,7 @@
 
 #include "wc/types.h"
 
-#define WC_KEYMAP_GEN_HASH "8ecf87460f4e2dfe"
+#define WC_KEYMAP_GEN_HASH "f682c9bdbdbdf9f8"
 #define WC_KEYMAP_VERSION 1
 #define WC_GESTURE_VERSION 1
 
@@ -736,7 +736,7 @@ inline GestureConfig makeGesture() {
   g.airMouse.invertY = false;
   g.flick.detector = GestureConfig::Flick::Detector::Accel;
   g.flick.accel.lpfTauMs = 200.0;
-  g.flick.accel.peakG = 0.8;
+  g.flick.accel.peakG = 1.0;
   g.flick.accel.maxAboveMs = 250.0;
   g.flick.accel.quietWindowMs = 300.0;
   g.flick.accel.quietGuardMs = 50.0;

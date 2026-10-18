@@ -80,7 +80,7 @@
     "inAction": "next",
     "accel": {
       "lpfTauMs": 200,
-      "peakG": 0.8,
+      "peakG": 1.0,
       "maxAboveMs": 250,
       "quietWindowMs": 300,
       "quietGuardMs": 50,

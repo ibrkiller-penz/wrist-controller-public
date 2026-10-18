@@ -111,7 +111,7 @@ describe('합성 파형 → 코어 판정', () => {
       }
     expect(synthRest(100)[5].az).toBeCloseTo(1, 1);
   });
-  it('hp 크기: 튕김 ≥ 1.5 g, 천천히 돌리기·걷기는 0.8 g 보다 한참 아래', () => {
+  it('hp 크기: 튕김 ≥ 1.5 g, 천천히 돌리기·걷기는 1.0 g 보다 한참 아래', () => {
     expect(maxHp(synthFlick('out'))).toBeGreaterThan(2);
     expect(maxHp(synthFlick('in', { peakDps: 450 }))).toBeGreaterThan(1.5);
     expect(maxHp(concatSamples(synthRest(300), synthSlowRotate(3200)))).toBeLessThan(0.6);
@@ -156,7 +156,7 @@ describe('드래그 패드 가속도 합성(createDragAccel)', () => {
     expect(maxHp(fast)).toBeGreaterThan(1.5);
     expect(run(fast).keys).toEqual(['next']);
   });
-  it('천천히 끌기 → hp 0.8 g 한참 아래 → 무시', () => {
+  it('천천히 끌기 → hp 1.0 g 한참 아래 → 무시', () => {
     expect(maxHp(slow)).toBeLessThan(0.3);
     expect(run(slow).flicks).toEqual([]);
   });

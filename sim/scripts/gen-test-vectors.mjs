@@ -751,7 +751,7 @@ write('macro.json', {
 
 // ================================================================ imu-real.json
 // 1호기 실기 녹화(2026-10-18, sim/public/samples/imu_real_flick_2026-10-18.csv, 원본 docs/imu_real_flick_2026-10-18_raw.txt).
-// 기본 accel 방식(중력 제거 가속도 hp ≥ 0.8g): 세게 튕긴 9번 = 다음 9회, 끝의 천천히 구간 0회.
+// 기본 accel 방식(중력 제거 가속도 hp ≥ 1.0g): 세게 튕긴 9번 = 다음 9회, 끝의 천천히 구간 0회.
 // 샘플 = [gx, gy, gz, ax, ay, az](가속도 g). 간격은 녹화 그대로 10ms 고정이다.
 {
   const csv = readFileSync(resolve(here, '../public/samples/imu_real_flick_2026-10-18.csv'), 'utf8');
@@ -790,13 +790,13 @@ write('macro.json', {
     const impact = ph < 40 ? 0.4 * (1 - Math.abs(ph - 20) / 20) : 0;
     return A(0.3 * Math.sin((2 * Math.PI * t) / 500), 0.05 * Math.sin((2 * Math.PI * t) / 1000), 1 + impact);
   });
-  // 약한 튕김: ax 반사인 피크 1.0g, 120ms
-  const weak = Array.from({ length: 12 }, (_, i) => A(1.0 * Math.sin((Math.PI * (i + 0.5)) / 12), 0, 1));
-  // 긴 흔들기: 0.9g 로 600ms 동안 손목을 빙빙(10Hz 원운동 — hp 가 600ms 내내 0.8g 위) → tooLong
-  const shake = Array.from({ length: 60 }, (_, i) => A(0.9 * Math.cos((2 * Math.PI * i) / 10), 0.9 * Math.sin((2 * Math.PI * i) / 10), 1));
+  // 약한 튕김: ax 반사인 피크 1.3g, 120ms
+  const weak = Array.from({ length: 12 }, (_, i) => A(1.3 * Math.sin((Math.PI * (i + 0.5)) / 12), 0, 1));
+  // 긴 흔들기: 1.2g 로 600ms 동안 손목을 빙빙(10Hz 원운동 — hp 가 600ms 내내 1.0g 위) → tooLong
+  const shake = Array.from({ length: 60 }, (_, i) => A(1.2 * Math.cos((2 * Math.PI * i) / 10), 1.2 * Math.sin((2 * Math.PI * i) / 10), 1));
   write('accel.json', {
     suite: 'gesture',
-    description: 'accel 방식 튕김(기본) 합성 파형: 가만히 0회, 걷기 30초 0회, 약한 튕김(1.0g 120ms) 1회, 긴 흔들기(0.9g 600ms) 0회. 발표 모드.',
+    description: 'accel 방식 튕김(기본) 합성 파형: 가만히 0회, 걷기 30초 0회, 약한 튕김(1.3g 120ms) 1회, 긴 흔들기(1.2g 600ms) 0회. 발표 모드.',
     cases: [
       { id: 'accel-still-none', desc: '가만히 3초 → 0회', init: P, steps: [{ ...series(0, still(300)), expect: { hid: [], noEvents: ['flick'] } }] },
       {
@@ -809,13 +809,13 @@ write('macro.json', {
       {
         id: 'accel-weak-flick-next',
         checklist: '손목 튕김(accel): 약한 튕김도 다음',
-        desc: '가만히 1초 뒤 약한 튕김(피크 1.0g, 120ms) → 다음 1회, 이벤트에 hp 피크',
+        desc: '가만히 1초 뒤 약한 튕김(피크 1.3g, 120ms) → 다음 1회, 이벤트에 hp 피크',
         init: P,
         steps: [{ ...series(0, cat(still(100), weak, still(100, 112))), expect: { hid: [RIGHT], events: [{ t: 'flick' }] } }],
       },
       {
         id: 'accel-long-shake-ignored',
-        desc: '긴 흔들기(0.9g, 600ms) → 0회(임계 넘은 시간 250ms 초과 = tooLong)',
+        desc: '긴 흔들기(1.2g, 600ms) → 0회(임계 넘은 시간 250ms 초과 = tooLong)',
         init: P,
         steps: [{ ...series(0, cat(still(100), shake, still(100, 160))), expect: { hid: [], noEvents: ['flick'], events: [{ t: 'flickRejected', reason: 'tooLong' }] } }],
       },
