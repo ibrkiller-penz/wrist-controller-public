@@ -455,6 +455,7 @@ class Work {
       CoreEvent e;
       e.t = EventType::FlickRejected;
       e.reject = *fr.rejected;
+      e.peakG = fr.peakG;
       push(e);
     }
     if (fr.cooldownHit) pushIgnored(InputSource::Gesture, IgnoreReason::Cooldown);
@@ -465,10 +466,12 @@ class Work {
         CoreEvent e;
         e.t = EventType::Flick;
         e.dir = *fr.fired;
+        e.peakG = fr.peakG;
         push(e);
-        // 바깥 = 다음. 안쪽은 flick.inAction: next(기본 — 실기 피드백 8) = 다음, prev = 이전, none = 무시(이벤트만)
+        // accel 방식은 방향이 없어 항상 다음. gyro 방식: 바깥 = 다음, 안쪽은 flick.inAction(next 기본 / prev / none)
         using IA = GestureConfig::Flick::InAction;
-        if (*fr.fired == FlickDir::Out || g_.flick.inAction == IA::Next) sendAction(ActionId::Next, InputSource::Gesture);
+        const bool accel = g_.flick.detector == GestureConfig::Flick::Detector::Accel;
+        if (accel || *fr.fired == FlickDir::Out || g_.flick.inAction == IA::Next) sendAction(ActionId::Next, InputSource::Gesture);
         else if (g_.flick.inAction == IA::Prev) sendAction(ActionId::Prev, InputSource::Gesture);
       }
     }

@@ -4,9 +4,10 @@
  *       design/simulator-layout.md 4.4 (손목 움직임 패널).
  *
  * 계약 (sim/ARCHITECTURE.md 6장 — 시그니처는 바꾸지 않고, 선택 인자·추가 필드만 더했다)
- *  - 모든 입력원은 ImuSource 를 돌려주고, 샘플을 app.imu({t, gx, gy, gz}) 로 넣는다.
- *    t 는 app.now() 와 같은 기준(performance.now ms, 단조 증가). g* 는 센서 축 각속도 deg/s.
- *    논리 축(yaw/pitch/roll) 변환·바이어스 제거·튕김/에어마우스 판정은 코어가 한다 — 여기서는 원시 각속도만 만든다.
+ *  - 모든 입력원은 ImuSource 를 돌려주고, 샘플을 app.imu({t, gx, gy, gz, ax, ay, az}) 로 넣는다.
+ *    t 는 app.now() 와 같은 기준(performance.now ms, 단조 증가). g* 는 센서 축 각속도 deg/s,
+ *    a* 는 센서 축 가속도 g(중력 포함) — 기본 accel 방식 튕김 판정(hp = |a − LPF(a)|)에 쓴다. 가속도가 없는 샘플은 accel 방식으로 판정되지 않는다.
+ *    논리 축(yaw/pitch/roll) 변환·바이어스 제거·튕김/에어마우스 판정은 코어가 한다 — 여기서는 원시 값만 만든다.
  *
  * 드래그 패드 축 결정(입력 모듈 담당 결정 — README.md 에도 기록)
  *  - 세로 드래그 dy → gx (pitch, 기본 axisMap 기준). 아래로 끌면 +.
@@ -17,6 +18,12 @@
  *  - 속도 → 각속도: 최근 30ms 창의 포인터 이동 속도(px/s) × DRAG_DPS_PER_PX_S(0.5).
  *    예) 80px 를 80ms 에 휙 = 1000px/s → 500°/s (튕김 임계 300°/s 초과), 천천히 200px/s → 100°/s.
  *  - 샘플링: 누르고 있는 동안 10ms(100Hz, gesture.json imu.sampleRateHz 와 같은 간격)마다, 놓은 뒤 300ms 동안 0 샘플.
+ *  - 가속도(ax, ay, az, g): 중력 az = 1 g 고정 + 각속도 변화에 비례하는 선가속도(접선 가속도 ∝ dω/dt 흉내).
+ *    d = ω − EMA(ω, 시정수 DRAG_ACC_TAU_MS 40ms) (가로 → ax, 세로 → ay), 크기 m = |d| × DRAG_G_PER_DPS(1/150 g per °/s),
+ *    m < 1 g 이면 m² 로 누른다(천천히 끌 때 포인터 속도 흔들림 억제), 8 g 로 자른다. 방향은 d 방향.
+ *    가속할 때 +, 멈출 때 − 의 두 봉우리(실기 튕김 파형과 같은 모양 — 두 번째 봉우리는 재인식 금지에 걸린다).
+ *    예) 휙 80px/80ms(500°/s 까지 ~50ms 에 오름) → d ≈ 350°/s → 약 2.3 g (accel 임계 0.8 g 위 → 튕김),
+ *        천천히 200px/s(100°/s 까지 0.3초에 걸쳐) → d ≈ 15°/s → 0.01 g 수준 (무시), 흔들림으로 d 가 50°/s 튀어도 0.11 g.
  */
 import type { App } from '../app';
 import type { ImuSample } from '../core/types';
@@ -38,6 +45,43 @@ export const DRAG_SAMPLE_MS = 10;
 const DRAG_VEL_WINDOW_MS = 30;
 /** 놓은 뒤 0 샘플을 보내는 시간(ms) — 필터가 0 으로 가라앉는 것을 확인하려고 */
 const DRAG_TAIL_MS = 300;
+/** 드래그 합성 가속도: 각속도 변화(ω − EMA(ω)) 1°/s 당 g */
+export const DRAG_G_PER_DPS = 1 / 150;
+/** 드래그 합성 가속도: 각속도 EMA 시정수(ms) */
+export const DRAG_ACC_TAU_MS = 40;
+/** 합성 선가속도 상한(g, 센서 ±16 g 범위 안) */
+const DRAG_G_MAX = 8;
+
+/**
+ * 드래그 각속도 → 가속도 합성기(상태 있음). step(t, h, v): h = 가로 각속도(roll 또는 yaw), v = 세로(pitch), deg/s.
+ * 반환 ax/ay/az 는 g(중력 az = 1 포함). 순수 계산이라 테스트에서 직접 쓴다.
+ */
+export function createDragAccel(): { step(t: number, h: number, v: number): { ax: number; ay: number; az: number }; reset(): void } {
+  let sh = 0;
+  let sv = 0;
+  let lastT: number | null = null;
+  const clip = (x: number) => Math.max(-DRAG_G_MAX, Math.min(DRAG_G_MAX, x));
+  return {
+    step(t, h, v) {
+      const al = lastT === null ? 0 : 1 - Math.exp(-Math.max(0, t - lastT) / DRAG_ACC_TAU_MS);
+      lastT = t;
+      sh += al * (h - sh);
+      sv += al * (v - sv);
+      const dh = h - sh;
+      const dv = v - sv;
+      const lin = Math.hypot(dh, dv) * DRAG_G_PER_DPS;
+      if (lin === 0) return { ax: 0, ay: 0, az: 1 };
+      // 1 g 아래는 제곱으로 눌러 천천히 끌 때의 포인터 속도 흔들림(이벤트 간격 잡음)이 가속도로 번지지 않게
+      const k = clip(lin < 1 ? lin * lin : lin) / lin;
+      return { ax: round3(dh * DRAG_G_PER_DPS * k), ay: round3(dv * DRAG_G_PER_DPS * k), az: 1 };
+    },
+    reset() {
+      sh = 0;
+      sv = 0;
+      lastT = null;
+    },
+  };
+}
 
 export type DragHorizontalAxis = 'auto' | 'roll' | 'yaw';
 
@@ -71,6 +115,7 @@ export function createDragSource(
   let timer: ReturnType<typeof setInterval> | null = null;
   let tailUntil = 0;
   let lastT = -Infinity;
+  const accel = createDragAccel();
 
   const setKnob = (dx: number, dy: number) => {
     const r = pad.getBoundingClientRect();
@@ -119,7 +164,7 @@ export function createDragSource(
     const h = round2(vx * k);
     const v = round2(vy * k);
     const yaw = horizontalIsYaw();
-    const sample: ImuSample = { t, gx: v, gy: yaw ? 0 : h, gz: yaw ? h : 0 };
+    const sample: ImuSample = { t, gx: v, gy: yaw ? 0 : h, gz: yaw ? h : 0, ...accel.step(t, h, v) };
     last = sample;
     app.imu(sample);
     // 오래된 포인터 기록 정리
@@ -216,7 +261,7 @@ export function createDragSource(
       stopTimer();
       const t = Math.max(app.now(), lastT + 0.001);
       lastT = t;
-      app.imu({ t, gx: 0, gy: 0, gz: 0 });
+      app.imu({ t, gx: 0, gy: 0, gz: 0, ax: 0, ay: 0, az: 1 });
     },
   };
 }
@@ -249,6 +294,9 @@ export function phoneSensorAvailable(): boolean {
   return typeof globalThis.DeviceMotionEvent !== 'undefined';
 }
 
+/** 표준 중력가속도 m/s² (DeviceMotion m/s² → g) */
+export const STANDARD_GRAVITY = 9.80665;
+
 type PermissionFn = () => Promise<'granted' | 'denied' | string>;
 
 /**
@@ -256,6 +304,9 @@ type PermissionFn = () => Promise<'granted' | 'denied' | string>;
  * start() 는 반드시 버튼 click 핸들러 안에서 동기적으로 호출한다(iOS 13+ requestPermission 은 사용자 동작 안에서만 허용,
  * 그 앞에 await 를 두면 WebKit 이 거부한다). HTTPS(보안 컨텍스트)가 아니면 센서·권한 모두 막힌다.
  * 축: rotationRate.beta → gx, gamma → gy, alpha → gz (조사 문서 2.3 예. 실제 손목 방향 매핑은 gesture.json imu.axisMap 으로 맞춘다).
+ *     beta·gamma·alpha 는 각각 기기 x·y·z 축 회전이므로 가속도도 같은 기기 축으로:
+ *     accelerationIncludingGravity.x/y/z (m/s²) ÷ 9.80665 → ax/ay/az (g, 중력 포함 — 화면 위로 눕히면 az ≈ +1).
+ *     가속도 값이 없는 브라우저면 ax/ay/az 를 넣지 않는다(그때 accel 방식 튕김은 잡히지 않는다 — gyro 방식으로 바꿔 시험).
  */
 export function createPhoneSource(app: App): PhoneSource {
   let running = false;
@@ -280,6 +331,12 @@ export function createPhoneSource(app: App): PhoneSource {
     const t = Math.max(now, lastT + 0.001);
     lastT = t;
     const sample: ImuSample = { t, gx: rr.beta ?? 0, gy: rr.gamma ?? 0, gz: rr.alpha ?? 0 };
+    const ag = e.accelerationIncludingGravity;
+    if (ag && ag.x !== null && ag.y !== null && ag.z !== null) {
+      sample.ax = ag.x / STANDARD_GRAVITY;
+      sample.ay = ag.y / STANDARD_GRAVITY;
+      sample.az = ag.z / STANDARD_GRAVITY;
+    }
     status.intervalMs = e.interval > 0 ? e.interval : lastEventAt !== null ? now - lastEventAt : null;
     lastEventAt = now;
     status.last = sample;
@@ -445,7 +502,7 @@ export function createReplaySource(
       const s = data[idx];
       const t = Math.max(wallStart + (rel[idx] - posStart) / speed, lastT + 0.001);
       lastT = t;
-      app.imu({ t, gx: s.gx, gy: s.gy, gz: s.gz });
+      app.imu({ ...s, t });
       idx++;
     }
     if (idx >= data.length) {
@@ -563,14 +620,15 @@ export function createReplaySource(
 
 /**
  * IMU 녹화 CSV 파싱 — 펌웨어 2단계 6번 '녹화 기능(시리얼로 CSV 출력)'과 공유하는 형식.
- * 형식: 머리글 `t_ms,gx,gy,gz,ax,ay,az` (각속도 deg/s, 가속도 g). 가속도 열은 선택(없어도 됨, 있어도 판정에는 안 씀).
+ * 형식: 머리글 `t_ms,gx,gy,gz,ax,ay,az` (각속도 deg/s, 가속도 g·중력 포함). 가속도 열은 선택 —
+ * 있으면 샘플에 ax/ay/az 로 넣어 코어에 보낸다(기본 accel 방식 튕김 판정에 쓴다). 없으면 accel 방식은 튕김을 잡지 않는다.
  *  - '#' 으로 시작하는 줄은 주석, 빈 줄은 무시. 구분자는 쉼표(세미콜론·탭도 허용).
- *  - 머리글이 있으면 열 이름(t_ms|t, gx, gy, gz)으로 찾고, 없으면 앞 네 열을 t,gx,gy,gz 로 본다.
- *  - 숫자가 아닌 줄, 시각이 앞 줄보다 크지 않은 줄은 건너뛴다.
+ *  - 머리글이 있으면 열 이름(t_ms|t, gx, gy, gz, ax, ay, az)으로 찾고, 없으면 앞 네 열을 t,gx,gy,gz, 그다음 세 열(있으면)을 ax,ay,az 로 본다.
+ *  - 숫자가 아닌 줄, 시각이 앞 줄보다 크지 않은 줄은 건너뛴다. 가속도 칸이 숫자가 아니면 그 줄은 가속도 없이 넣는다.
  */
 export function parseImuCsv(text: string): ImuSample[] {
   const out: ImuSample[] = [];
-  let col = { t: 0, gx: 1, gy: 2, gz: 3 };
+  let col = { t: 0, gx: 1, gy: 2, gz: 3, ax: 4, ay: 5, az: 6 };
   let lastT = -Infinity;
   for (const line of text.replace(/^﻿/, '').split(/\r?\n/)) {
     const s = line.trim();
@@ -584,7 +642,10 @@ export function parseImuCsv(text: string): ImuSample[] {
       const gx = find('gx', 'gyro_x');
       const gy = find('gy', 'gyro_y');
       const gz = find('gz', 'gyro_z');
-      if (t >= 0 && gx >= 0 && gy >= 0 && gz >= 0) col = { t, gx, gy, gz };
+      const ax = find('ax', 'acc_x', 'accel_x');
+      const ay = find('ay', 'acc_y', 'accel_y');
+      const az = find('az', 'acc_z', 'accel_z');
+      if (t >= 0 && gx >= 0 && gy >= 0 && gz >= 0) col = { t, gx, gy, gz, ax, ay, az };
       continue;
     }
     const t = Number(cells[col.t]);
@@ -594,18 +655,27 @@ export function parseImuCsv(text: string): ImuSample[] {
     if (![t, gx, gy, gz].every((v) => Number.isFinite(v))) continue;
     if (t <= lastT) continue;
     lastT = t;
-    out.push({ t, gx, gy, gz });
+    const num = (i: number) => (i >= 0 && i < cells.length && cells[i] !== '' ? Number(cells[i]) : NaN);
+    const ax = num(col.ax);
+    const ay = num(col.ay);
+    const az = num(col.az);
+    if ([ax, ay, az].every((v) => Number.isFinite(v))) out.push({ t, gx, gy, gz, ax, ay, az });
+    else out.push({ t, gx, gy, gz });
   }
   return out;
 }
 
-/** 샘플 → CSV 문자열(가속도 열은 0,0,1 g 로 채운다). 합성 파형을 내려받거나 샘플 파일을 만들 때 */
+/** 샘플 → CSV 문자열(가속도가 없는 샘플은 0,0,1 g 로 채운다). 합성 파형을 내려받거나 샘플 파일을 만들 때 */
 export function formatImuCsv(samples: readonly ImuSample[], comment?: string): string {
   const lines: string[] = [];
   if (comment) for (const c of comment.split('\n')) lines.push(`# ${c}`);
   lines.push('t_ms,gx,gy,gz,ax,ay,az');
   const t0 = samples.length > 0 ? samples[0].t : 0;
-  for (const s of samples) lines.push(`${Math.round(s.t - t0)},${s.gx.toFixed(2)},${s.gy.toFixed(2)},${s.gz.toFixed(2)},0.000,0.000,1.000`);
+  for (const s of samples) {
+    const acc =
+      s.ax !== undefined && s.ay !== undefined && s.az !== undefined ? `${s.ax.toFixed(3)},${s.ay.toFixed(3)},${s.az.toFixed(3)}` : '0.000,0.000,1.000';
+    lines.push(`${Math.round(s.t - t0)},${s.gx.toFixed(2)},${s.gy.toFixed(2)},${s.gz.toFixed(2)},${acc}`);
+  }
   return lines.join('\n') + '\n';
 }
 
@@ -626,6 +696,7 @@ function rng(seed: number) {
 }
 
 const round2 = (v: number) => Math.round(v * 100) / 100;
+const round3 = (v: number) => Math.round(v * 1000) / 1000;
 
 export interface SynthOpts {
   /** 샘플 간격 ms (기본 10 = 100Hz) */
@@ -635,21 +706,63 @@ export interface SynthOpts {
   seed?: number;
 }
 
-/** 조용히 있기 */
+/** 합성 가속도 잡음 진폭 g */
+const ACC_NOISE_G = 0.005;
+
+/**
+ * 각속도 파형에 가속도 채널(ax, ay, az, g, 중력 포함)을 붙인다.
+ *  - 중력: 처음엔 +z(화면 위, az = 1 g). gx(pitch)·gy(roll) 를 적분한 각도만큼 기울인다
+ *    → ax = −sin θy·cos θx, ay = sin θx, az = cos θx·cos θy (gz 는 z 축 회전이라 중력 방향을 바꾸지 않는다).
+ *    천천히 돌리기·걷기는 이 '천천히 도는 중력'만 생겨 hp = |a − LPF(a)| 가 작다(≈ 시정수 × 회전 속도).
+ *  - lin(t, i): 손목의 선가속도(g, 센서 축) — 튕김의 짧은 펄스, 걷기의 발 디딤 충격 등.
+ */
+function withAccel(
+  samples: ImuSample[],
+  seed: number,
+  lin?: (t: number, i: number) => [number, number, number],
+): ImuSample[] {
+  const n = rng(seed ^ 0x5a5a);
+  let thx = 0;
+  let thy = 0;
+  let prevT: number | null = null;
+  const D = Math.PI / 180;
+  return samples.map((s, i) => {
+    if (prevT !== null) {
+      const dt = (s.t - prevT) / 1000;
+      thx += s.gx * dt * D;
+      thy += s.gy * dt * D;
+    }
+    prevT = s.t;
+    const l = lin ? lin(s.t, i) : [0, 0, 0];
+    return {
+      ...s,
+      ax: round3(-Math.sin(thy) * Math.cos(thx) + l[0] + n() * ACC_NOISE_G),
+      ay: round3(Math.sin(thx) + l[1] + n() * ACC_NOISE_G),
+      az: round3(Math.cos(thx) * Math.cos(thy) + l[2] + n() * ACC_NOISE_G),
+    };
+  });
+}
+
+/** 조용히 있기 (가속도 = 중력 1 g + 잡음) */
 export function synthRest(ms: number, o: SynthOpts = {}): ImuSample[] {
   const dt = o.dtMs ?? 10;
   const n = rng(o.seed ?? 7);
   const a = o.noise ?? 1.5;
   const out: ImuSample[] = [];
   for (let t = 0; t < ms; t += dt) out.push({ t, gx: round2(n() * a), gy: round2(n() * a), gz: round2(n() * a) });
-  return out;
+  return withAccel(out, o.seed ?? 7);
 }
 
 /**
  * 손목 튕김 한 번: 판정 축(roll) 반 사인 피크 → 반대 방향 되돌림(반동). 앞뒤로 조용한 구간 포함.
  * dir 'out' = + 방향(outwardSign 1 기준 '다음'), 'in' = − 방향('이전').
+ * 가속도: 각속도가 오르는 동안(riseMs + 20ms ≈ 110ms) x 축 반 사인 펄스(기본 피크 3.2 g, peakDps 520 기준 비례 — peakG 로 직접 지정 가능)
+ *        + 되돌림 때 반대쪽 작은 펄스(0.2배) + 회전에 따른 중력 기울기. accel 방식 hp 피크 ≈ 2.4 g(실기 세게 2.8–4.6, 약하게 1.35–1.84).
  */
-export function synthFlick(dir: 'out' | 'in', o: SynthOpts & { peakDps?: number; riseMs?: number; leadMs?: number; tailMs?: number } = {}): ImuSample[] {
+export function synthFlick(
+  dir: 'out' | 'in',
+  o: SynthOpts & { peakDps?: number; riseMs?: number; leadMs?: number; tailMs?: number; peakG?: number } = {},
+): ImuSample[] {
   const dt = o.dtMs ?? 10;
   const n = rng(o.seed ?? 11);
   const a = o.noise ?? 1.5;
@@ -659,6 +772,8 @@ export function synthFlick(dir: 'out' | 'in', o: SynthOpts & { peakDps?: number;
   const lead = o.leadMs ?? 350;
   const tail = o.tailMs ?? 400;
   const sgn = dir === 'out' ? 1 : -1;
+  const G = o.peakG ?? (3.2 * P) / 520;
+  const pulse = rise + 20;
   const out: ImuSample[] = [];
   const total = lead + rise + back + tail;
   for (let t = 0; t < total; t += dt) {
@@ -668,10 +783,16 @@ export function synthFlick(dir: 'out' | 'in', o: SynthOpts & { peakDps?: number;
     else if (u >= rise && u < rise + back) r = -sgn * 0.45 * P * Math.sin((Math.PI * (u - rise)) / back);
     out.push({ t, gx: round2(0.15 * r + n() * a), gy: round2(r + n() * a), gz: round2(0.1 * r + n() * a) });
   }
-  return out;
+  return withAccel(out, o.seed ?? 11, (t) => {
+    const u = t - lead;
+    let x = 0;
+    if (u >= 0 && u < pulse) x = sgn * G * Math.sin((Math.PI * u) / pulse);
+    else if (u >= pulse && u < pulse + back) x = -sgn * 0.2 * G * Math.sin((Math.PI * (u - pulse)) / back);
+    return [x, 0.2 * Math.abs(x), 0];
+  });
 }
 
-/** 천천히 손목 돌리기: 판정 축 사인파(진폭 150°/s, 주기 1.6s) — 튕김으로 인식되면 안 된다 */
+/** 천천히 손목 돌리기: 판정 축 사인파(진폭 150°/s, 주기 1.6s) — 튕김으로 인식되면 안 된다. 가속도 = 천천히 기우는 중력 */
 export function synthSlowRotate(ms = 3200, o: SynthOpts & { ampDps?: number; periodMs?: number } = {}): ImuSample[] {
   const dt = o.dtMs ?? 10;
   const n = rng(o.seed ?? 23);
@@ -683,10 +804,10 @@ export function synthSlowRotate(ms = 3200, o: SynthOpts & { ampDps?: number; per
     const r = A * Math.sin((2 * Math.PI * t) / T);
     out.push({ t, gx: round2(0.1 * r + n() * a), gy: round2(r + n() * a), gz: round2(n() * a) });
   }
-  return out;
+  return withAccel(out, o.seed ?? 23);
 }
 
-/** 크게 천천히 한 번 돌리기: 임계값은 넘지만 오래 걸림(tooLong) — 무시되어야 한다 */
+/** 크게 천천히 한 번 돌리기: 임계값은 넘지만 오래 걸림(tooLong) — 무시되어야 한다. 가속도 = 크게 도는 중력(hp 가 길게 이어짐) */
 export function synthBigSlowTurn(o: SynthOpts & { peakDps?: number; durMs?: number } = {}): ImuSample[] {
   const dt = o.dtMs ?? 10;
   const n = rng(o.seed ?? 31);
@@ -702,10 +823,13 @@ export function synthBigSlowTurn(o: SynthOpts & { peakDps?: number; durMs?: numb
     else if (u >= D && u < 2 * D) r = -P * Math.sin((Math.PI * (u - D)) / D);
     out.push({ t, gx: round2(0.1 * r + n() * a), gy: round2(r + n() * a), gz: round2(n() * a) });
   }
-  return out;
+  return withAccel(out, o.seed ?? 31);
 }
 
-/** 걷기 팔 흔들림(약 0.9Hz): pitch 가 크고 roll 은 작다 — 무시되어야 한다 */
+/**
+ * 걷기 팔 흔들림(약 0.9Hz): pitch 가 크고 roll 은 작다 — 무시되어야 한다.
+ * 가속도: 팔 흔들림에 따라 기우는 중력 + 걸음(2Hz)마다 짧은 발 디딤 충격(z, ≤0.3 g) + 좌우 흔들림(x, 0.08 g).
+ */
 export function synthWalk(ms = 3000, o: SynthOpts = {}): ImuSample[] {
   const dt = o.dtMs ?? 10;
   const n = rng(o.seed ?? 41);
@@ -720,7 +844,11 @@ export function synthWalk(ms = 3000, o: SynthOpts = {}): ImuSample[] {
       gz: round2(35 * Math.sin(2 * w) + n() * a),
     });
   }
-  return out;
+  return withAccel(out, o.seed ?? 41, (t) => {
+    const step = t % 500; // 2Hz
+    const impact = step < 40 ? 0.3 * Math.sin((Math.PI * step) / 40) : 0;
+    return [0.08 * Math.sin((2 * Math.PI * t) / 1100), 0, impact];
+  });
 }
 
 /** 여러 조각을 시간 순서로 잇는다(각 조각의 t 는 0 부터) */

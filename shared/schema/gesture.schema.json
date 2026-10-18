@@ -256,6 +256,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "detector",
         "axis",
         "prefilterTauMs",
         "peakThresholdDps",
@@ -267,9 +268,17 @@
         "quietBefore",
         "cooldownMs",
         "outwardSign",
-        "inAction"
+        "inAction",
+        "accel"
       ],
       "properties": {
+        "detector": {
+          "enum": [
+            "accel",
+            "gyro"
+          ],
+          "description": "튕김 판정 방식. accel = 중력 제거 가속도 크기(기본, 실기 피드백 9 — 방향 무관 항상 다음), gyro = 판정 축 각속도(옛 방식)"
+        },
         "axis": {
           "enum": [
             "roll",
@@ -402,6 +411,50 @@
             "next"
           ],
           "description": "안쪽 튕김 동작. next = 다음(기본, 실기 피드백 8 — 안쪽·바깥 모두 다음), none = 무시, prev = 이전"
+        },
+        "accel": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lpfTauMs",
+            "peakG",
+            "maxAboveMs",
+            "quietWindowMs",
+            "quietGuardMs",
+            "quietMaxRmsG"
+          ],
+          "properties": {
+            "lpfTauMs": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 5000
+            },
+            "peakG": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 16
+            },
+            "maxAboveMs": {
+              "type": "number",
+              "minimum": 10,
+              "maximum": 5000
+            },
+            "quietWindowMs": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5000
+            },
+            "quietGuardMs": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "quietMaxRmsG": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 16
+            }
+          }
         }
       }
     },

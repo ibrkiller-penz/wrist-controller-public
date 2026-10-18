@@ -112,10 +112,23 @@ const GESTURE_GROUPS: { title: string; fields: GField[] }[] = [
   {
     title: '손목 튕김',
     fields: [
-      { path: '/flick/peakThresholdDps', label: '튕김 임계값', unit: '°/s', type: 'slider', step: 10, desc: '그래프 점선과 연동. 낮추면 약한 튕김도 잡고, 높이면 손짓을 덜 잡는다' },
-      { path: '/flick/minAboveMs', label: '최소 지속', unit: 'ms', type: 'number', desc: '임계값 위에 이보다 짧게 있으면 잡음(짧음)' },
-      { path: '/flick/maxAboveMs', label: '최대 지속', unit: 'ms', type: 'slider', step: 10, desc: '이보다 길면 천천히 돌리기로 보고 무시(느림)' },
+      {
+        path: '/flick/detector',
+        label: '판정 방식',
+        type: 'select',
+        options: [['accel', '가속도 (기본 · 방향 무관 다음)'], ['gyro', '각속도 (옛 방식)']],
+        desc: '가속도: 짧고 빠른 손목 스냅의 중력 제거 가속도로 판정 — 걷기·천천히 돌리기는 무시. 그래프도 이 방식에 맞춰 바뀐다',
+      },
       { path: '/flick/cooldownMs', label: '재인식 금지', unit: 'ms', type: 'number', step: 50, desc: '작업지시서 기준 800ms — 바꾸면 경고' },
+      { path: '/flick/accel/peakG', label: '가속도 임계값', unit: 'g', type: 'number', step: 0.05, desc: '(가속도 방식) 그래프 점선과 연동. 실기: 세게 2.8–4.6 g, 약하게 1.35–1.84 g, 가만히 0.01 g' },
+      { path: '/flick/accel/maxAboveMs', label: '가속도 최대 지속', unit: 'ms', type: 'number', step: 10, desc: '(가속도 방식) 임계값 위에 이보다 오래 있으면 긴 흔들기로 보고 무시(느림)' },
+      { path: '/flick/accel/quietMaxRmsG', label: '직전 정숙 한도', unit: 'g', type: 'number', step: 0.05, desc: '(가속도 방식) 튕김 직전 구간 hp RMS 가 이보다 크면 무시(손짓 중)' },
+      { path: '/flick/accel/quietWindowMs', label: '정숙 확인 구간', unit: 'ms', type: 'number', step: 10 },
+      { path: '/flick/accel/quietGuardMs', label: '정숙 제외 구간', unit: 'ms', type: 'number', step: 10, desc: '튕김 상승부를 정숙 확인에서 뺀다' },
+      { path: '/flick/accel/lpfTauMs', label: '중력 추정 시정수', unit: 'ms', type: 'number', step: 10, desc: '(가속도 방식) hp = |a − LPF(a)| 의 LPF 시정수' },
+      { path: '/flick/peakThresholdDps', label: '각속도 임계값', unit: '°/s', type: 'slider', step: 10, desc: '(각속도 방식) 그래프 점선과 연동. 낮추면 약한 튕김도 잡고, 높이면 손짓을 덜 잡는다' },
+      { path: '/flick/minAboveMs', label: '최소 지속', unit: 'ms', type: 'number', desc: '(각속도 방식) 임계값 위에 이보다 짧게 있으면 잡음(짧음)' },
+      { path: '/flick/maxAboveMs', label: '최대 지속', unit: 'ms', type: 'slider', step: 10, desc: '(각속도 방식) 이보다 길면 천천히 돌리기로 보고 무시(느림)' },
       { path: '/flick/axis', label: '판정 축', type: 'select', options: [['roll', 'roll (전완 회전)'], ['pitch', 'pitch'], ['yaw', 'yaw']] },
       { path: '/flick/outwardSign', label: '바깥 방향 부호', type: 'select', options: [[1, '+ = 바깥(다음)'], [-1, '− = 바깥(다음)']], desc: '왼손 착용 등으로 방향이 반대면 바꾼다' },
       { path: '/flick/axisDominanceRatio', label: '축 우세 비율', type: 'number', step: 0.1, desc: '판정 축이 나머지 두 축 합성보다 이 배수 이상 커야 함(걷기 배제)' },
@@ -384,6 +397,9 @@ export function mountSettings(root: HTMLElement, app: App): SettingsHandle {
     onThreshold: (v) => editValue(docs.gesture, '/flick/peakThresholdDps', v),
     minThr: Number(schemaAt('gesture', '/flick/peakThresholdDps')?.minimum ?? 100),
     maxThr: Number(schemaAt('gesture', '/flick/peakThresholdDps')?.maximum ?? 2000),
+    onAccelThreshold: (v) => editValue(docs.gesture, '/flick/accel/peakG', v),
+    minG: Number(schemaAt('gesture', '/flick/accel/peakG')?.minimum ?? 0.05),
+    maxG: Number(schemaAt('gesture', '/flick/accel/peakG')?.maximum ?? 16),
   });
 
   /** 폼 칸 갱신 함수(포커스 없는 칸만 값 동기화) */

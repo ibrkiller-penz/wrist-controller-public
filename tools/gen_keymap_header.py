@@ -430,6 +430,11 @@ def generate(shared: Path) -> str:
         w(f"  g.airMouse.sensitivity.push_back(SensitivityLevel{{{c_str(lvl['name'])}, {c_num(lvl['gain'])}}});"
           f"  // {lvl['name']}")
     w(f"  g.airMouse.invertY = {c_bool(am['invertY'])};")
+    if fl["detector"] not in ("accel", "gyro"):
+        raise GenError("flick.detector 는 accel 또는 gyro 여야 합니다")
+    w(f"  g.flick.detector = GestureConfig::Flick::Detector::{'Accel' if fl['detector'] == 'accel' else 'Gyro'};")
+    for k in ['lpfTauMs', 'peakG', 'maxAboveMs', 'quietWindowMs', 'quietGuardMs', 'quietMaxRmsG']:
+        w(f"  g.flick.accel.{k} = {c_num(fl['accel'][k])};")
     w(f"  g.flick.axis = {ENUM_AXIS[index_of(AXES, fl['axis'], '논리 축')]};")
     w(f"  g.flick.prefilterTauMs = {c_num(fl['prefilterTauMs'])};")
     w(f"  g.flick.peakThresholdDps = {c_num(fl['peakThresholdDps'])};")

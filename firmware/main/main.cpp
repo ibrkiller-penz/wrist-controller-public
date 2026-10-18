@@ -350,6 +350,14 @@ void dispatch(const wc::InputEvent& input) {
       case wc::EventType::Sensitivity:
         g_saveDueUs = esp_timer_get_time() + 1000 * 1000;
         break;
+      case wc::EventType::Flick:
+        // 실기 튜닝용: accel 방식이면 hp 피크(g)
+        if (ev.peakG >= 0) ESP_LOGI(TAG, "튕김 인식 hp 피크 %.2fg", ev.peakG);
+        else ESP_LOGI(TAG, "튕김 인식(%s)", ev.dir == wc::FlickDir::Out ? "바깥" : "안쪽");
+        break;
+      case wc::EventType::FlickRejected:
+        if (ev.peakG >= 0) ESP_LOGI(TAG, "튕김 기각 %s hp 피크 %.2fg", wc::name(ev.reject), ev.peakG);
+        break;
       case wc::EventType::Action:
         // 화면 피드백(ui.cpp): 발표 넘김 플래시 3단계, 타일 확인 테두리, 끊김 중이면 배너 '보내지 못함'·흔들림
         ++g_actSeq;
@@ -433,7 +441,13 @@ void onImuSample(double tMs, const float g[3], const float a[3]) {
   imuRecordLine(tMs, g, a);
   std::memcpy(g_lastAccel, a, sizeof(g_lastAccel));
   onAccelSample(tMs, a);
-  dispatch(wc::InputEvent::imu(wc::ImuSample{tMs, g[0], g[1], g[2]}));
+  // 가속도(g)도 코어로 — 손목 튕김 기본 판정은 중력 제거 가속도(gesture.json flick.detector accel, 실기 피드백 9)
+  wc::ImuSample smp{tMs, g[0], g[1], g[2]};
+  smp.hasAccel = true;
+  smp.ax = a[0];
+  smp.ay = a[1];
+  smp.az = a[2];
+  dispatch(wc::InputEvent::imu(smp));
 }
 
 void imuTask(void*) {

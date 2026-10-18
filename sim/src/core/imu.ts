@@ -42,7 +42,7 @@ export function biasStep(
   }
   return {
     state: { bias, stillSince, lastT: s.t },
-    out: { t: s.t, gx: raw[0] - bias[0], gy: raw[1] - bias[1], gz: raw[2] - bias[2] },
+    out: { ...s, gx: raw[0] - bias[0], gy: raw[1] - bias[1], gz: raw[2] - bias[2] },
   };
 }
 

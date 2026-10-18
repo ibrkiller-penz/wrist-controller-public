@@ -39,7 +39,10 @@ BiasResult biasStep(const BiasState& st, const ImuSample& s, const GestureConfig
   r.state.bias = bias;
   r.state.stillSince = stillSince;
   r.state.lastT = s.t;
-  r.out = ImuSample{s.t, raw[0] - bias[0], raw[1] - bias[1], raw[2] - bias[2]};
+  r.out = s;  // 가속도(hasAccel·ax·ay·az)는 그대로
+  r.out.gx = raw[0] - bias[0];
+  r.out.gy = raw[1] - bias[1];
+  r.out.gz = raw[2] - bias[2];
   return r;
 }
 

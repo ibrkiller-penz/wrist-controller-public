@@ -159,6 +159,8 @@ struct GestureConfig {
     bool invertY = false;
   } airMouse;
   struct Flick {
+    // 판정 방식: Accel = 중력 제거 가속도 크기(기본, 실기 피드백 9 — 방향 무관 항상 다음), Gyro = 판정 축 각속도(옛 방식)
+    enum class Detector : uint8_t { Accel, Gyro } detector = Detector::Accel;
     LogicalAxis axis = LogicalAxis::Roll;
     double prefilterTauMs = 10;
     double peakThresholdDps = 300;
@@ -172,6 +174,15 @@ struct GestureConfig {
     int outwardSign = 1;
     // gesture.json flick.inAction: 안쪽 튕김 동작. "next"(기본 — 실기 피드백 8: 안쪽·바깥 모두 다음) / "none"(무시) / "prev"(이전)
     enum class InAction : uint8_t { None, Prev, Next } inAction = InAction::Next;
+    // accel 방식: hp = |a − LPF(a)|(g). sim types.ts flick.accel 설명과 같다
+    struct {
+      double lpfTauMs = 200;
+      double peakG = 0.8;
+      double maxAboveMs = 250;
+      double quietWindowMs = 300;
+      double quietGuardMs = 50;
+      double quietMaxRmsG = 0.25;
+    } accel;
   } flick;
   struct Touch {
     double tapMaxMovePx = 12;
@@ -284,6 +295,8 @@ struct ImuSample {
   double gx = 0;
   double gy = 0;
   double gz = 0;
+  bool hasAccel = false;  // 가속도(g, 센서 축, 중력 포함)가 있나. 없으면 accel 방식 튕김 판정을 하지 않는다
+  double ax = 0, ay = 0, az = 0;
 };
 
 enum class InputType : uint8_t {
@@ -367,6 +380,17 @@ enum class FlickDir : uint8_t { Out, In };
 
 constexpr double kNegInf = -std::numeric_limits<double>::infinity();
 
+// accel 방식 튕김 판정 상태(sim types.ts AccelFlickState)
+enum class AccelPhase : uint8_t { Idle, Above, Blocked };
+struct AccelFlickState {
+  std::optional<std::array<double, 3>> lpf;
+  std::optional<double> lastT;
+  std::vector<std::pair<double, double>> hist;  // (시각, hp²)
+  AccelPhase phase = AccelPhase::Idle;
+  double aboveStart = 0;
+  double peak = 0;
+};
+
 struct FlickState {
   std::optional<std::array<double, 3>> filt;
   std::optional<double> lastT;
@@ -379,6 +403,7 @@ struct FlickState {
   double peakT = 0;
   double reboundNeed = 0;
   double cooldownUntil = kNegInf;
+  AccelFlickState acc;
 };
 
 struct CoreState {
@@ -451,6 +476,7 @@ struct CoreEvent {
   IgnoreReason ignore = IgnoreReason::Locked;
   MeetingActionId target = MeetingActionId::Mic;
   EstimateValue estimate = EstimateValue::Unknown;
+  double peakG = -1;  // Flick·FlickRejected(accel 방식): hp 피크(g). < 0 = 없음
 };
 
 struct StepResult {

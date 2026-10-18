@@ -19,6 +19,7 @@ const LEFT = K('LEFT');
 const zeros = (n) => Array.from({ length: n }, () => [0, 0, 0]);
 const roll = (vals) => vals.map((v) => [0, v, 0]);
 const r1 = (x) => Math.round(x * 10) / 10;
+const r3 = (x) => Math.round(x * 1000) / 1000;
 // 바깥 튕김: 짧고 강한 회전(피크 600) + 자연스러운 되돌림
 const FLICK = [150, 400, 600, 600, 600, 400, 150, -100, -250, -300, -250, -150, -50, 0, 0];
 const flick = (sign = 1) => roll(FLICK.map((v) => v * sign));
@@ -28,12 +29,17 @@ const cat = (...parts) => parts.flat();
 // 에어마우스는 기본 끔(gesture.json airMouse.enabled=false, 실기 피드백 6) — 에어마우스 케이스는 켠 설정으로 돌린다
 const AIR_ON = { gesture: { airMouse: { enabled: true } } };
 
+// 튕김 판정 기본은 accel 방식(실기 피드백 9). gesture.json 의 옛 각속도 합성 케이스는 gyro 방식으로 돌린다
+const GYRO = { flick: { detector: 'gyro' } };
+const withGyro = (c) => ({ ...c, configPatch: { ...(c.configPatch ?? {}), gesture: { ...GYRO, ...(c.configPatch?.gesture ?? {}), flick: { ...GYRO.flick, ...(c.configPatch?.gesture?.flick ?? {}) } } } });
+
 function write(name, obj) {
   if (obj.suite === 'airmouse') obj.cases = obj.cases.map((c) => ({ ...c, configPatch: c.configPatch ?? AIR_ON }));
-  // IMU 샘플 [gx, gy, gz] 은 한 줄로 적어 파일을 짧게 유지
+  if (name === 'gesture.json') obj.cases = obj.cases.map(withGyro);
+  // IMU 샘플 [gx, gy, gz] · [gx, gy, gz, ax, ay, az] 은 한 줄로 적어 파일을 짧게 유지
   const text = JSON.stringify(obj, null, 2).replace(
-    /\[\s*(-?[\d.e+-]+),\s*(-?[\d.e+-]+),\s*(-?[\d.e+-]+)\s*\]/g,
-    '[$1, $2, $3]',
+    /\[\s*(-?[\d.e+-]+(?:,\s*-?[\d.e+-]+){2,5})\s*\]/g,
+    (_m, inner) => `[${inner.split(/,\s*/).join(', ')}]`,
   );
   writeFileSync(resolve(outDir, name), text + '\n');
   console.log('wrote', name, obj.cases.length, 'cases');
@@ -745,18 +751,18 @@ write('macro.json', {
 
 // ================================================================ imu-real.json
 // 1호기 실기 녹화(2026-10-18, sim/public/samples/imu_real_flick_2026-10-18.csv, 원본 docs/imu_real_flick_2026-10-18_raw.txt).
-// 세게 튕긴 9번(바깥 6·안쪽 3)은 모두 다음(→). 약한 안쪽 튕김(피크 150dps 미만)은 놓쳐도 된다. 끝의 천천히 구간은 0회.
-// 샘플 간격은 녹화 그대로 10ms 고정이다.
+// 기본 accel 방식(중력 제거 가속도 hp ≥ 0.8g): 세게 튕긴 9번 = 다음 9회, 끝의 천천히 구간 0회.
+// 샘플 = [gx, gy, gz, ax, ay, az](가속도 g). 간격은 녹화 그대로 10ms 고정이다.
 {
   const csv = readFileSync(resolve(here, '../public/samples/imu_real_flick_2026-10-18.csv'), 'utf8');
   const rows = csv.split(/\r?\n/).filter((l) => /^\d/.test(l)).map((l) => l.split(',').map(Number));
   const SPLIT = 43000; // 이 시각부터 끝까지 = 천천히 움직인 구간
-  const toS = (rs) => rs.map((r) => [r[1], r[2], r[3]]);
+  const toS = (rs) => rs.map((r) => [r[1], r[2], r[3], r[4], r[5], r[6]]);
   const a = rows.filter((r) => r[0] < SPLIT);
   const b = rows.filter((r) => r[0] >= SPLIT);
   write('imu-real.json', {
     suite: 'gesture',
-    description: '실기 IMU 녹화 재생(1호기 2026-10-18). 기본 설정(발표 모드). 세게 튕긴 9번 = 다음 9회, 끝의 천천히 구간 = 0회.',
+    description: '실기 IMU 녹화 재생(1호기 2026-10-18). 기본 설정(accel 방식, 발표 모드). 세게 튕긴 9번 = 다음 9회, 끝의 천천히 구간 = 0회.',
     cases: [
       {
         id: 'real-flick-9-next',
@@ -766,6 +772,73 @@ write('macro.json', {
           { imu: { start: a[0][0], dt: 10, samples: toS(a) }, expect: { hid: Array(9).fill(RIGHT) } },
           { imu: { start: b[0][0], dt: 10, samples: toS(b) }, expect: { hid: [], noEvents: ['flick'] } },
         ],
+      },
+    ],
+  });
+}
+
+// ================================================================ accel.json
+// accel 방식 합성 파형(10ms 간격, 각속도 0, 중력 az = 1g). 실측(docs/imu_real_flick_2026-10-18_raw.txt):
+// 세게 튕김 hp 2.8~4.6g, 약한 튕김 1.35~1.84g, 가만히 0.01g, 천천히 0.04g, 튕김 사이 0.07g.
+{
+  const A = (ax, ay, az) => [0, 0, 0, r3(ax), r3(ay), r3(az)];
+  const still = (n, t0 = 0) => Array.from({ length: n }, (_, i) => A(0.004 * Math.sin((t0 + i) * 1.7), 0.003 * Math.cos((t0 + i) * 1.1), 1 + 0.004 * Math.sin((t0 + i) * 0.9)));
+  // 걷기: 2Hz 발 디딤 충격(az +0.4g, 40ms 삼각) + 팔 흔들림(ax 0.3g 사인 2Hz), 30초
+  const walk = Array.from({ length: 3000 }, (_, i) => {
+    const t = i * 10;
+    const ph = t % 500;
+    const impact = ph < 40 ? 0.4 * (1 - Math.abs(ph - 20) / 20) : 0;
+    return A(0.3 * Math.sin((2 * Math.PI * t) / 500), 0.05 * Math.sin((2 * Math.PI * t) / 1000), 1 + impact);
+  });
+  // 약한 튕김: ax 반사인 피크 1.0g, 120ms
+  const weak = Array.from({ length: 12 }, (_, i) => A(1.0 * Math.sin((Math.PI * (i + 0.5)) / 12), 0, 1));
+  // 긴 흔들기: 0.9g 로 600ms 동안 손목을 빙빙(10Hz 원운동 — hp 가 600ms 내내 0.8g 위) → tooLong
+  const shake = Array.from({ length: 60 }, (_, i) => A(0.9 * Math.cos((2 * Math.PI * i) / 10), 0.9 * Math.sin((2 * Math.PI * i) / 10), 1));
+  write('accel.json', {
+    suite: 'gesture',
+    description: 'accel 방식 튕김(기본) 합성 파형: 가만히 0회, 걷기 30초 0회, 약한 튕김(1.0g 120ms) 1회, 긴 흔들기(0.9g 600ms) 0회. 발표 모드.',
+    cases: [
+      { id: 'accel-still-none', desc: '가만히 3초 → 0회', init: P, steps: [{ ...series(0, still(300)), expect: { hid: [], noEvents: ['flick'] } }] },
+      {
+        id: 'accel-walk-none',
+        checklist: '손목 제스처: 걷기는 무시(accel)',
+        desc: '걷기 30초(2Hz 0.4g 충격 + 0.3g 흔들림) → 0회',
+        init: P,
+        steps: [{ ...series(0, cat(still(100), walk)), expect: { hid: [], noEvents: ['flick'] } }],
+      },
+      {
+        id: 'accel-weak-flick-next',
+        checklist: '손목 튕김(accel): 약한 튕김도 다음',
+        desc: '가만히 1초 뒤 약한 튕김(피크 1.0g, 120ms) → 다음 1회, 이벤트에 hp 피크',
+        init: P,
+        steps: [{ ...series(0, cat(still(100), weak, still(100, 112))), expect: { hid: [RIGHT], events: [{ t: 'flick' }] } }],
+      },
+      {
+        id: 'accel-long-shake-ignored',
+        desc: '긴 흔들기(0.9g, 600ms) → 0회(임계 넘은 시간 250ms 초과 = tooLong)',
+        init: P,
+        steps: [{ ...series(0, cat(still(100), shake, still(100, 160))), expect: { hid: [], noEvents: ['flick'], events: [{ t: 'flickRejected', reason: 'tooLong' }] } }],
+      },
+      {
+        id: 'accel-cooldown-800',
+        desc: '약한 튕김 두 번을 0.5초 간격 → 1회(재인식 금지 800ms), 1초 간격 → 2회',
+        init: P,
+        steps: [
+          { ...series(0, cat(still(100), weak, still(38, 112), weak, still(100, 162))), expect: { hid: [RIGHT] } },
+          { ...series(2620, cat(still(100, 262), weak, still(100, 374))), expect: { hid: [RIGHT] } },
+        ],
+      },
+      {
+        id: 'accel-not-present-mode',
+        desc: '발표 모드가 아니면(시계) 튕김 무시',
+        init: { mode: 'clock' },
+        steps: [{ ...series(0, cat(still(100), weak, still(100, 112))), expect: { hid: [], noEvents: ['flick'] } }],
+      },
+      {
+        id: 'accel-locked-ignored',
+        desc: '잠금 중 튕김 = 무시(키 없음)',
+        init: { mode: 'present', locked: true },
+        steps: [{ ...series(0, cat(still(100), weak, still(100, 112))), expect: { hid: [], events: [{ t: 'ignored', source: 'gesture', reason: 'locked' }] } }],
       },
     ],
   });

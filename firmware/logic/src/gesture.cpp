@@ -35,7 +35,83 @@ FlickState initFlick(double cooldownUntil) {
   return s;
 }
 
+// accel 방식(기본, 실기 피드백 9) — sim gesture.ts accelFlickStep 과 같은 순서·같은 수식
+FlickResult accelFlickStep(const FlickState& st, const ImuSample& s, const GestureConfig& cfg) {
+  const auto& f = cfg.flick;
+  const auto& c = f.accel;
+  FlickResult out;
+  out.state = st;
+  AccelFlickState& acc = out.state.acc;
+  if (!s.hasAccel) return out;
+  const double t = s.t;
+  const std::array<double, 3> a{{s.ax, s.ay, s.az}};
+  const double dt = acc.lastT.has_value() ? t - *acc.lastT : 0.0;
+  const double al = emaAlpha(dt, c.lpfTauMs);
+  std::array<double, 3> lpf = a;
+  if (acc.lpf.has_value()) {
+    lpf = *acc.lpf;
+    for (int i = 0; i < 3; ++i) lpf[i] += al * (a[i] - lpf[i]);
+  }
+  acc.lpf = lpf;
+  acc.lastT = t;
+  const double hp = std::sqrt((a[0] - lpf[0]) * (a[0] - lpf[0]) + (a[1] - lpf[1]) * (a[1] - lpf[1]) +
+                              (a[2] - lpf[2]) * (a[2] - lpf[2]));
+  const double thr = c.peakG;
+  auto reject = [&](FlickReject why) {
+    out.rejected = why;
+    out.peakG = acc.peak;
+    acc.phase = hp >= thr ? AccelPhase::Blocked : AccelPhase::Idle;
+  };
+  if (t < st.cooldownUntil) {
+    if (acc.phase != AccelPhase::Blocked) {
+      if (hp >= thr) {
+        out.cooldownHit = true;
+        acc.phase = AccelPhase::Blocked;
+      } else {
+        acc.phase = AccelPhase::Idle;
+      }
+    } else if (hp < thr) {
+      acc.phase = AccelPhase::Idle;
+    }
+  } else {
+    switch (acc.phase) {
+      case AccelPhase::Idle:
+        if (hp >= thr) {
+          acc.peak = hp;
+          if (rms(acc.hist, t - c.quietGuardMs - c.quietWindowMs, t - c.quietGuardMs) > c.quietMaxRmsG) {
+            reject(FlickReject::NotQuiet);
+          } else {
+            acc.phase = AccelPhase::Above;
+            acc.aboveStart = t;
+          }
+        }
+        break;
+      case AccelPhase::Above:
+        if (hp >= thr) {
+          if (hp > acc.peak) acc.peak = hp;
+          if (t - acc.aboveStart > c.maxAboveMs) reject(FlickReject::TooLong);
+        } else {
+          out.fired = FlickDir::Out;  // 방향 없음 = 항상 다음
+          out.peakG = acc.peak;
+          out.state.cooldownUntil = t + f.cooldownMs;
+          acc.phase = AccelPhase::Idle;
+          acc.hist.clear();
+        }
+        break;
+      case AccelPhase::Blocked:
+        if (hp < thr) acc.phase = AccelPhase::Idle;
+        break;
+    }
+  }
+  if (t >= out.state.cooldownUntil) acc.hist.emplace_back(t, hp * hp);
+  size_t cut = 0;
+  while (cut < acc.hist.size() && acc.hist[cut].first < t - c.quietWindowMs - c.quietGuardMs) ++cut;
+  if (cut > 0) acc.hist.erase(acc.hist.begin(), acc.hist.begin() + static_cast<std::ptrdiff_t>(cut));
+  return out;
+}
+
 FlickResult flickStep(const FlickState& prev, const ImuSample& s, const GestureConfig& cfg) {
+  if (cfg.flick.detector == GestureConfig::Flick::Detector::Accel) return accelFlickStep(prev, s, cfg);
   const auto& f = cfg.flick;
   FlickResult res;
   FlickState& st = res.state;

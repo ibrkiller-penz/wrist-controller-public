@@ -11,7 +11,8 @@ import type { ActionId, AppId, Chord, CoreEvent, CoreState, GestureConfig, HidEv
 export interface ImuSeries {
   start: number;
   dt: number;
-  samples: [number, number, number][];
+  /** [gx, gy, gz] 또는 [gx, gy, gz, ax, ay, az](가속도 g) */
+  samples: ([number, number, number] | [number, number, number, number, number, number])[];
 }
 
 export interface StepExpect {
@@ -159,9 +160,9 @@ export function runMachineCase(c: MachineCase, keymap: Keymap, gesture: GestureC
       inputs.push(...made);
       for (const inp of made) run(inp, st.at);
     } else if ('imu' in st) {
-      st.imu.samples.forEach(([gx, gy, gz], i) => {
+      st.imu.samples.forEach(([gx, gy, gz, ax, ay, az], i) => {
         const t = st.imu.start + i * st.imu.dt;
-        run({ t: 'imu', sample: { t, gx, gy, gz } }, t);
+        run({ t: 'imu', sample: ax === undefined ? { t, gx, gy, gz } : { t, gx, gy, gz, ax, ay, az } }, t);
       });
     } else {
       run(st.input, st.at);

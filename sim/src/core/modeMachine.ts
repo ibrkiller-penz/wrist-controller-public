@@ -377,16 +377,16 @@ class Work {
     if (s.mode !== 'present' || s.button) return;
     const fr = flickStep(s.flick, v, this.g);
     s.flick = fr.state;
-    if (fr.rejected) this.events.push({ t: 'flickRejected', reason: fr.rejected });
+    if (fr.rejected) this.events.push(fr.peakG !== undefined ? { t: 'flickRejected', reason: fr.rejected, peakG: fr.peakG } : { t: 'flickRejected', reason: fr.rejected });
     if (fr.cooldownHit) this.events.push({ t: 'ignored', source: 'gesture', reason: 'cooldown' });
     if (fr.fired) {
       if (s.locked) {
         this.events.push({ t: 'ignored', source: 'gesture', reason: 'locked' });
       } else {
-        this.events.push({ t: 'flick', dir: fr.fired });
-        // 바깥 = 다음. 안쪽은 flick.inAction: 'next'(기본 — 실기 피드백 8) = 다음, 'prev' = 이전, 'none' = 무시(이벤트만)
+        this.events.push(fr.peakG !== undefined ? { t: 'flick', dir: fr.fired, peakG: fr.peakG } : { t: 'flick', dir: fr.fired });
+        // accel 방식은 방향이 없어 항상 다음. gyro 방식: 바깥 = 다음, 안쪽은 flick.inAction(next 기본 / prev / none)
         const inAct = this.g.flick.inAction ?? 'next';
-        if (fr.fired === 'out' || inAct === 'next') this.sendAction('next', 'gesture');
+        if ((this.g.flick.detector ?? 'accel') === 'accel' || fr.fired === 'out' || inAct === 'next') this.sendAction('next', 'gesture');
         else if (inAct === 'prev') this.sendAction('prev', 'gesture');
       }
     }

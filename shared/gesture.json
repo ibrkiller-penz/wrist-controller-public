@@ -52,6 +52,7 @@
     "invertY": false
   },
   "flick": {
+    "detector": "accel",
     "axis": "roll",
     "prefilterTauMs": 10,
     "peakThresholdDps": 220,
@@ -76,7 +77,15 @@
     },
     "cooldownMs": 800,
     "outwardSign": 1,
-    "inAction": "next"
+    "inAction": "next",
+    "accel": {
+      "lpfTauMs": 200,
+      "peakG": 0.8,
+      "maxAboveMs": 250,
+      "quietWindowMs": 300,
+      "quietGuardMs": 50,
+      "quietMaxRmsG": 0.25
+    }
   },
   "touch": {
     "tapMaxMovePx": 12,

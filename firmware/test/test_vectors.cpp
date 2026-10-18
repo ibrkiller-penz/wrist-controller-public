@@ -128,6 +128,12 @@ std::vector<std::string> runMachineCase(const json& c, const wc::Keymap& km, con
       for (size_t i = 0; i < samples.size(); ++i) {
         const double t = start + static_cast<double>(i) * dt;
         wc::ImuSample s{t, samples[i].at(0).get<double>(), samples[i].at(1).get<double>(), samples[i].at(2).get<double>()};
+        if (samples[i].size() >= 6) {  // [gx, gy, gz, ax, ay, az] — 가속도 g
+          s.hasAccel = true;
+          s.ax = samples[i].at(3).get<double>();
+          s.ay = samples[i].at(4).get<double>();
+          s.az = samples[i].at(5).get<double>();
+        }
         run(wc::InputEvent::imu(s), t);
       }
     } else {
@@ -359,7 +365,7 @@ int main(int argc, char** argv) {
 
     unitChecks();
 
-    for (const char* file : {"mode.json", "keymap.json", "gesture.json", "airmouse.json", "macro.json", "touch.json", "imu-real.json"}) {
+    for (const char* file : {"mode.json", "keymap.json", "gesture.json", "airmouse.json", "macro.json", "touch.json", "imu-real.json", "accel.json"}) {
       const json suite = readJson(shared + "/test-vectors/" + file);
       runSuite(file, suite, keymapJson, gestureJson, hu, genKm, genG);
     }

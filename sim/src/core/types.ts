@@ -111,6 +111,8 @@ export interface GestureConfig {
     invertY: boolean;
   };
   flick: {
+    /** 판정 방식: 'accel' = 중력 제거 가속도 크기(기본, 실기 피드백 9 — 방향 무관 항상 다음), 'gyro' = 판정 축 각속도(옛 방식) */
+    detector: 'accel' | 'gyro';
     axis: LogicalAxis;
     prefilterTauMs: number;
     peakThresholdDps: number;
@@ -124,6 +126,9 @@ export interface GestureConfig {
     outwardSign: 1 | -1;
     /** 안쪽 튕김 동작: 'next' = 다음(기본, 실기 피드백 8 — 안쪽·바깥 모두 다음), 'none' = 무시, 'prev' = 이전 */
     inAction: 'none' | 'prev' | 'next';
+    /** accel 방식 값: hp = |a − LPF(a)|(g, LPF 시정수 lpfTauMs). hp ≥ peakG 가 maxAboveMs 이하로 지나가면 인식.
+     *  피크 전 [t−guard−window, t−guard) 의 hp RMS > quietMaxRmsG 면 기각(걷기·흔들기). 재인식 금지는 cooldownMs */
+    accel: { lpfTauMs: number; peakG: number; maxAboveMs: number; quietWindowMs: number; quietGuardMs: number; quietMaxRmsG: number };
   };
   touch: {
     tapMaxMovePx: number;
@@ -221,6 +226,10 @@ export interface ImuSample {
   gx: number;
   gy: number;
   gz: number;
+  /** 가속도 g(센서 축, 중력 포함). 없으면 accel 방식 튕김 판정을 하지 않는다 */
+  ax?: number;
+  ay?: number;
+  az?: number;
 }
 
 /**
@@ -295,6 +304,17 @@ export interface AirMouseState {
 export type FlickPhase = 'idle' | 'above' | 'rebound' | 'blocked';
 export type FlickReject = 'tooShort' | 'tooLong' | 'noRebound' | 'notDominant' | 'notQuiet';
 
+/** accel 방식 튕김 판정 상태 */
+export interface AccelFlickState {
+  lpf: [number, number, number] | null;
+  lastT: number | null;
+  /** (시각, hp²) — 사전 정숙 RMS 용 */
+  hist: [number, number][];
+  phase: 'idle' | 'above' | 'blocked';
+  aboveStart: number;
+  peak: number;
+}
+
 export interface FlickState {
   filt: [number, number, number] | null;
   lastT: number | null;
@@ -308,6 +328,8 @@ export interface FlickState {
   peakT: number;
   reboundNeed: number;
   cooldownUntil: number;
+  /** accel 방식 상태(중력 제거 가속도) */
+  acc: AccelFlickState;
 }
 
 export interface CoreState {
@@ -353,8 +375,8 @@ export type CoreEvent =
   | { t: 'launchPage'; page: number }
   /** 키 동작이 실행됨(전송 또는 끊김으로 버림). 화면 플래시용 */
   | { t: 'action'; action: ActionId; source: InputSource; sent: boolean }
-  | { t: 'flick'; dir: 'out' | 'in' }
-  | { t: 'flickRejected'; reason: FlickReject }
+  | { t: 'flick'; dir: 'out' | 'in'; peakG?: number }
+  | { t: 'flickRejected'; reason: FlickReject; peakG?: number }
   | { t: 'ignored'; source: 'gesture'; reason: 'locked' | 'cooldown' }
   | { t: 'estimate'; app: MeetingAppId; target: MeetingActionId; value: Estimate | 'down' | 'up'; synced: boolean };
 

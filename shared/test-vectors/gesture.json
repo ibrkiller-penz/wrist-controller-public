@@ -128,7 +128,14 @@
             ]
           }
         }
-      ]
+      ],
+      "configPatch": {
+        "gesture": {
+          "flick": {
+            "detector": "gyro"
+          }
+        }
+      }
     },
     {
       "id": "flick-in-next",
@@ -256,7 +263,14 @@
             ]
           }
         }
-      ]
+      ],
+      "configPatch": {
+        "gesture": {
+          "flick": {
+            "detector": "gyro"
+          }
+        }
+      }
     },
     {
       "id": "flick-in-ignored",
@@ -267,6 +281,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "detector": "gyro",
             "inAction": "none"
           }
         }
@@ -395,6 +410,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "detector": "gyro",
             "inAction": "prev"
           }
         }
@@ -802,7 +818,14 @@
             ]
           }
         }
-      ]
+      ],
+      "configPatch": {
+        "gesture": {
+          "flick": {
+            "detector": "gyro"
+          }
+        }
+      }
     },
     {
       "id": "long-fast-rotation-ignored",
@@ -976,7 +999,14 @@
             ]
           }
         }
-      ]
+      ],
+      "configPatch": {
+        "gesture": {
+          "flick": {
+            "detector": "gyro"
+          }
+        }
+      }
     },
     {
       "id": "cooldown-800ms",
@@ -1278,7 +1308,14 @@
             ]
           }
         }
-      ]
+      ],
+      "configPatch": {
+        "gesture": {
+          "flick": {
+            "detector": "gyro"
+          }
+        }
+      }
     },
     {
       "id": "two-flicks-1200ms-apart",
@@ -1524,7 +1561,14 @@
             ]
           }
         }
-      ]
+      ],
+      "configPatch": {
+        "gesture": {
+          "flick": {
+            "detector": "gyro"
+          }
+        }
+      }
     },
     {
       "id": "walking-ignored",
@@ -1848,7 +1892,14 @@
             ]
           }
         }
-      ]
+      ],
+      "configPatch": {
+        "gesture": {
+          "flick": {
+            "detector": "gyro"
+          }
+        }
+      }
     },
     {
       "id": "gesture-while-moving-arm-ignored",
@@ -1973,7 +2024,14 @@
             ]
           }
         }
-      ]
+      ],
+      "configPatch": {
+        "gesture": {
+          "flick": {
+            "detector": "gyro"
+          }
+        }
+      }
     },
     {
       "id": "no-rebound-ignored",
@@ -2097,7 +2155,14 @@
             ]
           }
         }
-      ]
+      ],
+      "configPatch": {
+        "gesture": {
+          "flick": {
+            "detector": "gyro"
+          }
+        }
+      }
     },
     {
       "id": "locked-ignored",
@@ -2222,7 +2287,14 @@
             ]
           }
         }
-      ]
+      ],
+      "configPatch": {
+        "gesture": {
+          "flick": {
+            "detector": "gyro"
+          }
+        }
+      }
     },
     {
       "id": "disconnected-dropped",
@@ -2346,7 +2418,14 @@
             ]
           }
         }
-      ]
+      ],
+      "configPatch": {
+        "gesture": {
+          "flick": {
+            "detector": "gyro"
+          }
+        }
+      }
     },
     {
       "id": "launch-mode-no-flick",
@@ -2464,7 +2543,14 @@
             ]
           }
         }
-      ]
+      ],
+      "configPatch": {
+        "gesture": {
+          "flick": {
+            "detector": "gyro"
+          }
+        }
+      }
     }
   ]
 }

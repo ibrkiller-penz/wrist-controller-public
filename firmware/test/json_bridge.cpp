@@ -235,6 +235,14 @@ GestureConfig gestureFromJson(const json& j) {
   g.airMouse.invertY = am.at("invertY").get<bool>();
 
   const json& f = j.at("flick");
+  g.flick.detector = f.at("detector").get<std::string>() == "gyro" ? GestureConfig::Flick::Detector::Gyro
+                                                                    : GestureConfig::Flick::Detector::Accel;
+  g.flick.accel.lpfTauMs = f.at("accel").at("lpfTauMs").get<double>();
+  g.flick.accel.peakG = f.at("accel").at("peakG").get<double>();
+  g.flick.accel.maxAboveMs = f.at("accel").at("maxAboveMs").get<double>();
+  g.flick.accel.quietWindowMs = f.at("accel").at("quietWindowMs").get<double>();
+  g.flick.accel.quietGuardMs = f.at("accel").at("quietGuardMs").get<double>();
+  g.flick.accel.quietMaxRmsG = f.at("accel").at("quietMaxRmsG").get<double>();
   g.flick.axis = need(parseLogicalAxis(f.at("axis").get<std::string>()), "논리 축", f);
   g.flick.prefilterTauMs = f.at("prefilterTauMs").get<double>();
   g.flick.peakThresholdDps = f.at("peakThresholdDps").get<double>();
@@ -357,7 +365,9 @@ json toJson(const GestureConfig& g) {
                    {"sensitivity", sens},
                    {"invertY", g.airMouse.invertY}};
   const auto& f = g.flick;
-  j["flick"] = {{"axis", name(f.axis)},
+  j["flick"] = {{"detector", f.detector == GestureConfig::Flick::Detector::Gyro ? "gyro" : "accel"},
+                {"accel", {{"lpfTauMs", f.accel.lpfTauMs}, {"peakG", f.accel.peakG}, {"maxAboveMs", f.accel.maxAboveMs}, {"quietWindowMs", f.accel.quietWindowMs}, {"quietGuardMs", f.accel.quietGuardMs}, {"quietMaxRmsG", f.accel.quietMaxRmsG}}},
+                {"axis", name(f.axis)},
                 {"prefilterTauMs", f.prefilterTauMs},
                 {"peakThresholdDps", f.peakThresholdDps},
                 {"adaptive", {{"enabled", f.adaptive.enabled}, {"windowMs", f.adaptive.windowMs}, {"rmsMultiplier", f.adaptive.rmsMultiplier}}},
@@ -470,8 +480,14 @@ json toJson(const CoreEvent& e) {
       j["source"] = name(e.source);
       j["sent"] = e.value;
       break;
-    case EventType::Flick: j["dir"] = name(e.dir); break;
-    case EventType::FlickRejected: j["reason"] = name(e.reject); break;
+    case EventType::Flick:
+      j["dir"] = name(e.dir);
+      if (e.peakG >= 0) j["peakG"] = e.peakG;
+      break;
+    case EventType::FlickRejected:
+      j["reason"] = name(e.reject);
+      if (e.peakG >= 0) j["peakG"] = e.peakG;
+      break;
     case EventType::Ignored:
       j["source"] = name(e.source);
       j["reason"] = name(e.ignore);

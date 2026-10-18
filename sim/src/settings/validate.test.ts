@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultGesture, defaultKeymap } from '../core/config';
 import { synthFlick, synthSlowRotate, concatSamples, synthRest } from '../input/imuSources';
-import { rejudge } from './gestureGraph';
+import { accelTrace, rejudge } from './gestureGraph';
 import { locateJson } from './jsonLocate';
 import { checkText, countChanges, schemaAt, toJsonText } from './validate';
 
@@ -73,11 +73,30 @@ describe('checkText', () => {
 });
 
 describe('녹화 재판정(rejudge)', () => {
-  it('임계값을 올리면 약한 튕김이 빠진다', () => {
-    const rec = concatSamples(synthRest(500), synthFlick('out', { peakDps: 450 }), synthRest(500), synthSlowRotate(2000));
+  const rec = concatSamples(synthRest(500), synthFlick('out', { peakDps: 450 }), synthRest(500), synthSlowRotate(2000));
+  it('임계값을 올리면 약한 튕김이 빠진다(gyro 방식, peakThresholdDps)', () => {
     const g = defaultGesture();
+    g.flick.detector = 'gyro';
     expect(rejudge(rec, g).fired.map((f) => f.dir)).toEqual(['out']);
     g.flick.peakThresholdDps = 600;
     expect(rejudge(rec, g).fired).toEqual([]);
+  });
+  it('임계값을 올리면 약한 튕김이 빠진다(기본 accel 방식, accel.peakG)', () => {
+    const g = defaultGesture();
+    const r = rejudge(rec, g);
+    expect(r.fired.map((f) => f.dir)).toEqual(['out']);
+    expect(r.fired[0].peakG).toBeGreaterThan(1.5);
+    g.flick.accel.peakG = r.fired[0].peakG! + 0.5;
+    expect(rejudge(rec, g).fired).toEqual([]);
+  });
+  it('accelTrace: 코어와 같은 EMA 로 hp 를 구한다(조용하면 ≈0, 튕김에서 최대)', () => {
+    const g = defaultGesture();
+    const tr = accelTrace(rec, g.flick.accel.lpfTauMs);
+    expect(tr).toHaveLength(rec.length);
+    expect(tr[10]).toBeLessThan(0.05);
+    const max = Math.max(...tr.filter((v): v is number => v !== null));
+    expect(max).toBeGreaterThan(1.5);
+    expect(tr.some((v) => v !== null && Math.abs(v - rejudge(rec, g).fired[0].peakG!) < 1e-9)).toBe(true);
+    expect(accelTrace([{ t: 0, gx: 0, gy: 0, gz: 0 }], 200)).toEqual([null]);
   });
 });

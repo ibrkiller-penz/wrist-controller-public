@@ -130,7 +130,7 @@ export function mountInputPanel(slots: InputSlots, app: App): void {
               </select>
             </label>
           </div>
-          <p class="in-hint">빠르게 오른쪽으로 휙 끌었다 되돌리면 바깥 튕김(다음), 왼쪽이면 안쪽 튕김 — 기본은 둘 다 다음 페이지(gesture.json flick.inAction). 측면 버튼(Space)을 누른 채 끌면 에어마우스. Shift+드래그 = 가로 축 바꾸기. 놓으면 값이 0 으로 돌아갑니다.</p>
+          <p class="in-hint">짧게 휙 끌면(방향 무관) 손목 튕김 = 다음 페이지 — 기본 가속도 방식은 끄는 속도가 빨리 변할 때 가속도 펄스를 만들어 판정하고, 천천히 끌면 무시합니다. (각속도 방식이면 오른쪽 = 바깥, 왼쪽 = 안쪽, gesture.json flick.inAction.) 측면 버튼(Space)을 누른 채 끌면 에어마우스. Shift+드래그 = 가로 축 바꾸기. 놓으면 값이 0 으로 돌아갑니다.</p>
         </div>
         <div class="in-view" data-view="phone" hidden>
           <div class="in-row">
@@ -139,7 +139,7 @@ export function mountInputPanel(slots: InputSlots, app: App): void {
           </div>
           <p class="in-status" data-ref="phoneStatus">폰을 손목처럼 잡고 버튼을 누르세요.</p>
           <p class="in-mono" data-ref="phoneVals"></p>
-          <p class="in-hint">회전 속도(DeviceMotion rotationRate, °/s)를 그대로 IMU 로 넣습니다: β→gx, γ→gy, α→gz. 센서는 HTTPS(또는 localhost)에서만 켜지고, iPhone 은 버튼을 눌러 권한을 허용해야 합니다. 축이 손목과 다르면 설정 → gesture.json 의 imu.axisMap 으로 맞춥니다.</p>
+          <p class="in-hint">회전 속도(DeviceMotion rotationRate, °/s)와 중력 포함 가속도(accelerationIncludingGravity, m/s² → g)를 그대로 IMU 로 넣습니다: β→gx, γ→gy, α→gz, x/y/z→ax/ay/az. 폰을 짧게 휙 스냅하면 가속도 방식 튕김(다음). 센서는 HTTPS(또는 localhost)에서만 켜지고, iPhone 은 버튼을 눌러 권한을 허용해야 합니다. 축이 손목과 다르면 설정 → gesture.json 의 imu.axisMap 으로 맞춥니다.</p>
         </div>
         <div class="in-view" data-view="replay" hidden>
           <div class="in-row">
@@ -382,6 +382,9 @@ export function mountInputPanel(slots: InputSlots, app: App): void {
     }
   };
   const verdictEl = $('verdict');
+  /** 마지막 튕김 인식 시각 — 직후 이 시간 안의 '재인식 금지' 무시는 판정 글자를 덮지 않는다 */
+  let lastFlickAt = -Infinity;
+  const COOLDOWN_QUIET_MS = 400;
   let verdictTimer: ReturnType<typeof setTimeout> | null = null;
   const showVerdict = (text: string, kind: 'ok' | 'ignored') => {
     verdictEl.textContent = text;
@@ -394,12 +397,22 @@ export function mountInputPanel(slots: InputSlots, app: App): void {
   const gestureVerdict = (events: readonly CoreEvent[]) => {
     for (const e of events) {
       if (e.t === 'flick') {
-        const ia = app.gesture.flick.inAction;
-        showVerdict(`튕김 인식: ${e.dir === 'out' ? '바깥 → 다음' : ia === 'prev' ? '안쪽 → 이전' : ia === 'none' ? '안쪽 → 무시(키 안 보냄)' : '안쪽 → 다음'}`, 'ok');
+        lastFlickAt = app.now();
+        if (e.peakG !== undefined || (app.gesture.flick.detector ?? 'accel') === 'accel') {
+          // accel 방식: 방향 없음, 항상 다음
+          showVerdict(`튕김 인식${e.peakG !== undefined ? `(가속도 ${e.peakG.toFixed(1)}g)` : ''} → 다음`, 'ok');
+        } else {
+          const ia = app.gesture.flick.inAction;
+          showVerdict(`튕김 인식: ${e.dir === 'out' ? '바깥 → 다음' : ia === 'prev' ? '안쪽 → 이전' : ia === 'none' ? '안쪽 → 무시(키 안 보냄)' : '안쪽 → 다음'}`, 'ok');
+        }
       }
-      else if (e.t === 'flickRejected') showVerdict(`튕김 아님: ${REJECT_TEXT[e.reason]}`, 'ignored');
-      else if (e.t === 'ignored' && e.source === 'gesture')
+      else if (e.t === 'flickRejected')
+        showVerdict(`튕김 아님: ${REJECT_TEXT[e.reason]}${e.peakG !== undefined ? ` (가속도 ${e.peakG.toFixed(1)}g)` : ''}`, 'ignored');
+      else if (e.t === 'ignored' && e.source === 'gesture') {
+        // 인식 직후 같은 동작의 되돌림(감속) 봉우리가 재인식 금지에 걸리는 것은 정상 — 방금 띄운 '튕김 인식'을 덮지 않는다
+        if (e.reason === 'cooldown' && app.now() - lastFlickAt < COOLDOWN_QUIET_MS) continue;
         showVerdict(e.reason === 'cooldown' ? '무시: 재인식 금지(0.8초) 중' : e.reason === 'locked' ? '무시: 제스처 잠금 중' : `무시: ${e.reason}`, 'ignored');
+      }
       else if (e.t === 'air') showVerdict(e.active ? '에어마우스 시작' : '에어마우스 정지 — 커서 멈춤', 'ok');
     }
   };

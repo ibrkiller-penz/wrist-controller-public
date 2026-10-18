@@ -1,4 +1,5 @@
 // 샘플 CSV(public/samples/*.csv) 다시 만들기 — 실행: cd sim && npx vite-node src/input/tools/genSamples.ts public/samples
+// (imu_real_flick_*.csv 는 실기 녹화라 여기서 만들지 않는다)
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { concatSamples, formatImuCsv, synthFlick, synthRest, synthSlowRotate, synthBigSlowTurn, synthWalk } from '../imuSources';
@@ -16,7 +17,7 @@ const flick = concatSamples(
   synthRest(800, { seed: 10 }),
 );
 writeFileSync(resolve(out, 'imu_flick.csv'), formatImuCsv(flick,
- '손목 컨트롤러 IMU 녹화 샘플 — 튕김 포함 (합성 데이터, 실제 시계 녹화 아님)\n100Hz · gx,gy,gz = 각속도 deg/s · ax,ay,az = 가속도 g (판정에 쓰지 않음)\n기본 gesture.json 기대 결과: 바깥(다음) → 안쪽(이전) → 바깥(다음) 인식 3회, 바로 이은 4번째 튕김은 재인식 금지(0.8초)로 무시, 뒤의 걷기 구간은 무시'));
+ '손목 컨트롤러 IMU 녹화 샘플 — 튕김 포함 (합성 데이터, 실제 시계 녹화 아님)\n100Hz · gx,gy,gz = 각속도 deg/s · ax,ay,az = 가속도 g(중력 포함, 튕김마다 약 110ms 가속 펄스 — 기본 accel 방식 판정에 씀)\n기본 gesture.json(accel) 기대 결과: 튕김 3회 인식(방향 무관 모두 다음), 바로 이은 4번째 튕김은 재인식 금지(0.8초)로 무시, 뒤의 걷기 구간은 무시\ndetector gyro 일 때: 바깥(다음) → 안쪽 → 바깥(다음) 3회, 4번째는 재인식 금지'));
 const slow = concatSamples(
   synthRest(800, { seed: 21 }),
   synthSlowRotate(4800, { seed: 22 }),
@@ -25,5 +26,5 @@ const slow = concatSamples(
   synthRest(800, { seed: 25 }),
 );
 writeFileSync(resolve(out, 'imu_slow_rotate.csv'), formatImuCsv(slow,
- '손목 컨트롤러 IMU 녹화 샘플 — 천천히 회전 (합성 데이터, 실제 시계 녹화 아님)\n100Hz · gx,gy,gz = 각속도 deg/s · ax,ay,az = 가속도 g (판정에 쓰지 않음)\n기본 gesture.json 기대 결과: 튕김 인식 0회 (진폭 150°/s 사인 회전 + 380°/s 로 크게 천천히 한 번 왕복 = tooLong)'));
+ '손목 컨트롤러 IMU 녹화 샘플 — 천천히 회전 (합성 데이터, 실제 시계 녹화 아님)\n100Hz · gx,gy,gz = 각속도 deg/s · ax,ay,az = 가속도 g(중력 포함, 회전에 따라 천천히 기울 뿐 짧은 펄스 없음)\n기본 gesture.json 기대 결과(accel·gyro 모두): 튕김 인식 0회 (진폭 150°/s 사인 회전 + 380°/s 로 크게 천천히 한 번 왕복)'));
 console.log(flick.length, slow.length);

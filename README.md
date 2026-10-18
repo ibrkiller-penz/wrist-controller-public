@@ -159,7 +159,7 @@ IDF 가 있는 PC 에서는 `cd firmware && idf.py set-target esp32c6 && idf.py 
 
 - 측면 버튼(실물 오른쪽 면): **위 = BOOT, 아래 = PWR**. BOOT 짧게 = 시계 모드로(모든 모드, 키 안 보냄), 이미 시계면 직전 모드로. BOOT 누른 채 = 에어마우스(발표 모드), BOOT 2초 = 제스처 잠금. PWR 짧게 = 화면 켜기/끄기만.
 - 가로 스와이프 = 모드 전환(시계 → 발표 → 실행 → 회의, 기본 시작 = 시계, 마지막 모드는 NVS 에 남는다). 시계 모드는 키를 보내지 않는다.
-- 발표: 오른쪽 탭 = 다음, 왼쪽 탭 = 이전(손 뗄 때 전송), 가운데 길게(0.36초 — 다른 길게 누르기는 0.6초) = 암전(마침표 `.` — B 는 한글 입력 상태에서 'ㅠ' 로 먹혀 2026-10-18 에 바꿈), 위에서 아래로 당김 = 쇼 시작/종료 시트. 다음 슬라이드 = 오른쪽 탭·손목 바깥 튕김(BOOT 짧게는 더 이상 '다음'이 아니다). **손목 튕김은 다음 페이지만** — 바깥·안쪽 튕김 모두 다음(→)(gesture.json `flick.inAction` next 기본, none = 안쪽 무시, prev = 안쪽 이전). **에어마우스는 기본 끔**(gesture.json `airMouse.enabled` false) — 시계 설정 '에어마우스'에서 켜면(NVS) 발표 모드에서 BOOT 를 누른 채 움직여 포인터, 끄면 감도 줄이 흐려진다.
+- 발표: 오른쪽 탭 = 다음, 왼쪽 탭 = 이전(손 뗄 때 전송), 가운데 길게(0.36초 — 다른 길게 누르기는 0.6초) = 암전(마침표 `.` — B 는 한글 입력 상태에서 'ㅠ' 로 먹혀 2026-10-18 에 바꿈), 위에서 아래로 당김 = 쇼 시작/종료 시트. 다음 슬라이드 = 오른쪽 탭·손목 튕김(BOOT 짧게는 더 이상 '다음'이 아니다). **손목 튕김은 다음 페이지만** — 방향과 상관없이 다음(→). 판정은 **가속도 기준**(gesture.json `flick.detector` accel 기본: 중력 제거 가속도 hp = |a − LPF(a)| 가 `flick.accel.peakG` 0.8g 이상으로 250ms 이하 튀면 인식, 직전 300ms 가 시끄러우면(걷기·흔들기) 기각, 0.8초 재인식 금지). 옛 각속도 방식은 `detector: gyro`(이때 안쪽 튕김은 `flick.inAction` next/none/prev). **에어마우스는 기본 끔**(gesture.json `airMouse.enabled` false) — 시계 설정 '에어마우스'에서 켜면(NVS) 발표 모드에서 BOOT 를 누른 채 움직여 포인터, 끄면 감도 줄이 흐려진다.
 - 실행(launcher.md): 1쪽 Claude·카카오톡·크롬·파워포인트·엑셀·한글 = **Ctrl+Alt+1~6**(PC 시작 메뉴 바로 가기 키 — 설치 페이지 'PC 바로 가기 키 설정'의 `wrist-shortcuts.ps1` 로 만든다. 작업표시줄 순서·한/영과 무관), 길게 = Win+R 대안(크롬·파워포인트·엑셀만). 2쪽(위로 쓸기 또는 아래 쪽 점 탭) = 캡처 Win+Shift+S·잠금 Win+L·바탕화면 Win+D·화면 전환 Win+P·음소거(미디어 키)·업무포털(주소는 시뮬레이터 설정 화면에서 keymap url 로 — 비어 있으면 비활성). macOS 는 Spotlight(Cmd+Space → 영문 이름 → Return).
 - 발표 외 모드에서 위에서 아래로 당김(또는 쇼 시트의 설정 행) = 시계 설정 화면(감도, OS, 손목 들면 시계, IMU 녹화, 이름, 버전, 닫기). 줄 탭 = 바꾸기. 닫기 = 맨 아래 '닫기' 탭 · 위로 쓸기(위로 40px 이상, 위로 > 1.2 × 가로 — 움직이는 도중에도 바로 닫힘) · 오른쪽 스와이프 · BOOT 짧게(닫고 시계 모드로) · PWR 짧게(닫기만) · 30초 무입력.
 - USB 직렬(USB-Serial/JTAG 콘솔): `r` IMU 녹화 시작/정지, `s` 상태, `n <이름>` 장치 이름(다시 켜면 적용), `t <유닉스초> <시간대분>` 시각 맞추기(RTC 기록, 설치 페이지 '시계 시간 맞추기' 버튼이 보낸다), `h` 도움말.
@@ -182,7 +182,8 @@ python -m unittest discover -s tools -p "test_*.py" -v
 
 1. 시계를 USB 로 연결하고 직렬 터미널(115200)에서 `r` Enter → IMU 녹화 시작(로그는 경고 이상만), 손목을 튕긴 뒤 다시 `r` Enter → `# end`.
 2. 직렬 로그를 저장한다. 숫자로 시작하는 줄이 `t_ms,gx,gy,gz,ax,ay,az` CSV(10ms 간격, deg/s·g), 나머지는 로그.
-3. CSV 줄만 뽑아 `sim/public/samples/` 에 두면 시뮬레이터 '녹화 재생' 목록에서 재생된다(`inputPanel.ts` 목록). 공유 테스트 벡터로 만들려면 `sim/scripts/gen-test-vectors.mjs` 의 imu-real 절처럼 기대값(다음 n회)을 적고 `node sim/scripts/gen-test-vectors.mjs`.
+3. 시계 직렬 로그(녹화 중이 아닐 때)에 `튕김 인식 hp 피크 2.91g`·`튕김 기각 tooLong hp 피크 …` 가 남는다. 이 값으로 `flick.accel.peakG`(기본 0.8g)를 조정한다(2026-10-18 1호기 녹화: 세게 2.8~4.6g, 약하게 1.35~1.84g, 가만히 0.01g, 천천히 0.04g, 튕김 사이 0.07g).
+4. CSV 줄만 뽑아 `sim/public/samples/` 에 두면 시뮬레이터 '녹화 재생' 목록에서 재생된다(`inputPanel.ts` 목록). 공유 테스트 벡터로 만들려면 `sim/scripts/gen-test-vectors.mjs` 의 imu-real 절처럼 기대값(다음 n회)을 적고 `node sim/scripts/gen-test-vectors.mjs`.
 
 녹화 결과·튜닝 기록은 [docs/HISTORY.md](docs/HISTORY.md). 완료 기준은 작업지시서 '검증 체크리스트'.
 

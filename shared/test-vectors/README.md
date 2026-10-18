@@ -45,7 +45,7 @@
 ```
 
 - **입력 단계** `{at, input}`: `step(state, input, {now: at})` 를 한 번 부른다. `input` 은 `InputEvent`(2장).
-- **IMU 묶음 단계** `{imu: {start, dt, samples}}`: i 번째 샘플을 `{t:'imu', sample:{t: start + i·dt, gx, gy, gz}}` 로 차례로 넣는다. 이때 now = 샘플 t. 단위 deg/s(센서 축).
+- **IMU 묶음 단계** `{imu: {start, dt, samples}}`: i 번째 샘플을 `{t:'imu', sample:{t: start + i·dt, gx, gy, gz}}` 로 차례로 넣는다. 이때 now = 샘플 t. 단위 deg/s(센서 축). 샘플이 6개 값 `[gx, gy, gz, ax, ay, az]` 이면 가속도(g, 중력 포함)도 넣는다 — 손목 튕김 기본 판정(accel)은 가속도가 있어야 동작한다. `gesture.json` 의 옛 각속도 합성 케이스는 생성기가 `configPatch.gesture.flick.detector = 'gyro'` 를 붙인다. 가속도 판정 벡터: `accel.json`(합성), `imu-real.json`(실기 녹화).
 - `expect` 는 **그 단계에서 나온 출력 전체**(IMU 묶음이면 모든 샘플의 출력을 이어 붙인 것)에 대해 검사한다. `expect` 가 없으면 검사 없이 진행만 한다.
 
 ### 1.2 `expect` 필드 (모두 선택)

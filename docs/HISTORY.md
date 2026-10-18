@@ -62,6 +62,7 @@ MAC 주소는 넷째 바이트를 가렸다(앞 3바이트는 제조사 Espressi
 | 실기 피드백 5 | 암전(발표 가운데 길게)만 600 → 360ms(gesture.json touch.blackoutHoldMs, 스키마·TS·C++·생성기, touch.json 359/360·회의 타일 600 유지 케이스). 가운데 탭 상한도 360, 시뮬레이터 게이지 360ms | 구현·빌드 성공(run 39092412210, f649122: bootloader 23,232B·partition-table 3,072B·app 1,503,120B) |
 | 실기 피드백 6·7 | 에어마우스 기본 끔(gesture.json airMouse.enabled, 설정 화면 '에어마우스' 줄·NVS, 꺼지면 감도 흐리게, 에어마우스 벡터는 configPatch 로 켬 + 기본 끔 케이스), 손목 튕김은 다음만(flick.inAction none 기본/prev, 벡터 flick-in-ignored·flick-in-prev, 시뮬레이터 합성 결과 표시) | 구현·빌드 성공(run 39092412210, f649122: bootloader 23,232B·partition-table 3,072B·app 1,503,120B) |
 | 실기 피드백 8 | 손목 튕김 안쪽·바깥 모두 다음(flick.inAction next 기본, 허용 none/prev/next), peakThresholdDps 300→220·rebound.minDps 120→80, 실기 녹화 CSV(sim 재생 목록) + 공유 벡터 imu-real.json(다음 9회·천천히 구간 0회, TS·C++) | 구현·빌드 성공(run 39094014337, cd19130: bootloader 23,232B·partition-table 3,072B·app 1,503,152B) |
+| 실기 피드백 9 | 손목 튕김 판정을 가속도 기준으로(flick.detector accel 기본/gyro, flick.accel lpfTauMs 200·peakG 0.8·maxAboveMs 250·quietWindowMs 300·quietMaxRmsG 0.25, 방향 무관 다음, 이벤트·직렬 로그에 hp 피크). ImuSample 에 가속도(TS·C++), 펌웨어 imuTask → 코어, 벡터 accel.json·imu-real.json(accel)·gesture.json(gyro patch). 시뮬레이터 입력(CSV·폰·합성·드래그) 가속도·설정 그래프·안내서 | 구현·빌드 성공(run 39097922443, 7de3226: bootloader 23,232B·partition-table 3,072B·app 1,512,064B) |
 | 진행 5 | 파이프라인 완성, v1.0.0 | CI 작성 완료, 태그 빌드는 아직 실행 전 |
 
 ### UI v2 실기 확인 (P0-8, 시계에 올린 뒤)
@@ -74,3 +75,8 @@ MAC 주소는 넷째 바이트를 가렸다(앞 3바이트는 제조사 Espressi
 - 패널 밝기: CO5300 0x51 레지스터로 80%·40% 단계가 실제로 바뀌는지, 시계 모래색 #D6CEB5 가 패널에서 어떻게 보이는지
 - 터치 판정: 12px 취소·600ms 길게·쇼 중 140px 스와이프·위 가장자리 72px 당기기가 손목에서 자연스러운지(로그 '터치 누름')
 - 한글 BLE 이름이 Windows·macOS 목록에 깨지지 않는지(깨지면 `WristCtrl`)
+
+## 공개 저장소
+
+- 공개판: https://github.com/ibrkiller-penz/wrist-controller-public (2026-10-18, 이 저장소 main 의 파일을 커밋 1개로 옮김, 작성자 noreply 주소, docs/PUBLIC_CHECK.md 제외)
+- 이 저장소(wrist-controller)는 비공개 작업 기록용으로 유지. 공개판 갱신은 같은 방식(git archive → 커밋)으로.
