@@ -36,6 +36,9 @@ struct Model {
   bool raiseClock = false;         // 손목 들면 시계 화면 먼저
   bool airMouse = false;           // 에어마우스 켬(기본 끔 — 실기 피드백 6)
   bool flick = false;              // 손목 튕김 켬(기본 끔 — 실기 피드백 10)
+  // 전원 끄기(실기 피드백 11): 확인 화면은 코어 상태 s.powerConfirmSince, 끄는 중(0.5초 안내)은 펌웨어
+  bool poweringOff = false;
+  int powerOnMs = -1;              // 켤 때 PWR 를 누르는 시간(AXP2101 0x27, 모르면 -1)
   // 시각(RTC → 시스템 시각, 시간대 NVS). valid=false 면 '--:--'
   bool timeValid = false;
   int hour = 0, minute = 0, second = 0;

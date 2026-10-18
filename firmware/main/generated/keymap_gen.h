@@ -1,7 +1,7 @@
 // 자동 생성 파일 — 손으로 고치지 마세요.
 // 생성: python tools/gen_keymap_header.py
 // 원본: shared/keymap.json, shared/gesture.json, shared/hid-usage.json
-// 원본 해시(sha256 앞 16자, 줄바꿈 LF 기준): 5c202ac5e58d971d
+// 원본 해시(sha256 앞 16자, 줄바꿈 LF 기준): ee025fa6e019fb46
 // 키 배치를 바꾸려면 shared/keymap.json 을 고치고 이 스크립트를 다시 실행한다.
 #pragma once
 
@@ -9,7 +9,7 @@
 
 #include "wc/types.h"
 
-#define WC_KEYMAP_GEN_HASH "5c202ac5e58d971d"
+#define WC_KEYMAP_GEN_HASH "ee025fa6e019fb46"
 #define WC_KEYMAP_VERSION 1
 #define WC_GESTURE_VERSION 1
 
@@ -777,6 +777,8 @@ inline GestureConfig makeGesture() {
   g.touch.settingsCloseMinPx = 40.0;
   g.touch.settingsCloseAxisRatio = 1.2;
   g.button.longPressMs = 2000.0;
+  g.button.powerOffHoldMs = 3000.0;
+  g.button.powerConfirmTimeoutMs = 10000.0;
   g.timing.sheetAutoCloseMs = 3000.0;
   g.timing.meetingEstimateResetMs = 30000.0;
   g.timing.settingsIdleCloseMs = 30000.0;

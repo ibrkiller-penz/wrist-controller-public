@@ -157,7 +157,7 @@ IDF 가 있는 PC 에서는 `cd firmware && idf.py set-target esp32c6 && idf.py 
 > **손목 튕김은 기본 꺼짐**(gesture.json `flick.enabled` false, 2026-10-18 사용자 결정) — 시계 설정 '손목 튕김' 줄로 켠다(NVS). 꺼져 있으면 판정 자체를 하지 않고, IMU 는 손목 들기·녹화용으로만 읽는다. 켜도 **발표 모드에서만 동작한다.** 시계·실행·회의 모드에서는 손목을 튕겨도 아무것도 보내지 않는다. 잠금 중(BOOT 2초)에도 무시한다.
 
 
-- 측면 버튼(실물 오른쪽 면): **위 = BOOT, 아래 = PWR**. BOOT 짧게 = 시계 모드로(모든 모드, 키 안 보냄), 이미 시계면 직전 모드로. BOOT 누른 채 = 에어마우스(발표 모드), BOOT 2초 = 제스처 잠금. PWR 짧게 = 화면 켜기/끄기만.
+- 측면 버튼(실물 오른쪽 면): **위 = BOOT, 아래 = PWR**. BOOT 짧게 = 시계 모드로(모든 모드, 키 안 보냄), 이미 시계면 직전 모드로. BOOT 누른 채 = 에어마우스(발표 모드), BOOT 2초 = 제스처 잠금. PWR 짧게 = 화면 켜기/끄기. **PWR 3초 = '전원을 끌까요?' 확인**(손을 뗀 뒤 [끄기] 탭 또는 PWR 짧게 = 끄기, [취소]·BOOT 짧게·10초 무입력 = 취소). 끄기 = NVS 저장 → '전원을 끕니다' 0.5초 → AXP2101 소프트웨어 전원 끄기(REG 0x10 bit0). 켤 때는 PWR 를 길게(AXP2101 켜기 시간, 확인 화면과 부팅 로그 `wc_pmu: 전원 키` 에 표시).
 - 가로 스와이프 = 모드 전환(시계 → 발표 → 실행 → 회의, 기본 시작 = 시계, 마지막 모드는 NVS 에 남는다). 시계 모드는 키를 보내지 않는다.
 - 발표: 오른쪽 탭 = 다음, 왼쪽 탭 = 이전(손 뗄 때 전송), 가운데 길게(0.36초 — 다른 길게 누르기는 0.6초) = 암전(마침표 `.` — B 는 한글 입력 상태에서 'ㅠ' 로 먹혀 2026-10-18 에 바꿈), 위에서 아래로 당김 = 쇼 시작/종료 시트. 다음 슬라이드 = 오른쪽 탭(손목 튕김은 설정에서 켰을 때만. BOOT 짧게는 '다음'이 아니다). **손목 튕김은 다음 페이지만** — 방향과 상관없이 다음(→). 판정은 **가속도 기준**(gesture.json `flick.detector` accel 기본: 중력 제거 가속도 hp = |a − LPF(a)| 가 `flick.accel.peakG` 1.0g 이상으로 250ms 이하 튀면 인식, 직전 300ms 가 시끄러우면(걷기·흔들기) 기각, 0.8초 재인식 금지). 옛 각속도 방식은 `detector: gyro`(이때 안쪽 튕김은 `flick.inAction` next/none/prev). **에어마우스는 기본 끔**(gesture.json `airMouse.enabled` false) — 시계 설정 '에어마우스'에서 켜면(NVS) 발표 모드에서 BOOT 를 누른 채 움직여 포인터, 끄면 감도 줄이 흐려진다.
 - 실행(launcher.md): 1쪽 Claude·카카오톡·크롬·파워포인트·엑셀·한글 = **Ctrl+Alt+1~6**(PC 시작 메뉴 바로 가기 키 — 설치 페이지 'PC 바로 가기 키 설정'의 `wrist-shortcuts.ps1` 로 만든다. 작업표시줄 순서·한/영과 무관), 길게 = Win+R 대안(크롬·파워포인트·엑셀만). 2쪽(위로 쓸기 또는 아래 쪽 점 탭) = 캡처 Win+Shift+S·잠금 Win+L·바탕화면 Win+D·화면 전환 Win+P·음소거(미디어 키)·업무포털(주소는 시뮬레이터 설정 화면에서 keymap url 로 — 비어 있으면 비활성). macOS 는 Spotlight(Cmd+Space → 영문 이름 → Return).
@@ -238,7 +238,7 @@ esptool --chip esp32c6 -p COM7 write-flash 0x0 backup_full.bin
 공식 자료로 확인한 핀·부품은 `firmware/main/board_pins.h`(근거: docs/research/hardware.md 3장). 확인 못 한 값은 `TODO(미확인)` 으로 두고 쓰지 않는다.
 
 - 칩: ESP32-C6 (RISC-V 싱글코어 160MHz, **PSRAM 없음**, 내부 SRAM 512KB), 플래시 16MB. 화면 전체 버퍼(411KB)를 둘 수 없어 LVGL 부분 버퍼(40줄 이중, 부족하면 20줄)를 쓴다.
-- 버튼: BOOT = GPIO9(누르면 LOW), PWR = GPIO18(누르면 HIGH). **PWR 는 PMU 전원키와 같아 길게(샤오즈 설정 4초) 누르면 전원이 꺼진다** — 2초 잠금은 그 전에 판정된다. 주 버튼은 BOOT(`keymap.json settings.primaryButton`).
+- 버튼: BOOT = GPIO9(누르면 LOW), PWR = GPIO18(누르면 HIGH). **PWR 는 PMU 전원키와 같다.** PMU 하드웨어 강제 종료(계속 누르면 꺼지는 시간, REG 0x27 bit3:2 = 4/6/8/10초)가 4초 이하면 펌웨어가 부팅 때 **10초로 늘린다**(전원 경로·충전 설정은 그대로, 이 키 시간만). 원래 값과 바꾼 값은 부팅 로그 `wc_pmu: 전원 키: 켜기 …ms, 강제 종료 …ms → …ms`. 그래서 PWR 3초 확인 화면이 항상 먼저 뜬다. 잠금은 BOOT 2초만(PWR 는 잠금 아님). 주 버튼은 BOOT(`keymap.json settings.primaryButton`).
 - 오디오는 ES8311(재생) + ES7210(녹음) 구성. C6 는 ESP-SR 명령 인식·AFE 를 지원하지 않는다.
 - **없는 것**: 진동 모터, SD 슬롯, USB OTG. 진동 피드백은 화면 표시로 대신한다.
 - IMU INT1/INT2(GPIO16/17)가 UART0 와 겹치므로 로그 콘솔은 USB-Serial/JTAG 로 고정한다.

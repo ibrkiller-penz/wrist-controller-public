@@ -48,6 +48,10 @@ export const SHEET = {
   settingsRow: [16, 236, 394, 324] as Rect,
 } as const;
 
+/** 전원 끄기 확인 화면(실기 피드백 11) — [끄기] [취소] 183×112 */
+export const POWER_OFF_BTN: Rect = [16, 300, 199, 412];
+export const POWER_CANCEL_BTN: Rect = [211, 300, 394, 412];
+
 // ---- 그리기 좌표(v2, design/v2/README.md 2.1·3.1) — 펌웨어 wc/layout.h 와 같은 값
 /** 상태줄 레일 4칸: x = x0 + i·pitch, y 49, 78×3 */
 export const RAIL = { x0: 40, pitch: 84, y: 49, w: 78, h: 3 } as const;

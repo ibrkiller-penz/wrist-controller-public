@@ -203,7 +203,9 @@ struct GestureConfig {
     double settingsCloseAxisRatio = 1.2;  // 위로 이동 > 비율 × 가로 이동
   } touch;
   struct Button {
-    double longPressMs = 2000;
+    double longPressMs = 2000;              // BOOT(주 버튼) 길게 = 제스처 잠금
+    double powerOffHoldMs = 3000;           // PWR 길게 = '전원을 끌까요?' 확인(실기 피드백 11)
+    double powerConfirmTimeoutMs = 10000;   // 확인 화면 무입력 자동 취소
   } button;
   struct Timing {
     double sheetAutoCloseMs = 3000;
@@ -424,6 +426,8 @@ struct CoreState {
   std::optional<double> disconnectedAt;
   bool locked = false;
   bool screenOn = true;
+  // '전원을 끌까요?' 확인 화면이 열린 시각(없으면 닫힘). 열려 있으면 키·스와이프·튕김을 보내지 않는다
+  std::optional<double> powerConfirmSince;
   struct Sheet {
     bool open = false;
     double lastActivity = 0;
@@ -448,6 +452,8 @@ enum class EventType : uint8_t {
   Mode, App, Os, Lock, Connection, Sheet, Air, Show, Blackout, Screen, Sensitivity,
   Action, Flick, FlickRejected, Ignored, Estimate,
   LaunchPage,  // 실행 모드 쪽이 바뀜(level = 쪽 번호)
+  PowerConfirm,  // 전원 끄기 확인 화면 열림/닫힘(value = 열림)
+  PowerOff,      // 전원 끄기 요청 — 실제 차단은 펌웨어(AXP2101)
 };
 
 enum class IgnoreReason : uint8_t { Locked, Cooldown };

@@ -98,6 +98,14 @@
     "banner.lostNotSent": "연결 끊김 · 보내지 못함",
     "banner.repair": "PC에서 장치 제거 후 다시 추가",
 
+    "power.title": "전원을 끌까요?",
+    "power.off": "끄기",
+    "power.cancel": "취소",
+    "power.onHint": "켤 때는 PWR 를 %s 이상 누르세요",
+    "power.keys": "PWR 짧게 = 끄기 · BOOT 짧게 = 취소",
+    "power.shuttingDown": "전원을 끕니다",
+    "power.simOff": "전원 꺼짐(시뮬레이터) · PWR 를 누르면 켜짐",
+
     "toast.locked": "제스처 잠김",
     "toast.unlocked": "제스처 풀림",
     "toast.connected": "연결됨",

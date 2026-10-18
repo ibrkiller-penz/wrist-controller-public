@@ -36,6 +36,10 @@ constexpr Rect SHEET_SHOW_END = {215, 92, 386, 212};
 // 시트 맨 아래 설정 행 — 탭하면 시트를 닫고 시계 설정 화면을 연다(터치 판정 TouchGesture 가 처리, 코어 입력 아님)
 constexpr Rect SHEET_SETTINGS_ROW = {16, 236, 394, 324};
 
+// 전원 끄기 확인 화면(실기 피드백 11) — [끄기] [취소] 183×112(터치 최소 88 이상)
+constexpr Rect POWER_OFF_BTN = {16, 300, 199, 412};
+constexpr Rect POWER_CANCEL_BTN = {211, 300, 394, 412};
+
 // ---- 그리기 좌표(v2, design/v2/README.md 2.1·3.1) — 펌웨어 ui.cpp 와 시뮬레이터 screens.ts 가 같은 값을 쓴다
 // 상태줄 레일 4칸: x = RAIL_X0 + i·RAIL_PITCH, y RAIL_Y, 78×3. i = 시계 0, 발표 1, 실행 2, 회의 3
 constexpr int RAIL_X0 = 40, RAIL_PITCH = 84, RAIL_Y = 49, RAIL_W = 78, RAIL_H = 3;

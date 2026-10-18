@@ -11,7 +11,7 @@ import { airStart, airStep, airStop, initAirMouse } from './airmouse';
 import { flickStep, initFlick } from './gesture';
 import { biasStep, initBias } from './imu';
 import { isMacro, resolveBinding } from './keymap';
-import { hitTest, LAUNCH_TILES_PER_PAGE } from './layout';
+import { hitTest, LAUNCH_TILES_PER_PAGE, POWER_OFF_BTN, POWER_CANCEL_BTN, inRectXY } from './layout';
 import type {
   ActionId,
   AppId,
@@ -57,6 +57,7 @@ export function initState(keymap: Keymap, patch: Partial<CoreState> = {}): CoreS
     disconnectedAt: null,
     locked: false,
     screenOn: true,
+    powerConfirm: null,
     sheet: { open: false, lastActivity: 0 },
     show: { running: false, startedAt: null, blackout: false },
     meeting: { zoom: freshMeeting(), teams: freshMeeting(), meet: freshMeeting() },
@@ -203,6 +204,7 @@ class Work {
     const s = this.s;
     const now = this.now;
     if (s.sheet.open && now - s.sheet.lastActivity >= this.g.timing.sheetAutoCloseMs) this.setSheet(false);
+    if (s.powerConfirm && now - s.powerConfirm.since >= this.g.button.powerConfirmTimeoutMs) this.closePowerConfirm();
     const b = s.button;
     if (b) {
       const held = now - b.downAt;
@@ -217,16 +219,58 @@ class Work {
         b.air = true;
         this.startAir();
       }
-      if (!b.longFired && !b.moved && held >= this.g.button.longPressMs) {
-        b.longFired = true;
-        this.setLocked(!s.locked);
-        this.stopAir();
+      if (!b.longFired && !b.moved) {
+        if (b.id === this.km.settings.primaryButton && held >= this.g.button.longPressMs) {
+          // BOOT 2초 = 잠금(확인 화면이 열려 있으면 잠금 대신 취소)
+          b.longFired = true;
+          if (s.powerConfirm) this.closePowerConfirm();
+          else {
+            this.setLocked(!s.locked);
+            this.stopAir();
+          }
+        } else if (b.id !== this.km.settings.primaryButton && held >= this.g.button.powerOffHoldMs) {
+          // PWR 3초 = '전원을 끌까요?'. 손을 뗀 뒤 PWR 짧게 = 끄기
+          b.longFired = true;
+          if (!s.powerConfirm) this.openPowerConfirm();
+        }
       }
     }
   }
 
+  openPowerConfirm() {
+    const s = this.s;
+    this.stopAir();
+    this.setSheet(false);
+    if (!s.screenOn) {
+      s.screenOn = true;
+      this.events.push({ t: 'screen', on: true });
+    }
+    s.powerConfirm = { since: this.now };
+    this.events.push({ t: 'powerConfirm', open: true });
+  }
+
+  closePowerConfirm() {
+    if (!this.s.powerConfirm) return;
+    this.s.powerConfirm = null;
+    this.events.push({ t: 'powerConfirm', open: false });
+  }
+
+  /** 끄기: 확인을 닫고 '전원 끄기 요청'만 낸다. 실제 차단은 펌웨어, 시뮬레이터는 화면을 끈다 */
+  powerOff() {
+    this.closePowerConfirm();
+    this.events.push({ t: 'powerOff' });
+    this.s.screenOn = false;
+    this.events.push({ t: 'screen', on: false });
+  }
+
   // ---------------- 입력 ----------------
   shortPress(id: ButtonId) {
+    if (this.s.powerConfirm) {
+      // 확인 화면: PWR 짧게 = 끄기, BOOT 짧게 = 취소
+      if (id === this.km.settings.primaryButton) this.closePowerConfirm();
+      else this.powerOff();
+      return;
+    }
     if (id === this.km.settings.primaryButton) {
       // BOOT 짧게 = 시계 모드로(모든 모드). 이미 시계면 직전 모드로. 키는 보내지 않는다(다음 = 오른쪽 탭·손목 튕김)
       if (this.s.mode === 'clock') {
@@ -248,7 +292,8 @@ class Work {
         this.shortPress(id);
         return;
       case 'long':
-        this.setLocked(!s.locked);
+        if (id === this.km.settings.primaryButton) this.setLocked(!s.locked);
+        else if (!s.powerConfirm) this.openPowerConfirm();
         return;
       case 'down':
         if (s.button) return; // 다른 버튼이 눌려 있으면 무시
@@ -293,6 +338,12 @@ class Work {
 
   touch(kind: 'tap' | 'longPress', x: number, y: number) {
     const s = this.s;
+    if (s.powerConfirm) {
+      // 확인 화면: [끄기]·[취소]만, 그 밖의 터치는 무시(키 없음)
+      if (kind === 'tap' && inRectXY(x, y, POWER_OFF_BTN)) this.powerOff();
+      else if (kind === 'tap' && inRectXY(x, y, POWER_CANCEL_BTN)) this.closePowerConfirm();
+      return;
+    }
     if (s.air.active) {
       // 에어마우스 중: 탭 = 왼쪽 클릭, 길게 누름은 무시
       if (kind === 'tap') {
@@ -344,7 +395,7 @@ class Work {
 
   swipe(dir: 'left' | 'right' | 'up' | 'down') {
     const s = this.s;
-    if (s.air.active) return;
+    if (s.air.active || s.powerConfirm) return;
     if (dir === 'left' || dir === 'right') {
       if (s.sheet.open) return;
       const order = this.km.modeOrder;
@@ -375,7 +426,7 @@ class Work {
       return;
     }
     // 손목 튕김이 꺼져 있으면(기본 — 실기 피드백 10) 판정하지 않는다
-    if (!this.g.flick.enabled || s.mode !== 'present' || s.button) return;
+    if (!this.g.flick.enabled || s.mode !== 'present' || s.button || s.powerConfirm) return;
     const fr = flickStep(s.flick, v, this.g);
     s.flick = fr.state;
     if (fr.rejected) this.events.push(fr.peakG !== undefined ? { t: 'flickRejected', reason: fr.rejected, peakG: fr.peakG } : { t: 'flickRejected', reason: fr.rejected });

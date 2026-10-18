@@ -466,6 +466,8 @@ def generate(shared: Path) -> str:
               "topEdgePx", "settingsCloseMinPx", "settingsCloseAxisRatio"):
         w(f"  g.touch.{k} = {c_num(tc[k])};")
     w(f"  g.button.longPressMs = {c_num(g['button']['longPressMs'])};")
+    w(f"  g.button.powerOffHoldMs = {c_num(g['button']['powerOffHoldMs'])};")
+    w(f"  g.button.powerConfirmTimeoutMs = {c_num(g['button']['powerConfirmTimeoutMs'])};")
     for k in ("sheetAutoCloseMs", "meetingEstimateResetMs", "settingsIdleCloseMs"):
         w(f"  g.timing.{k} = {c_num(tm[k])};")
     pw = g.get("power")  # 선택 항목(펌웨어 전용). 없으면 C++ 기본값

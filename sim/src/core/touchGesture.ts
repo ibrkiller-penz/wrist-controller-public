@@ -18,7 +18,7 @@
 import { SHEET, hitTest, inRectXY, type HitTarget } from './layout';
 import type { CoreState, GestureConfig, InputEvent, Keymap } from './types';
 
-type Kind = 'mode' | 'pull' | 'sheet' | 'air' | 'off';
+type Kind = 'mode' | 'pull' | 'sheet' | 'air' | 'off' | 'confirm';
 
 /** 눌림 표시용(누르는 즉시 강조 — 전송은 뗄 때) */
 export interface TouchPress {
@@ -125,6 +125,10 @@ export class TouchGesture {
       this.kind = 'off';
       return;
     }
+    if (s.powerConfirm) {
+      this.kind = 'confirm'; // 전원 끄기 확인 화면: 움직이지 않고 떼면 tap(코어가 [끄기]·[취소] 판정)
+      return;
+    }
     if (s.air.active) {
       this.kind = 'air';
       return;
@@ -183,6 +187,7 @@ export class TouchGesture {
       case 'off':
         return;
       case 'air':
+      case 'confirm':
         if (!this.moved) out.push(tap);
         return;
       case 'sheet':

@@ -565,7 +565,9 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "longPressMs"
+        "longPressMs",
+        "powerOffHoldMs",
+        "powerConfirmTimeoutMs"
       ],
       "properties": {
         "longPressMs": {
@@ -573,6 +575,18 @@
           "minimum": 500,
           "maximum": 10000,
           "description": "측면 버튼 길게 누름 = 제스처 잠금 토글(작업지시서 2000)"
+        },
+        "powerOffHoldMs": {
+          "type": "integer",
+          "minimum": 500,
+          "maximum": 8000,
+          "description": "PWR 를 이만큼 누르면 '전원을 끌까요?' 확인(실기 피드백 11). PMU 하드웨어 강제 종료 시간보다 짧아야 한다"
+        },
+        "powerConfirmTimeoutMs": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 60000,
+          "description": "확인 화면 무입력 자동 취소"
         }
       }
     },

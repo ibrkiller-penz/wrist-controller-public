@@ -278,7 +278,8 @@ void applyTz() {
   setenv("TZ", tz, 1);
   tzset();
 }
-int64_t g_saveDueUs = 0;  // 0 이 아니면 이 시각에 저장(1초 지연 저장 — 잦은 플래시 쓰기 방지)
+int64_t g_saveDueUs = 0;
+int64_t g_powerOffDueUs = 0;  // 0 이 아니면 이 시각에 전원 끄기(실기 피드백 11)  // 0 이 아니면 이 시각에 저장(1초 지연 저장 — 잦은 플래시 쓰기 방지)
 
 void nvsInit() {
   esp_err_t err = nvs_flash_init();
@@ -332,6 +333,8 @@ void nvsSavePrefs() {
 // 입력 하나 → 코어 → HID·화면 피드백
 // ---------------------------------------------------------------------------
 
+void noteActivity();  // 아래 전원 절(확인 화면이 열리면 자동 꺼짐 타이머를 다시 센다)
+
 void dispatch(const wc::InputEvent& input) {
   xSemaphoreTake(g_lock, portMAX_DELAY);
   wc::StepContext ctx;
@@ -352,6 +355,15 @@ void dispatch(const wc::InputEvent& input) {
       case wc::EventType::Os:
       case wc::EventType::Sensitivity:
         g_saveDueUs = esp_timer_get_time() + 1000 * 1000;
+        break;
+      case wc::EventType::PowerConfirm:
+        noteActivity();
+        ESP_LOGI(TAG, "전원 끄기 확인 %s", ev.value ? "열림" : "닫힘");
+        break;
+      case wc::EventType::PowerOff:
+        // 실제 차단은 tick 에서: NVS 저장 → '전원을 끕니다' 0.5초 → AXP2101 소프트웨어 끄기
+        g_powerOffDueUs = esp_timer_get_time() + 500 * 1000;
+        ESP_LOGW(TAG, "전원 끄기 요청 — 0.5초 뒤 끔");
         break;
       case wc::EventType::Flick:
         // 실기 튜닝용: accel 방식이면 hp 피크(g)
@@ -388,7 +400,7 @@ void buttonsInit() {
   io.intr_type = GPIO_INTR_DISABLE;
   gpio_config(&io);
   // PWR(GPIO18, SYS_OUT): 누르면 HIGH. 외부 회로가 레벨을 정하므로 내부 풀업을 끈다(hardware.md 2.8).
-  // 주의: PWR 를 약 6초 누르면 AXP2101 가 전원을 끊는다 — 2초 잠금은 그 전에 판정이 끝난다.
+  // 주의: PWR 는 AXP2101 전원키 — 계속 누르면 PMU 가 강제로 끈다(wc_pmu_init 이 4초 이하면 10초로 늘림). PWR 3초 확인 화면이 먼저 뜬다.
   io.pin_bit_mask = (1ULL << board::PIN_BTN_PWR);
   io.pull_up_en = GPIO_PULLUP_DISABLE;
   gpio_config(&io);
@@ -618,7 +630,8 @@ void powerTick() {
     g_settingsOpen = false;
     ESP_LOGI(TAG, "화면 자동 꺼짐(%.0fs 무입력)", pw.screenOffMs / 1000.0);
   }
-  const bool want = g_state.screenOn;
+  // 끄는 중('전원을 끕니다' 0.5초)에는 코어가 화면을 껐어도 패널을 켜 둔다
+  const bool want = g_state.screenOn || g_powerOffDueUs != 0;
   xSemaphoreGive(g_lock);
   if (want != g_panelOn) {
     g_panelOn = want;
@@ -707,6 +720,8 @@ void uiRefresh() {
   m.raiseClock = g_raiseClock;
   m.airMouse = g_gesture.airMouse.enabled;
   m.flick = g_gesture.flick.enabled;
+  m.poweringOff = g_powerOffDueUs != 0;
+  m.powerOnMs = wc_pmu_power_on_ms();
   if (g_timeValid) {
     const time_t now = time(nullptr);
     tm lt;
@@ -945,6 +960,13 @@ void tickTask(void*) {
     if (g_settingsOpen && !g_setTouch.active && g_gesture.timing.settingsIdleCloseMs > 0 &&
         esp_timer_get_time() - g_settingsLastUs > static_cast<int64_t>(g_gesture.timing.settingsIdleCloseMs * 1000.0)) {
       settingsClose("30초 무입력");
+    }
+    if (g_powerOffDueUs != 0 && esp_timer_get_time() >= g_powerOffDueUs) {
+      nvsSavePrefs();  // 마지막 모드·설정
+      const esp_err_t pe = wc_pmu_shutdown();
+      // 여기까지 왔으면 차단 실패(PMU 없음 등) — 화면만 끈 상태로 계속
+      ESP_LOGE(TAG, "전원 끄기 실패 %s — 화면만 끔", esp_err_to_name(pe));
+      g_powerOffDueUs = 0;
     }
 
     dispatch(wc::InputEvent::tick());

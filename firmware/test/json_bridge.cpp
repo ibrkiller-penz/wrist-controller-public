@@ -285,6 +285,8 @@ GestureConfig gestureFromJson(const json& j) {
   g.touch.settingsCloseMinPx = t.at("settingsCloseMinPx").get<double>();
   g.touch.settingsCloseAxisRatio = t.at("settingsCloseAxisRatio").get<double>();
   g.button.longPressMs = j.at("button").at("longPressMs").get<double>();
+  g.button.powerOffHoldMs = j.at("button").at("powerOffHoldMs").get<double>();
+  g.button.powerConfirmTimeoutMs = j.at("button").at("powerConfirmTimeoutMs").get<double>();
   const json& tm = j.at("timing");
   g.timing.sheetAutoCloseMs = tm.at("sheetAutoCloseMs").get<double>();
   g.timing.meetingEstimateResetMs = tm.at("meetingEstimateResetMs").get<double>();
@@ -398,7 +400,9 @@ json toJson(const GestureConfig& g) {
                 {"topEdgePx", g.touch.topEdgePx},
                 {"settingsCloseMinPx", g.touch.settingsCloseMinPx},
                 {"settingsCloseAxisRatio", g.touch.settingsCloseAxisRatio}};
-  j["button"] = {{"longPressMs", g.button.longPressMs}};
+  j["button"] = {{"longPressMs", g.button.longPressMs},
+                 {"powerOffHoldMs", g.button.powerOffHoldMs},
+                 {"powerConfirmTimeoutMs", g.button.powerConfirmTimeoutMs}};
   j["timing"] = {{"sheetAutoCloseMs", g.timing.sheetAutoCloseMs},
                  {"meetingEstimateResetMs", g.timing.meetingEstimateResetMs},
                  {"settingsIdleCloseMs", g.timing.settingsIdleCloseMs}};
@@ -425,6 +429,8 @@ json toJson(const CoreState& s) {
   j["disconnectedAt"] = optNum(s.disconnectedAt);
   j["locked"] = s.locked;
   j["screenOn"] = s.screenOn;
+  if (s.powerConfirmSince) j["powerConfirm"] = {{"since", *s.powerConfirmSince}};
+  else j["powerConfirm"] = nullptr;
   j["sheet"] = {{"open", s.sheet.open}, {"lastActivity", s.sheet.lastActivity}};
   j["show"] = {{"running", s.show.running}, {"startedAt", optNum(s.show.startedAt)}, {"blackout", s.show.blackout}};
   json meeting = json::object();
@@ -482,6 +488,8 @@ json toJson(const CoreEvent& e) {
       j["source"] = name(e.source);
       j["sent"] = e.value;
       break;
+    case EventType::PowerConfirm: j["open"] = e.value; break;
+    case EventType::PowerOff: break;
     case EventType::Flick:
       j["dir"] = name(e.dir);
       if (e.peakG >= 0) j["peakG"] = e.peakG;
@@ -588,6 +596,8 @@ void applyInit(CoreState& s, const json& init) {
       s.disconnectedAt = numOrNull(v);
     } else if (k == "locked") {
       s.locked = v.get<bool>();
+    } else if (k == "powerConfirm") {
+      s.powerConfirmSince = v.is_null() ? std::nullopt : std::optional<double>(v.at("since").get<double>());
     } else if (k == "screenOn") {
       s.screenOn = v.get<bool>();
     } else if (k == "sheet") {

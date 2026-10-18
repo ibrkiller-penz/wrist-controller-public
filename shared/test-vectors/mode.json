@@ -457,6 +457,382 @@
       ]
     },
     {
+      "id": "pwr-3s-power-confirm",
+      "checklist": "PWR 3초 = 전원을 끌까요? 확인, 손을 뗀 뒤 PWR 짧게 = 끄기(전원 끄기 요청)",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "button",
+            "id": "pwr",
+            "action": "down"
+          }
+        },
+        {
+          "at": 2999,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "powerConfirm": null,
+              "locked": false
+            }
+          }
+        },
+        {
+          "at": 3000,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "powerConfirm": {
+                "since": 3000
+              }
+            },
+            "events": [
+              {
+                "t": "powerConfirm",
+                "open": true
+              }
+            ]
+          }
+        },
+        {
+          "at": 3200,
+          "input": {
+            "t": "button",
+            "id": "pwr",
+            "action": "up"
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "screenOn": true,
+              "powerConfirm": {
+                "since": 3000
+              }
+            },
+            "noEvents": [
+              "screen",
+              "powerOff"
+            ]
+          }
+        },
+        {
+          "at": 3500,
+          "input": {
+            "t": "tap",
+            "x": 350,
+            "y": 260
+          },
+          "expect": {
+            "hid": [],
+            "state": {
+              "powerConfirm": {
+                "since": 3000
+              }
+            }
+          }
+        },
+        {
+          "at": 3600,
+          "input": {
+            "t": "swipe",
+            "dir": "left"
+          },
+          "expect": {
+            "state": {
+              "mode": "present"
+            }
+          }
+        },
+        {
+          "at": 4000,
+          "input": {
+            "t": "button",
+            "id": "pwr",
+            "action": "down"
+          }
+        },
+        {
+          "at": 4100,
+          "input": {
+            "t": "button",
+            "id": "pwr",
+            "action": "up"
+          },
+          "expect": {
+            "hid": [],
+            "events": [
+              {
+                "t": "powerConfirm",
+                "open": false
+              },
+              {
+                "t": "powerOff"
+              }
+            ],
+            "state": {
+              "powerConfirm": null,
+              "screenOn": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "pwr-under-3s-screen-toggle",
+      "desc": "PWR 를 3초 전에 떼면 지금처럼 화면 켜기/끄기(잠금 아님 — 잠금은 BOOT 2초)",
+      "init": {
+        "mode": "present"
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "button",
+            "id": "pwr",
+            "action": "down"
+          }
+        },
+        {
+          "at": 2500,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "locked": false
+            }
+          }
+        },
+        {
+          "at": 2900,
+          "input": {
+            "t": "button",
+            "id": "pwr",
+            "action": "up"
+          },
+          "expect": {
+            "state": {
+              "screenOn": false,
+              "powerConfirm": null,
+              "locked": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "power-confirm-boot-cancels",
+      "desc": "확인 화면에서 BOOT 짧게 = 취소(시계 모드로 가지 않는다)",
+      "init": {
+        "mode": "present",
+        "powerConfirm": {
+          "since": 0
+        }
+      },
+      "steps": [
+        {
+          "at": 100,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "down"
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "button",
+            "id": "boot",
+            "action": "up"
+          },
+          "expect": {
+            "hid": [],
+            "events": [
+              {
+                "t": "powerConfirm",
+                "open": false
+              }
+            ],
+            "noEvents": [
+              "powerOff",
+              "mode"
+            ],
+            "state": {
+              "mode": "present",
+              "powerConfirm": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "power-confirm-timeout",
+      "desc": "확인 화면 10초 무입력 = 취소",
+      "init": {
+        "mode": "present",
+        "powerConfirm": {
+          "since": 0
+        }
+      },
+      "steps": [
+        {
+          "at": 9999,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "powerConfirm": {
+                "since": 0
+              }
+            }
+          }
+        },
+        {
+          "at": 10000,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "powerConfirm": null
+            },
+            "events": [
+              {
+                "t": "powerConfirm",
+                "open": false
+              }
+            ],
+            "noEvents": [
+              "powerOff"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "power-confirm-touch-buttons",
+      "desc": "확인 화면 [취소] 탭 = 취소, [끄기] 탭 = 끄기",
+      "init": {
+        "mode": "launch",
+        "powerConfirm": {
+          "since": 0
+        }
+      },
+      "steps": [
+        {
+          "at": 100,
+          "input": {
+            "t": "tap",
+            "x": 300,
+            "y": 350
+          },
+          "expect": {
+            "hid": [],
+            "events": [
+              {
+                "t": "powerConfirm",
+                "open": false
+              }
+            ],
+            "state": {
+              "powerConfirm": null
+            }
+          }
+        },
+        {
+          "at": 200,
+          "input": {
+            "t": "button",
+            "id": "pwr",
+            "action": "down"
+          }
+        },
+        {
+          "at": 3200,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "events": [
+              {
+                "t": "powerConfirm",
+                "open": true
+              }
+            ]
+          }
+        },
+        {
+          "at": 3300,
+          "input": {
+            "t": "button",
+            "id": "pwr",
+            "action": "up"
+          }
+        },
+        {
+          "at": 3400,
+          "input": {
+            "t": "tap",
+            "x": 100,
+            "y": 350
+          },
+          "expect": {
+            "hid": [],
+            "events": [
+              {
+                "t": "powerOff"
+              }
+            ],
+            "state": {
+              "powerConfirm": null,
+              "screenOn": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "pwr-3s-wakes-screen",
+      "desc": "화면이 꺼져 있어도 PWR 3초면 확인 화면을 켠다",
+      "init": {
+        "mode": "clock",
+        "screenOn": false
+      },
+      "steps": [
+        {
+          "at": 0,
+          "input": {
+            "t": "button",
+            "id": "pwr",
+            "action": "down"
+          }
+        },
+        {
+          "at": 3000,
+          "input": {
+            "t": "tick"
+          },
+          "expect": {
+            "state": {
+              "screenOn": true,
+              "powerConfirm": {
+                "since": 3000
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "id": "clock-sends-nothing",
       "checklist": "시계 모드 — 키 안 보냄",
       "init": {

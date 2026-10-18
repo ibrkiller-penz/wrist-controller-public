@@ -106,7 +106,9 @@
     "settingsCloseAxisRatio": 1.2
   },
   "button": {
-    "longPressMs": 2000
+    "longPressMs": 2000,
+    "powerOffHoldMs": 3000,
+    "powerConfirmTimeoutMs": 10000
   },
   "timing": {
     "sheetAutoCloseMs": 3000,

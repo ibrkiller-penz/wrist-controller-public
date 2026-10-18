@@ -80,6 +80,10 @@ void TouchGesture::down(double x, double y, double t, const CoreState& s, const 
     kind_ = Kind::Off;  // 화면이 꺼져 있으면 터치를 버린다(켜는 일은 펌웨어 전원 처리)
     return;
   }
+  if (s.powerConfirmSince) {
+    kind_ = Kind::Confirm;  // 전원 끄기 확인 화면: 움직이지 않고 떼면 tap(코어가 [끄기]·[취소] 판정)
+    return;
+  }
   if (s.air.active) {
     kind_ = Kind::Air;  // 에어마우스 중: 움직이지 않고 떼면 왼쪽 클릭
     return;
@@ -142,6 +146,9 @@ void TouchGesture::up(double t, const CoreState& s, const GestureConfig& g, std:
       return;
     case Kind::Air:
       if (!moved_) out.push_back(InputEvent::tap(x0_, y0_));  // 왼쪽 클릭(뗄 때)
+      return;
+    case Kind::Confirm:
+      if (!moved_) out.push_back(InputEvent::tap(x0_, y0_));
       return;
     case Kind::Sheet:
       if (pullUp) {

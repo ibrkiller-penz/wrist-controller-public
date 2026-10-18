@@ -436,6 +436,60 @@ write('mode.json', {
       ],
     },
     {
+      id: 'pwr-3s-power-confirm',
+      checklist: 'PWR 3초 = 전원을 끌까요? 확인, 손을 뗀 뒤 PWR 짧게 = 끄기(전원 끄기 요청)',
+      init: P,
+      steps: [
+        BTN(0, 'pwr', 'down'),
+        { at: 2999, input: { t: 'tick' }, expect: { state: { powerConfirm: null, locked: false } } },
+        { at: 3000, input: { t: 'tick' }, expect: { state: { powerConfirm: { since: 3000 } }, events: [{ t: 'powerConfirm', open: true }] } },
+        BTN(3200, 'pwr', 'up', { hid: [], state: { screenOn: true, powerConfirm: { since: 3000 } }, noEvents: ['screen', 'powerOff'] }),
+        T(3500, 350, 260, { hid: [], state: { powerConfirm: { since: 3000 } } }),
+        S(3600, 'left', { state: { mode: 'present' } }),
+        BTN(4000, 'pwr', 'down'),
+        BTN(4100, 'pwr', 'up', { hid: [], events: [{ t: 'powerConfirm', open: false }, { t: 'powerOff' }], state: { powerConfirm: null, screenOn: false } }),
+      ],
+    },
+    {
+      id: 'pwr-under-3s-screen-toggle',
+      desc: 'PWR 를 3초 전에 떼면 지금처럼 화면 켜기/끄기(잠금 아님 — 잠금은 BOOT 2초)',
+      init: P,
+      steps: [BTN(0, 'pwr', 'down'), { at: 2500, input: { t: 'tick' }, expect: { state: { locked: false } } }, BTN(2900, 'pwr', 'up', { state: { screenOn: false, powerConfirm: null, locked: false } })],
+    },
+    {
+      id: 'power-confirm-boot-cancels',
+      desc: '확인 화면에서 BOOT 짧게 = 취소(시계 모드로 가지 않는다)',
+      init: { mode: 'present', powerConfirm: { since: 0 } },
+      steps: [BTN(100, 'boot', 'down'), BTN(200, 'boot', 'up', { hid: [], events: [{ t: 'powerConfirm', open: false }], noEvents: ['powerOff', 'mode'], state: { mode: 'present', powerConfirm: null } })],
+    },
+    {
+      id: 'power-confirm-timeout',
+      desc: '확인 화면 10초 무입력 = 취소',
+      init: { mode: 'present', powerConfirm: { since: 0 } },
+      steps: [
+        { at: 9999, input: { t: 'tick' }, expect: { state: { powerConfirm: { since: 0 } } } },
+        { at: 10000, input: { t: 'tick' }, expect: { state: { powerConfirm: null }, events: [{ t: 'powerConfirm', open: false }], noEvents: ['powerOff'] } },
+      ],
+    },
+    {
+      id: 'power-confirm-touch-buttons',
+      desc: '확인 화면 [취소] 탭 = 취소, [끄기] 탭 = 끄기',
+      init: { mode: 'launch', powerConfirm: { since: 0 } },
+      steps: [
+        T(100, 300, 350, { hid: [], events: [{ t: 'powerConfirm', open: false }], state: { powerConfirm: null } }),
+        BTN(200, 'pwr', 'down'),
+        { at: 3200, input: { t: 'tick' }, expect: { events: [{ t: 'powerConfirm', open: true }] } },
+        BTN(3300, 'pwr', 'up'),
+        T(3400, 100, 350, { hid: [], events: [{ t: 'powerOff' }], state: { powerConfirm: null, screenOn: false } }),
+      ],
+    },
+    {
+      id: 'pwr-3s-wakes-screen',
+      desc: '화면이 꺼져 있어도 PWR 3초면 확인 화면을 켠다',
+      init: { mode: 'clock', screenOn: false },
+      steps: [BTN(0, 'pwr', 'down'), { at: 3000, input: { t: 'tick' }, expect: { state: { screenOn: true, powerConfirm: { since: 3000 } } } }],
+    },
+    {
       id: 'clock-sends-nothing',
       checklist: '시계 모드 — 키 안 보냄',
       init: { mode: 'clock' },
@@ -1051,6 +1105,12 @@ write('macro.json', {
           D(1000, 300, 260), M(1100, 200, 260), U(1150, 200, 260, { inputs: [], state: { mode: 'present' } }),
           D(2000, 205, 20), M(2100, 205, 120), U(2150, 205, 120, { inputs: [], settingsRequest: true }),
         ],
+      },
+      {
+        id: 'power-confirm-tap-on-release',
+        desc: '전원 끄기 확인 화면(시계 모드): [끄기] 를 누를 때는 없음, 뗄 때 tap → 전원 끄기 요청',
+        init: { mode: 'clock', powerConfirm: { since: 0 } },
+        steps: [D(100, 100, 350, { inputs: [] }), U(200, 100, 350, { inputs: [TAP(100, 350)], events: [{ t: 'powerOff' }] })],
       },
       {
         id: 'screen-off-ignored',

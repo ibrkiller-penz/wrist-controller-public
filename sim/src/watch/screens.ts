@@ -13,6 +13,8 @@ import {
   LAUNCH_TILES,
   LAUNCH_TILES_PER_PAGE,
   MEETING_TILES,
+  POWER_CANCEL_BTN,
+  POWER_OFF_BTN,
   RAIL,
   RAIL_ORDER,
   SHEET,
@@ -841,6 +843,35 @@ export class Banner {
 // 토스트 — 16,64,378×64 하나. 새것이 오면 즉시 교체. 터치 통과 (README 2.3)
 // ===========================================================================
 export type ToastKind = 'info' | 'lock' | 'warn' | 'error' | 'success';
+
+// ===========================================================================
+// 전원 끄기 확인(실기 피드백 11) — 화면 전체 불투명 검정. [끄기]·[취소] 는 core/layout POWER_*_BTN
+// ===========================================================================
+export class PowerConfirmView {
+  readonly root = el('div', 'watch-a watch-power is-hidden');
+  private hint = el('div', 'watch-a watch-kr24 watch-c watch-power__hint');
+
+  constructor() {
+    place(this.root, 0, 0, 410, 502);
+    const title = el('div', 'watch-a watch-kr32 watch-c watch-power__title', t('power.title'));
+    place(title, 20, 112, 370, 44);
+    place(this.hint, 20, 176, 370, 32);
+    // 시뮬레이터는 PMU 값을 모른다 — 펌웨어와 같은 문구에 AXP2101 기본(1초)을 넣는다
+    setText(this.hint, t('power.onHint', '1초'));
+    const mk = (r: readonly [number, number, number, number], label: string, cls: string) => {
+      const b = el('div', `watch-a watch-bd watch-kr32 watch-power__btn ${cls}`, label);
+      place(b, r[0], r[1], r[2] - r[0], r[3] - r[1]);
+      return b;
+    };
+    const keys = el('div', 'watch-a watch-kr20 watch-c watch-power__keys', t('power.keys'));
+    place(keys, 20, 432, 370, 26);
+    this.root.append(title, this.hint, mk(POWER_OFF_BTN, t('power.off'), 'is-off'), mk(POWER_CANCEL_BTN, t('power.cancel'), ''), keys);
+  }
+
+  update(s: CoreState): void {
+    this.root.classList.toggle('is-hidden', !s.powerConfirm);
+  }
+}
 
 export class Toast {
   readonly root = el('div', 'watch-a watch-toast watch-bd is-hidden');

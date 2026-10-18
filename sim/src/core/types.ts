@@ -154,7 +154,8 @@ export interface GestureConfig {
     settingsCloseMinPx: number;
     settingsCloseAxisRatio: number;
   };
-  button: { longPressMs: number };
+  /** longPressMs = BOOT 길게(잠금), powerOffHoldMs = PWR 길게('전원을 끌까요?' 확인), powerConfirmTimeoutMs = 확인 자동 취소 */
+  button: { longPressMs: number; powerOffHoldMs: number; powerConfirmTimeoutMs: number };
   timing: {
     sheetAutoCloseMs: number;
     meetingEstimateResetMs: number;
@@ -348,6 +349,8 @@ export interface CoreState {
   disconnectedAt: number | null;
   locked: boolean;
   screenOn: boolean;
+  /** '전원을 끌까요?' 확인 화면(열린 시각). 열려 있으면 키·스와이프·튕김을 보내지 않는다 */
+  powerConfirm: { since: number } | null;
   sheet: { open: boolean; lastActivity: number };
   show: { running: boolean; startedAt: number | null; blackout: boolean };
   meeting: Record<MeetingAppId, MeetingEstimate>;
@@ -372,6 +375,10 @@ export type CoreEvent =
   | { t: 'show'; running: boolean }
   | { t: 'blackout'; on: boolean }
   | { t: 'screen'; on: boolean }
+  /** 전원 끄기 확인 화면 열림/닫힘 */
+  | { t: 'powerConfirm'; open: boolean }
+  /** 전원 끄기 요청 — 실제 차단은 펌웨어(AXP2101), 시뮬레이터는 '꺼짐' 화면 */
+  | { t: 'powerOff' }
   | { t: 'sensitivity'; level: number }
   /** 실행 모드 쪽이 바뀜 */
   | { t: 'launchPage'; page: number }

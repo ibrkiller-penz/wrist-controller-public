@@ -52,7 +52,7 @@ class TouchGesture {
   Press press() const;
 
  private:
-  enum class Kind : uint8_t { Mode, Pull, Sheet, Air, Off };
+  enum class Kind : uint8_t { Mode, Pull, Sheet, Air, Off, Confirm };
 
   void down(double x, double y, double t, const CoreState& s, const Keymap& km, const GestureConfig& g);
   void move(double x, double y, const GestureConfig& g);

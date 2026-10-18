@@ -223,7 +223,8 @@
               <tr><td>위 BOOT</td><td>짧게</td><td>시계 화면으로. 이미 시계 화면이면 바로 전 화면으로 돌아감(키는 보내지 않음)</td></tr>
               <tr><td>위 BOOT</td><td><span data-g="button.longPressMs" data-v="2000">2초</span> 누름</td><td>잠금 켜기/끄기 — 잠금 중에는 터치·손목 튕김이 키를 보내지 않음(주머니 속 오작동 방지)</td></tr>
               <tr><td>아래 PWR</td><td>짧게</td><td>화면 켜기/끄기</td></tr>
-              <tr><td>아래 PWR</td><td>4초 이상</td><td><strong>전원이 꺼짐</strong>(시계 전원 회로가 하는 일). 켤 때는 PWR 를 다시 누름</td></tr>
+              <tr><td>아래 PWR</td><td><span data-g="button.powerOffHoldMs" data-v="3000">3초</span> 누름</td><td><strong>전원 끄기 확인</strong> '전원을 끌까요?' — 손을 뗀 뒤 [끄기](또는 PWR 짧게)를 누르면 꺼지고, [취소]·BOOT 짧게·10초 기다림이면 취소. 켤 때는 PWR 를 1초쯤 길게(정확한 시간은 확인 화면에 표시)</td></tr>
+              <tr><td>아래 PWR</td><td>10초 넘게</td><td>시계가 멈췄을 때의 강제 종료(전원 회로가 함). 펌웨어가 이 시간을 10초로 늘려 둔다</td></tr>
             </tbody>
           </table>
         </div>
@@ -274,7 +275,7 @@
             <li>PC 블루투스가 켜져 있는지 봅니다.</li>
             <li>PC 의 장치 목록에 '손목 컨트롤러 XXXX' 가 이미 있으면 <strong>장치 제거</strong> 후 다시 추가합니다(<a href="#s3">3단계</a>).</li>
             <li>다른 PC 와 이미 연결되어 있으면 그 PC 의 블루투스를 끕니다. 시계는 한 번에 PC 한 대와 연결됩니다.</li>
-            <li>PWR 를 4초 눌러 껐다 다시 켭니다.</li>
+            <li>PWR 를 3초 눌러 '전원을 끌까요?' 에서 [끄기] → PWR 를 길게 눌러 다시 켭니다(화면이 멈췄으면 PWR 를 10초 넘게 눌러 강제로 끕니다).</li>
           </ol>
         </details>
         <details>
@@ -282,8 +283,8 @@
           <p>배터리가 없는 판(또는 배터리 연결이 빠진 상태)이면 시계가 배터리 양을 읽지 못해 50% 로 알립니다. 배터리 포함판에서 배터리 커넥터가 제대로 꽂혀 있는지 확인합니다. USB 를 꽂고 쓰면 동작에는 문제가 없습니다.</p>
         </details>
         <details>
-          <summary>PWR 를 오래 눌렀더니 꺼졌어요</summary>
-          <p>정상입니다. PWR 를 4초 넘게 누르면 시계 전원 회로가 전원을 끊습니다. PWR 를 다시 누르면 켜집니다. 잠금은 <strong>BOOT(위 버튼)</strong> 2초입니다.</p>
+          <summary>PWR 를 오래 눌렀더니 '전원을 끌까요?' 가 떠요 / 꺼졌어요</summary>
+          <p>정상입니다. PWR 를 3초 누르면 확인 화면이 뜨고, [끄기] 를 누르면 꺼집니다. 확인 화면을 무시하고 10초 넘게 계속 누르면 시계 전원 회로가 강제로 끕니다. PWR 를 길게 누르면 다시 켜집니다. 잠금은 <strong>BOOT(위 버튼)</strong> 2초입니다.</p>
         </details>
         <details>
           <summary>손목 튕김이 안 먹거나 너무 잘 먹어요</summary>

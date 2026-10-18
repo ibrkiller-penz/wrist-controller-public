@@ -1,7 +1,9 @@
 // AXP2101 — 배터리 잔량·충전 상태 읽기. 쓰기는 '측정 기능 켜기' 비트만(읽고-바꾸고-쓰기, 해당 비트만 1):
 //   REG 0x68 bit0 배터리 감지 켜기, REG 0x18 bit3 연료계(gauge) 켜기, REG 0x30 bit0 배터리 전압 ADC 켜기
 //   (XPowersLib enableBattDetection / enableGauge / enableBattVoltageMeasure 와 같은 비트).
-// 전원 레일·충전 전압/전류·전원 키 같은 전원 경로 설정은 쓰지 않는다(공장/샤오즈 설정 유지).
+// 전원 레일·충전 전압/전류 같은 전원 경로 설정은 쓰지 않는다(공장/샤오즈 설정 유지).
+// 예외(실기 피드백 11): 전원 키 강제 종료 시간(REG 0x27 bit3:2)만 — 4초 이하면 10초로 늘린다(PWR 3초 확인 화면이 먼저 뜨게).
+//   소프트웨어 전원 끄기는 REG 0x10 bit0(XPowersLib shutdown()).
 // 샤오즈(원래 펌웨어)는 0xA4 를 배터리 확인 없이 그대로 읽는다 → 0x00 bit3(배터리 있음)이 0 이어도 0xA4 가 0~100 이면 쓴다.
 #include "pmu_axp2101.h"
 
@@ -19,6 +21,14 @@ static uint8_t s_last[3] = {0xFF, 0xFF, 0xFF};
 #define REG_ADC_EN 0x30      // bit0 = 배터리 전압 측정
 #define REG_BATDET 0x68      // bit0 = 배터리 감지 켜기
 #define REG_BAT_PERCENT 0xA4
+#define REG_COMMON_CONFIG 0x10  // bit0 = 소프트웨어 전원 끄기(XPowersLib shutdown)
+#define REG_PWROFF_EN 0x22      // bit1 = 전원 키 길게 누름 종료 켜짐, bit0 = 1 이면 종료 대신 재시작(로그만)
+#define REG_KEY_LEVEL 0x27      // bit1:0 켜기 시간, bit3:2 강제 종료 시간(XPowersLib setPowerKeyPressOn/OffTime)
+
+static int s_on_ms = -1;
+static int s_off_ms = -1;
+static const int kOnMs[4] = {128, 512, 1000, 2000};
+static const int kOffMs[4] = {4000, 6000, 8000, 10000};
 
 static esp_err_t rd(uint8_t reg, uint8_t* v) { return i2c_master_transmit_receive(s_dev, &reg, 1, v, 1, 50); }
 static esp_err_t wr(uint8_t reg, uint8_t v) {
@@ -55,7 +65,39 @@ esp_err_t wc_pmu_init(i2c_master_bus_handle_t bus) {
   set_bit(REG_BATDET, 0x01, "배터리 감지");
   set_bit(REG_GAUGE_CTRL, 0x08, "연료계");
   set_bit(REG_ADC_EN, 0x01, "배터리 전압 ADC");
+  // 전원 키 시간(실기 피드백 11): 원래 값을 로그로 남기고, 강제 종료가 4초 이하면 10초로(PWR 3초 확인 화면이 먼저)
+  uint8_t kl = 0, pe = 0;
+  if (rd(REG_KEY_LEVEL, &kl) == ESP_OK) {
+    const int off0 = kOffMs[(kl >> 2) & 3];
+    s_on_ms = kOnMs[kl & 3];
+    s_off_ms = off0;
+    if (off0 <= 4000) {
+      const uint8_t nv = (uint8_t)((kl & ~0x0C) | (3u << 2));
+      const esp_err_t we = wr(REG_KEY_LEVEL, nv);
+      uint8_t back = 0;
+      if (we == ESP_OK && rd(REG_KEY_LEVEL, &back) == ESP_OK) s_off_ms = kOffMs[(back >> 2) & 3];
+      ESP_LOGW(TAG, "전원 키: 켜기 %dms, 강제 종료 %dms → %dms 로 늘림(0x27 0x%02X → 0x%02X, %s)", s_on_ms, off0, s_off_ms, kl,
+               nv, esp_err_to_name(we));
+    } else {
+      ESP_LOGI(TAG, "전원 키: 켜기 %dms, 강제 종료 %dms(0x27=0x%02X, 그대로)", s_on_ms, off0, kl);
+    }
+  }
+  if (rd(REG_PWROFF_EN, &pe) == ESP_OK) {
+    ESP_LOGI(TAG, "0x22=0x%02X(길게 누름 종료 %s, %s)", pe, (pe & 0x02) ? "켜짐" : "꺼짐", (pe & 0x01) ? "재시작" : "전원 끔");
+  }
   return ESP_OK;
+}
+
+int wc_pmu_power_on_ms(void) { return s_on_ms; }
+int wc_pmu_power_off_ms(void) { return s_off_ms; }
+
+esp_err_t wc_pmu_shutdown(void) {
+  if (!s_dev) return ESP_ERR_INVALID_STATE;
+  uint8_t v = 0;
+  esp_err_t err = rd(REG_COMMON_CONFIG, &v);
+  if (err != ESP_OK) return err;
+  ESP_LOGW(TAG, "소프트웨어 전원 끄기(0x10 0x%02X → 0x%02X)", v, (uint8_t)(v | 0x01));
+  return wr(REG_COMMON_CONFIG, (uint8_t)(v | 0x01));
 }
 
 esp_err_t wc_pmu_read(int* percent, bool* charging) {

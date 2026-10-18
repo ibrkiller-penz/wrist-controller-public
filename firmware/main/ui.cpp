@@ -238,6 +238,8 @@ lv_obj_t *shRoot, *shTitle, *shTime, *shBtn[2], *shBtnTxt[2], *shBtnKey[2], *shS
 lv_obj_t *wRoot, *wGuide, *wRepair, *wName, *wChip, *wChipTxt, *wDot[3];
 // 끊김 배너(lv_layer_top — 모든 화면 공유)
 lv_obj_t *bnRoot, *bnIcon, *bnOkDot, *bnTitle;
+// 전원 끄기 확인(lv_layer_top, 배너보다 위 — 화면 전체 불투명 검정)
+lv_obj_t *pcRoot, *pcTitle, *pcHint, *pcBtn[2], *pcKeys, *pcBye;
 // 설정
 lv_obj_t *sRoot, *sRow[SETTINGS_ROWS], *sKey[SETTINGS_ROWS], *sVal[SETTINGS_ROWS], *sClose;
 
@@ -412,6 +414,7 @@ void buildWait() {
 // 끊김 배너(README 2.2, 실기 피드백 3) — lv_layer_top 에 하나. 한 줄 16,438,378×48 '연결 끊김 · 12초'.
 // 시계 모드에서는 띄우지 않는다(상태줄의 빨간 BLE 점멸만). 설정 화면에서는 보인다
 constexpr int BANNER_Y = 438, BANNER_H = 48;
+void buildPowerConfirm();
 void buildBanner() {
   bnRoot = box(lv_layer_top(), 16, BANNER_Y, 378, BANNER_H, C_DANGER_DIM, 16, C_DANGER, 2);
   bnIcon = text(bnRoot, &lv_font_montserrat_20, C_DANGER, 10, 0, 28, BANNER_H - 4, LV_TEXT_ALIGN_CENTER, LV_SYMBOL_BLUETOOTH);
@@ -419,6 +422,24 @@ void buildBanner() {
   bnTitle = text(bnRoot, &kr_24, C_T1, 46, 0, 318, BANNER_H - 4, LV_TEXT_ALIGN_LEFT, S::BANNER_LOST);
   setHidden(bnOkDot, true);
   setHidden(bnRoot, true);
+}
+
+// 전원 끄기 확인(실기 피드백 11) — 덮개 없이 화면 전체를 불투명 검정으로. [끄기]·[취소] 183×112(wc/layout.h)
+void buildPowerConfirm() {
+  pcRoot = box(lv_layer_top(), 0, 0, 410, 502, C_BG, 0);
+  pcTitle = text(pcRoot, &kr_32, C_T1, 20, 112, 370, 44, LV_TEXT_ALIGN_CENTER, S::POWER_TITLE);
+  pcHint = text(pcRoot, &kr_24, C_T2, 20, 176, 370, 32, LV_TEXT_ALIGN_CENTER, "");
+  const wc::Rect rs[2] = {wc::POWER_OFF_BTN, wc::POWER_CANCEL_BTN};
+  static const char* const labels[2] = {S::POWER_OFF, S::POWER_CANCEL};
+  for (int i = 0; i < 2; ++i) {
+    const int w = rs[i].x1 - rs[i].x0, h = rs[i].y1 - rs[i].y0;
+    pcBtn[i] = box(pcRoot, rs[i].x0, rs[i].y0, w, h, i == 0 ? C_DANGER_DIM : C_S1, 20, i == 0 ? C_DANGER : C_BORDER, 2);
+    text(pcBtn[i], &kr_32, i == 0 ? C_DANGER : C_T1, 0, 0, w - 4, h - 4, LV_TEXT_ALIGN_CENTER, labels[i]);
+  }
+  pcKeys = text(pcRoot, &kr_20, C_T3, 20, 432, 370, 26, LV_TEXT_ALIGN_CENTER, S::POWER_KEYS);
+  pcBye = text(pcRoot, &kr_32, C_T1, 20, 230, 370, 44, LV_TEXT_ALIGN_CENTER, S::POWER_SHUTTING_DOWN);
+  setHidden(pcBye, true);
+  setHidden(pcRoot, true);
 }
 
 // 설정 화면(구조는 그대로 — 88px 스크롤 목록은 P1-3). 상태줄 '설정' 아래 y 56 부터
@@ -476,6 +497,7 @@ void build(const wc::Keymap& km) {
   buildStatusBar();
   buildSheet();
   buildBanner();
+  buildPowerConfirm();
   lvgl_port_unlock();
   g_built = true;
   ESP_LOGI(TAG, "screen objects built (v2)");
@@ -854,6 +876,20 @@ void render(const Model& m, const wc::Keymap& km) {
                               : fmt(S::BANNER_LOST_SECS, static_cast<int>(std::max(0.0, since)));
       }
       setText(bnTitle, line);
+    }
+  }
+
+  // ---------------------------------------------------------------- 전원 끄기 확인 / 끄는 중
+  {
+    const bool confirm = s.powerConfirmSince.has_value();
+    setHidden(pcRoot, !confirm && !m.poweringOff);
+    if (confirm || m.poweringOff) {
+      for (lv_obj_t* o : {pcTitle, pcHint, pcBtn[0], pcBtn[1], pcKeys}) setHidden(o, m.poweringOff);
+      setHidden(pcBye, !m.poweringOff);
+      const int on = m.powerOnMs;
+      const char* sec = on < 0 ? "2\xEC\xB4\x88" : on <= 128 ? "0.1\xEC\xB4\x88" : on <= 512 ? "0.5\xEC\xB4\x88"
+                        : on <= 1000 ? "1\xEC\xB4\x88" : "2\xEC\xB4\x88";  // 'N초'(U+CD08)
+      setText(pcHint, fmt(S::POWER_ON_HINT, sec));
     }
   }
 

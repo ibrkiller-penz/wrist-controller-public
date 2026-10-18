@@ -31,6 +31,7 @@ class Work {
   void timers() {
     CoreState& s = r.state;
     if (s.sheet.open && now_ - s.sheet.lastActivity >= g_.timing.sheetAutoCloseMs) setSheet(false);
+    if (s.powerConfirmSince && now_ - *s.powerConfirmSince >= g_.button.powerConfirmTimeoutMs) closePowerConfirm();
     if (s.button.has_value()) {
       ButtonHold& b = *s.button;
       const double held = now_ - b.downAt;
@@ -40,12 +41,51 @@ class Work {
         startAir();
       }
       // startAir 는 s.button 을 건드리지 않으므로 b 참조는 그대로 유효하다
-      if (!b.longFired && !b.moved && held >= g_.button.longPressMs) {
-        b.longFired = true;
-        setLocked(!s.locked);
-        stopAir();
+      if (!b.longFired && !b.moved) {
+        if (b.id == km_.settings.primaryButton && held >= g_.button.longPressMs) {
+          // BOOT 2초 = 잠금(확인 화면이 열려 있으면 잠금 대신 취소)
+          b.longFired = true;
+          if (s.powerConfirmSince) {
+            closePowerConfirm();
+          } else {
+            setLocked(!s.locked);
+            stopAir();
+          }
+        } else if (b.id != km_.settings.primaryButton && held >= g_.button.powerOffHoldMs) {
+          // PWR 3초 = '전원을 끌까요?'. 손을 뗀 뒤 PWR 짧게 = 끄기
+          b.longFired = true;
+          if (!s.powerConfirmSince) openPowerConfirm();
+        }
       }
     }
+  }
+
+  void openPowerConfirm() {
+    CoreState& s = r.state;
+    stopAir();
+    setSheet(false);
+    if (!s.screenOn) {
+      s.screenOn = true;
+      pushFlag(EventType::Screen, true);
+    }
+    s.powerConfirmSince = now_;
+    pushFlag(EventType::PowerConfirm, true);
+  }
+
+  void closePowerConfirm() {
+    if (!r.state.powerConfirmSince) return;
+    r.state.powerConfirmSince.reset();
+    pushFlag(EventType::PowerConfirm, false);
+  }
+
+  // 끄기: 확인을 닫고 '전원 끄기 요청'만 낸다. 실제 차단(AXP2101)은 펌웨어, 시뮬레이터는 화면을 끈다
+  void powerOff() {
+    closePowerConfirm();
+    CoreEvent e;
+    e.t = EventType::PowerOff;
+    push(e);
+    r.state.screenOn = false;
+    pushFlag(EventType::Screen, false);
   }
 
   void input(const InputEvent& inp) {
@@ -268,6 +308,12 @@ class Work {
 
   // ---------------- 입력 ----------------
   void shortPress(ButtonId id) {
+    if (r.state.powerConfirmSince) {
+      // 확인 화면: PWR 짧게 = 끄기, BOOT 짧게 = 취소
+      if (id == km_.settings.primaryButton) closePowerConfirm();
+      else powerOff();
+      return;
+    }
     if (id == km_.settings.primaryButton) {
       // BOOT 짧게 = 시계 모드로(모든 모드). 이미 시계면 직전 모드로. 키는 보내지 않는다(다음 = 오른쪽 탭·손목 튕김)
       if (r.state.mode == ModeId::Clock) {
@@ -288,7 +334,8 @@ class Work {
         shortPress(id);
         return;
       case ButtonAction::Long:
-        setLocked(!s.locked);
+        if (id == km_.settings.primaryButton) setLocked(!s.locked);
+        else if (!s.powerConfirmSince) openPowerConfirm();
         return;
       case ButtonAction::Down:
         if (s.button.has_value()) return;  // 다른 버튼이 눌려 있으면 무시
@@ -357,6 +404,12 @@ class Work {
 
   void touch(bool longPress, double x, double y) {
     CoreState& s = r.state;
+    if (s.powerConfirmSince) {
+      // 확인 화면: [끄기]·[취소]만, 그 밖의 터치는 무시(키 없음)
+      if (!longPress && inRect(x, y, POWER_OFF_BTN)) powerOff();
+      else if (!longPress && inRect(x, y, POWER_CANCEL_BTN)) closePowerConfirm();
+      return;
+    }
     if (s.air.active) {
       // 에어마우스 중: 탭 = 왼쪽 클릭, 길게 누름은 무시
       if (!longPress) {
@@ -411,7 +464,7 @@ class Work {
 
   void swipe(SwipeDir dir) {
     CoreState& s = r.state;
-    if (s.air.active) return;
+    if (s.air.active || s.powerConfirmSince) return;
     if (dir == SwipeDir::Left || dir == SwipeDir::Right) {
       if (s.sheet.open) return;
       const auto& order = km_.modeOrder;
@@ -449,7 +502,7 @@ class Work {
       return;
     }
     // 손목 튕김이 꺼져 있으면(기본 — 실기 피드백 10) 판정하지 않는다
-    if (!g_.flick.enabled || s.mode != ModeId::Present || s.button.has_value()) return;
+    if (!g_.flick.enabled || s.mode != ModeId::Present || s.button.has_value() || s.powerConfirmSince) return;
     const FlickResult fr = flickStep(s.flick, v, g_);
     s.flick = fr.state;
     if (fr.rejected) {

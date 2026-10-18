@@ -19,8 +19,8 @@
 import type { App, AppChange } from '../app';
 import { SCREEN_H, SCREEN_W, TouchGesture } from '../core';
 import type { ButtonId, CoreEvent, CoreState, InputEvent, ModeId, TouchPress } from '../core';
-import { el, fmtClock, pulse, takesRo } from './dom';
-import { Banner, ClockView, LaunchView, MeetingView, PresentView, Sheet, StatusBar, Toast, WaitView } from './screens';
+import { el, fmtClock, pulse, takesRo, setText } from './dom';
+import { Banner, ClockView, LaunchView, MeetingView, PowerConfirmView, PresentView, Sheet, StatusBar, Toast, WaitView } from './screens';
 import type { ScreenCtx } from './screens';
 import { SIM_MAC_SUFFIX, SettingsScreen } from './settingsScreen';
 import { t } from './text';
@@ -84,6 +84,11 @@ class WatchEmulator {
   private toast = new Toast();
   private settings: SettingsScreen;
   private offCover = el('div', 'watch-a watch-offcover is-hidden');
+  /** 전원 끄기 확인(실기 피드백 11) */
+  private power = new PowerConfirmView();
+  /** '전원 끄기' 뒤 꺼짐 화면 문구(시뮬레이터 흉내 — 실제 시계는 AXP2101 가 전원을 끊는다) */
+  private offText = el('div', 'watch-a watch-kr24 watch-c watch-offcover__txt');
+  private poweredOff = false;
   private caption = el('div', 'watch-caption');
   private side: Record<ButtonId, { btn: HTMLButtonElement; bar: HTMLDivElement }>;
 
@@ -150,8 +155,10 @@ class WatchEmulator {
       this.sheet.root,
       this.toast.root,
       this.settings.dialog,
+      this.power.root,
       this.offCover,
     );
+    this.offCover.appendChild(this.offText);
     const bezel = el('div', 'watch-bezel');
     bezel.appendChild(s);
     this.device.append(bezel, this.side.boot.btn, this.side.boot.bar, this.side.pwr.btn, this.side.pwr.bar); // 실물: 위 = BOOT, 아래 = PWR
@@ -255,6 +262,9 @@ class WatchEmulator {
     this.wait.root.setAttribute('aria-hidden', String(!waiting));
     this.banner.update(s, this.app.now(), this.settings.isOpen);
     this.offCover.classList.toggle('is-hidden', s.screenOn);
+    if (s.screenOn) this.poweredOff = false;
+    setText(this.offText, this.poweredOff ? t('power.simOff') : '');
+    this.power.update(s);
     if (this.settings.isOpen) this.settings.update(s);
     this.screen.classList.toggle('is-settings', this.settings.isOpen);
     this.showOnly(s.mode);
@@ -343,6 +353,9 @@ class WatchEmulator {
   private onEvent(ev: CoreEvent, prev: CoreState, s: CoreState): void {
     const km = this.app.keymap;
     switch (ev.t) {
+      case 'powerOff':
+        this.poweredOff = true;
+        return;
       case 'mode':
         if (prev.mode !== ev.mode) this.sb.flashChip();
         if (ev.mode === 'meeting') this.meetingHintOnce();

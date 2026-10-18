@@ -110,6 +110,7 @@
 .watch-sheet { z-index: 6; }
 .watch-toast { z-index: 7; }
 .watch-dlg { z-index: 8; }
+.watch-power { z-index: 8; left: 0; top: 0; width: 410px; height: 502px; background: var(--wc-bg); }
 .watch-offcover { z-index: 9; left: 0; top: 0; width: 410px; height: 502px; background: var(--wc-bg); }
 
 /* 모드 본문 — 현재 모드만 보인다(전환은 즉시 교체) */
@@ -368,3 +369,11 @@
 }
 .watch-dlg__btn--ok { background: var(--wc-accent-dim); --bd-c: var(--wc-accent); --bd-w: 2px; }
 .watch-dlg__btn.is-press { background: var(--wc-surface-1); }
+
+/* 전원 끄기 확인(실기 피드백 11) — 불투명 검정 전체 화면 */
+.watch-power__title { color: var(--wc-text-1); }
+.watch-power__hint { color: var(--wc-text-2); }
+.watch-power__keys { color: var(--wc-text-3); }
+.watch-power__btn { display: flex; align-items: center; justify-content: center; border-radius: var(--wc-radius-md); background: var(--wc-surface-1); color: var(--wc-text-1); --bd-c: var(--wc-border); --bd-w: 2px; }
+.watch-power__btn.is-off { background: var(--wc-danger-dim); color: var(--wc-danger); --bd-c: var(--wc-danger); }
+.watch-offcover__txt { left: 20px; top: 236px; width: 370px; color: var(--wc-text-3); }

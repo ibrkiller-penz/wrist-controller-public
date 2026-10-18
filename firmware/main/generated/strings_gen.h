@@ -1,9 +1,9 @@
 // 자동 생성 파일 — 고치지 마세요. 원본: shared/strings.ko.json
 // 다시 만들기: python tools/gen_strings_header.py   (CI 는 --check 로 최신인지 확인)
-// 원본 해시(sha256 앞 12자리): 283d76094f0c
+// 원본 해시(sha256 앞 12자리): c15d4416c148
 #pragma once
 
-#define WC_STRINGS_GEN_HASH "283d76094f0c"
+#define WC_STRINGS_GEN_HASH "c15d4416c148"
 
 namespace wc::str {
 
@@ -94,6 +94,13 @@ inline constexpr const char* BANNER_LOST_SECS = "연결 끊김 · %d초";
 inline constexpr const char* BANNER_LOST_CHECK = "연결 끊김 · PC 블루투스 확인";
 inline constexpr const char* BANNER_LOST_NOT_SENT = "연결 끊김 · 보내지 못함";
 inline constexpr const char* BANNER_REPAIR = "PC에서 장치 제거 후 다시 추가";
+inline constexpr const char* POWER_TITLE = "전원을 끌까요?";
+inline constexpr const char* POWER_OFF = "끄기";
+inline constexpr const char* POWER_CANCEL = "취소";
+inline constexpr const char* POWER_ON_HINT = "켤 때는 PWR 를 %s 이상 누르세요";
+inline constexpr const char* POWER_KEYS = "PWR 짧게 = 끄기 · BOOT 짧게 = 취소";
+inline constexpr const char* POWER_SHUTTING_DOWN = "전원을 끕니다";
+inline constexpr const char* POWER_SIM_OFF = "전원 꺼짐(시뮬레이터) · PWR 를 누르면 켜짐";
 inline constexpr const char* TOAST_LOCKED = "제스처 잠김";
 inline constexpr const char* TOAST_UNLOCKED = "제스처 풀림";
 inline constexpr const char* TOAST_CONNECTED = "연결됨";

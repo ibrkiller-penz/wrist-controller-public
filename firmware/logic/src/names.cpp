@@ -24,7 +24,8 @@ const char* const kSwipes[] = {"left", "right", "up", "down"};
 const char* const kSources[] = {"touch", "hold", "swipe", "sheet", "button", "gesture", "air", "system"};
 const char* const kEvents[] = {"mode",   "app",    "os",           "lock",          "connection", "sheet",
                                "air",    "show",   "blackout",     "screen",        "sensitivity", "action",
-                               "flick",  "flickRejected", "ignored", "estimate", "launchPage"};
+                               "flick",  "flickRejected", "ignored", "estimate", "launchPage",
+                               "powerConfirm", "powerOff"};
 const char* const kRejects[] = {"tooShort", "tooLong", "noRebound", "notDominant", "notQuiet"};
 const char* const kDirs[] = {"out", "in"};
 const char* const kPhases[] = {"idle", "above", "rebound", "blocked"};

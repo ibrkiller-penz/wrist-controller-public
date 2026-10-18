@@ -2047,6 +2047,47 @@
       ]
     },
     {
+      "id": "power-confirm-tap-on-release",
+      "desc": "전원 끄기 확인 화면(시계 모드): [끄기] 를 누를 때는 없음, 뗄 때 tap → 전원 끄기 요청",
+      "init": {
+        "mode": "clock",
+        "powerConfirm": {
+          "since": 0
+        }
+      },
+      "steps": [
+        {
+          "at": 100,
+          "touch": "down",
+          "x": 100,
+          "y": 350,
+          "expect": {
+            "inputs": []
+          }
+        },
+        {
+          "at": 200,
+          "touch": "up",
+          "x": 100,
+          "y": 350,
+          "expect": {
+            "inputs": [
+              {
+                "t": "tap",
+                "x": 100,
+                "y": 350
+              }
+            ],
+            "events": [
+              {
+                "t": "powerOff"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "id": "screen-off-ignored",
       "desc": "화면이 꺼져 있으면 터치를 버린다",
       "init": {
