@@ -159,6 +159,7 @@ struct GestureConfig {
     bool invertY = false;
   } airMouse;
   struct Flick {
+    bool enabled = false;  // 손목 튕김 사용(기본 끔 — 실기 피드백 10). 시계 설정 '손목 튕김'으로 켠다(NVS)
     // 판정 방식: Accel = 중력 제거 가속도 크기(기본, 실기 피드백 9 — 방향 무관 항상 다음), Gyro = 판정 축 각속도(옛 방식)
     enum class Detector : uint8_t { Accel, Gyro } detector = Detector::Accel;
     LogicalAxis axis = LogicalAxis::Roll;

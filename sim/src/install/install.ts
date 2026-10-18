@@ -65,7 +65,7 @@ if (root) {
   const secure = globalThis.isSecureContext;
   root.innerHTML = `
   <main class="inst-main">
-    <p class="inst-back"><a href="./index.html">← 시뮬레이터로</a> · <a href="./guide.html">처음이면 따라 하기 안내서</a></p>
+    <p class="inst-back"><a href="./index.html">← 시뮬레이터로</a> · <a href="./guide.html">처음이면 따라 하기 안내서</a> · <a href="https://github.com/ibrkiller-penz/wrist-controller-public" target="_blank" rel="noopener">소스(GitHub)</a></p>
     <h1 class="inst-title">시계에 설치</h1>
     <p class="inst-lead">Waveshare ESP32-C6 2.06 AMOLED 시계에 손목 컨트롤러 펌웨어를 브라우저에서 USB 로 바로 설치합니다(ESP Web Tools). PC 에 프로그램을 설치하지 않아도 됩니다.</p>
 

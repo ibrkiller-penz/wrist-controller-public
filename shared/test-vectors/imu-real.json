@@ -4533,7 +4533,14 @@
             ]
           }
         }
-      ]
+      ],
+      "configPatch": {
+        "gesture": {
+          "flick": {
+            "enabled": true
+          }
+        }
+      }
     }
   ]
 }

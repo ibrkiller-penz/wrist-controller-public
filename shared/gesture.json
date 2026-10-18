@@ -52,6 +52,7 @@
     "invertY": false
   },
   "flick": {
+    "enabled": false,
     "detector": "accel",
     "axis": "roll",
     "prefilterTauMs": 10,

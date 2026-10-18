@@ -424,7 +424,7 @@ void buildBanner() {
 // 설정 화면(구조는 그대로 — 88px 스크롤 목록은 P1-3). 상태줄 '설정' 아래 y 56 부터
 void buildSettings() {
   sRoot = box(scr, 0, 56, 410, 446, C_BG, 0);
-  static const char* const keys[SETTINGS_ROWS] = {S::SETTINGS_AIR, S::SETTINGS_SENS, S::SETTINGS_OS,     S::SETTINGS_RAISE,
+  static const char* const keys[SETTINGS_ROWS] = {S::SETTINGS_FLICK, S::SETTINGS_AIR, S::SETTINGS_SENS, S::SETTINGS_OS,     S::SETTINGS_RAISE,
                                                   S::SETTINGS_IMU, S::SETTINGS_NAME, S::SETTINGS_VERSION};
   for (int i = 0; i < SETTINGS_ROWS; ++i) {
     sRow[i] = box(sRoot, 16, SETTINGS_ROW_Y0 - 56 + i * SETTINGS_ROW_H, 378, SETTINGS_ROW_H - 6, C_S1, 14, C_BORDER, 1);
@@ -860,6 +860,7 @@ void render(const Model& m, const wc::Keymap& km) {
   // ---------------------------------------------------------------- 설정
   if (m.settingsOpen) {
     const std::string vals[SETTINGS_ROWS] = {
+        m.flick ? S::SETTINGS_ON : S::SETTINGS_OFF,
         m.airMouse ? S::SETTINGS_ON : S::SETTINGS_OFF,
         m.sensName,
         s.os == wc::OsId::Mac ? "macOS" : "Windows",

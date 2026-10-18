@@ -111,6 +111,8 @@ export interface GestureConfig {
     invertY: boolean;
   };
   flick: {
+    /** 손목 튕김 사용(기본 끔 — 실기 피드백 10). 꺼지면 판정 자체를 하지 않는다(IMU 는 손목 들기·녹화용으로 계속) */
+    enabled: boolean;
     /** 판정 방식: 'accel' = 중력 제거 가속도 크기(기본, 실기 피드백 9 — 방향 무관 항상 다음), 'gyro' = 판정 축 각속도(옛 방식) */
     detector: 'accel' | 'gyro';
     axis: LogicalAxis;

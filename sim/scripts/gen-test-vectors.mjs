@@ -33,9 +33,20 @@ const AIR_ON = { gesture: { airMouse: { enabled: true } } };
 const GYRO = { flick: { detector: 'gyro' } };
 const withGyro = (c) => ({ ...c, configPatch: { ...(c.configPatch ?? {}), gesture: { ...GYRO, ...(c.configPatch?.gesture ?? {}), flick: { ...GYRO.flick, ...(c.configPatch?.gesture?.flick ?? {}) } } } });
 
+// 손목 튕김은 기본 끔(flick.enabled=false, 실기 피드백 10) — 튕김 벡터는 켠 설정으로 돌린다(keepDefault: true 인 케이스만 기본 설정)
+const withFlickOn = (c) => {
+  if (c.keepDefault) {
+    const { keepDefault: _k, ...rest } = c;
+    return rest;
+  }
+  const gp = c.configPatch?.gesture ?? {};
+  return { ...c, configPatch: { ...(c.configPatch ?? {}), gesture: { ...gp, flick: { enabled: true, ...(gp.flick ?? {}) } } } };
+};
+
 function write(name, obj) {
   if (obj.suite === 'airmouse') obj.cases = obj.cases.map((c) => ({ ...c, configPatch: c.configPatch ?? AIR_ON }));
   if (name === 'gesture.json') obj.cases = obj.cases.map(withGyro);
+  if (obj.suite === 'gesture') obj.cases = obj.cases.map(withFlickOn);
   // IMU 샘플 [gx, gy, gz] · [gx, gy, gz, ax, ay, az] 은 한 줄로 적어 파일을 짧게 유지
   const text = JSON.stringify(obj, null, 2).replace(
     /\[\s*(-?[\d.e+-]+(?:,\s*-?[\d.e+-]+){2,5})\s*\]/g,
@@ -799,6 +810,14 @@ write('macro.json', {
     description: 'accel 방식 튕김(기본) 합성 파형: 가만히 0회, 걷기 30초 0회, 약한 튕김(1.3g 120ms) 1회, 긴 흔들기(1.2g 600ms) 0회. 발표 모드.',
     cases: [
       { id: 'accel-still-none', desc: '가만히 3초 → 0회', init: P, steps: [{ ...series(0, still(300)), expect: { hid: [], noEvents: ['flick'] } }] },
+      {
+        id: 'flick-off-by-default',
+        checklist: '손목 튕김 기본 끔(flick.enabled false): 튕겨도 아무것도 안 보냄',
+        desc: '기본 설정(튕김 꺼짐)에서 약한 튕김 → 판정 자체를 안 함(이벤트·키 없음)',
+        init: P,
+        keepDefault: true,
+        steps: [{ ...series(0, cat(still(100), weak, still(100, 112))), expect: { hid: [], noEvents: ['flick', 'flickRejected'] } }],
+      },
       {
         id: 'accel-walk-none',
         checklist: '손목 제스처: 걷기는 무시(accel)',

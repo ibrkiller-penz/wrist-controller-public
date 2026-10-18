@@ -1,6 +1,7 @@
 /* 설치 페이지 스타일 — 담당: settings 모듈. 클래스 접두사: .inst-*  명세: design/settings-install.md 3장 */
 .inst-main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; display: flex; flex-direction: column; gap: var(--sim-gap, 16px); }
-.inst-back { margin: 0; }
+.inst-back { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.inst-back a { white-space: nowrap; } /* 폰 폭에서 링크 안이 줄바꿈되지 않게 */
 .inst-back a, .inst-main a { color: var(--sim-focus); font-weight: 600; text-decoration: none; }
 .inst-back a:hover, .inst-main a:hover { text-decoration: underline; }
 .inst-title { margin: 0; font-size: 28px; line-height: 1.2; }

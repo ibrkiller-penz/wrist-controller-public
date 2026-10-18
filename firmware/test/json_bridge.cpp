@@ -235,6 +235,7 @@ GestureConfig gestureFromJson(const json& j) {
   g.airMouse.invertY = am.at("invertY").get<bool>();
 
   const json& f = j.at("flick");
+  g.flick.enabled = f.at("enabled").get<bool>();
   g.flick.detector = f.at("detector").get<std::string>() == "gyro" ? GestureConfig::Flick::Detector::Gyro
                                                                     : GestureConfig::Flick::Detector::Accel;
   g.flick.accel.lpfTauMs = f.at("accel").at("lpfTauMs").get<double>();
@@ -365,7 +366,8 @@ json toJson(const GestureConfig& g) {
                    {"sensitivity", sens},
                    {"invertY", g.airMouse.invertY}};
   const auto& f = g.flick;
-  j["flick"] = {{"detector", f.detector == GestureConfig::Flick::Detector::Gyro ? "gyro" : "accel"},
+  j["flick"] = {{"enabled", f.enabled},
+                {"detector", f.detector == GestureConfig::Flick::Detector::Gyro ? "gyro" : "accel"},
                 {"accel", {{"lpfTauMs", f.accel.lpfTauMs}, {"peakG", f.accel.peakG}, {"maxAboveMs", f.accel.maxAboveMs}, {"quietWindowMs", f.accel.quietWindowMs}, {"quietGuardMs", f.accel.quietGuardMs}, {"quietMaxRmsG", f.accel.quietMaxRmsG}}},
                 {"axis", name(f.axis)},
                 {"prefilterTauMs", f.prefilterTauMs},

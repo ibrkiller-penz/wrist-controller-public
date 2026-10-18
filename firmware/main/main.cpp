@@ -263,6 +263,7 @@ constexpr const char* NVS_KEY_OS = "os";
 constexpr const char* NVS_KEY_SENS = "sens";
 constexpr const char* NVS_KEY_TZ = "tzmin";        // 시간대(분, UTC 기준). 기본 KST +540
 constexpr const char* NVS_KEY_RAISE = "raiseclk";  // 손목 들면 시계 화면 먼저(기본 끔 = 마지막 모드 유지)
+constexpr const char* NVS_KEY_FLICK = "flick";      // 손목 튕김 켬(기본 = gesture.json flick.enabled = 끔)
 constexpr const char* NVS_KEY_AIR = "airmouse";     // 에어마우스 켬(기본 = gesture.json airMouse.enabled = 끔)
 int g_tzMin = 540;
 bool g_raiseClock = false;
@@ -300,6 +301,7 @@ void nvsLoadPrefs(wc::CoreState& s) {
   if (nvs_get_i16(h, NVS_KEY_TZ, &tz) == ESP_OK && tz >= -720 && tz <= 840) g_tzMin = tz;
   if (nvs_get_u8(h, NVS_KEY_RAISE, &v) == ESP_OK) g_raiseClock = v != 0;
   if (nvs_get_u8(h, NVS_KEY_AIR, &v) == ESP_OK) g_gesture.airMouse.enabled = v != 0;
+  if (nvs_get_u8(h, NVS_KEY_FLICK, &v) == ESP_OK) g_gesture.flick.enabled = v != 0;
   char name[64] = {0};
   size_t len = sizeof(name);
   // 사용자가 직렬 'n' 으로 정한 이름만 쓴다. 예전 펌웨어가 자동으로 저장한 기본 이름(MAC 꼬리 없음)은 무시한다.
@@ -319,6 +321,7 @@ void nvsSavePrefs() {
   nvs_set_i16(h, NVS_KEY_TZ, static_cast<int16_t>(g_tzMin));
   nvs_set_u8(h, NVS_KEY_RAISE, g_raiseClock ? 1 : 0);
   nvs_set_u8(h, NVS_KEY_AIR, g_gesture.airMouse.enabled ? 1 : 0);
+  nvs_set_u8(h, NVS_KEY_FLICK, g_gesture.flick.enabled ? 1 : 0);
   if (g_nameFromNvs) nvs_set_str(h, NVS_KEY_NAME, g_deviceName.c_str());  // 사용자 이름일 때만
   nvs_commit(h);
   nvs_close(h);
@@ -703,6 +706,7 @@ void uiRefresh() {
   m.charging = batteryCharging();
   m.raiseClock = g_raiseClock;
   m.airMouse = g_gesture.airMouse.enabled;
+  m.flick = g_gesture.flick.enabled;
   if (g_timeValid) {
     const time_t now = time(nullptr);
     tm lt;
@@ -734,6 +738,13 @@ void settingsClose(const char* why) {
 
 void settingsApply(int row) {
   switch (row) {
+    case ui::kRowFlick:  // 손목 튕김 켜기/끄기(NVS). 코어는 g_gesture 를 가리키므로 바로 적용
+      xSemaphoreTake(g_lock, portMAX_DELAY);
+      g_gesture.flick.enabled = !g_gesture.flick.enabled;
+      xSemaphoreGive(g_lock);
+      g_saveDueUs = esp_timer_get_time() + 1000 * 1000;
+      ESP_LOGI(TAG, "손목 튕김 %s", g_gesture.flick.enabled ? "켬" : "끔");
+      break;
     case ui::kRowAir:  // 에어마우스 켜기/끄기(NVS). 코어는 g_gesture 를 가리키므로 바로 적용
       xSemaphoreTake(g_lock, portMAX_DELAY);
       g_gesture.airMouse.enabled = !g_gesture.airMouse.enabled;

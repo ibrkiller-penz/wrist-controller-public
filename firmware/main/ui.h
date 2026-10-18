@@ -35,6 +35,7 @@ struct Model {
   const char* fwVersion = "";
   bool raiseClock = false;         // 손목 들면 시계 화면 먼저
   bool airMouse = false;           // 에어마우스 켬(기본 끔 — 실기 피드백 6)
+  bool flick = false;              // 손목 튕김 켬(기본 끔 — 실기 피드백 10)
   // 시각(RTC → 시스템 시각, 시간대 NVS). valid=false 면 '--:--'
   bool timeValid = false;
   int hour = 0, minute = 0, second = 0;
@@ -49,13 +50,13 @@ bool built();
 
 // 설정 화면 줄(터치 hit 판정용, ui.cpp 의 배치와 같은 값). 구조 변경(88px 스크롤 목록)은 P1-3.
 constexpr int SETTINGS_ROW_Y0 = 64;
-constexpr int SETTINGS_ROW_H = 46;
-// 에어마우스, 감도, 컴퓨터(OS), 손목 들면 시계, IMU 녹화, 블루투스 이름, 버전
-constexpr int SETTINGS_ROWS = 7;
+constexpr int SETTINGS_ROW_H = 40;
+// 손목 튕김, 에어마우스, 감도, 컴퓨터(OS), 손목 들면 시계, IMU 녹화, 블루투스 이름, 버전
+constexpr int SETTINGS_ROWS = 8;
 // 맨 아래 '닫기' 탭 영역(터치 높이 88 — README 1.3 터치 최소)
 constexpr int SETTINGS_CLOSE_Y0 = 392;
 constexpr int SETTINGS_CLOSE_H = 88;
-enum SettingsRow { kRowAir = 0, kRowSens, kRowOs, kRowRaiseClock, kRowImu, kRowName, kRowFw, kRowClose };
+enum SettingsRow { kRowFlick = 0, kRowAir, kRowSens, kRowOs, kRowRaiseClock, kRowImu, kRowName, kRowFw, kRowClose };
 int settingsRowAt(int y);         // -1 = 줄 밖, kRowClose = 닫기
 
 }  // namespace ui

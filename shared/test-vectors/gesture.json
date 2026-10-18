@@ -132,6 +132,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro"
           }
         }
@@ -267,6 +268,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro"
           }
         }
@@ -281,6 +283,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro",
             "inAction": "none"
           }
@@ -410,6 +413,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro",
             "inAction": "prev"
           }
@@ -822,6 +826,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro"
           }
         }
@@ -1003,6 +1008,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro"
           }
         }
@@ -1312,6 +1318,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro"
           }
         }
@@ -1565,6 +1572,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro"
           }
         }
@@ -1896,6 +1904,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro"
           }
         }
@@ -2028,6 +2037,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro"
           }
         }
@@ -2159,6 +2169,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro"
           }
         }
@@ -2291,6 +2302,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro"
           }
         }
@@ -2422,6 +2434,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro"
           }
         }
@@ -2547,6 +2560,7 @@
       "configPatch": {
         "gesture": {
           "flick": {
+            "enabled": true,
             "detector": "gyro"
           }
         }

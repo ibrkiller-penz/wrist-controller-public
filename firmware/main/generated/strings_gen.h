@@ -1,9 +1,9 @@
 // 자동 생성 파일 — 고치지 마세요. 원본: shared/strings.ko.json
 // 다시 만들기: python tools/gen_strings_header.py   (CI 는 --check 로 최신인지 확인)
-// 원본 해시(sha256 앞 12자리): 3b7a11da5804
+// 원본 해시(sha256 앞 12자리): 283d76094f0c
 #pragma once
 
-#define WC_STRINGS_GEN_HASH "3b7a11da5804"
+#define WC_STRINGS_GEN_HASH "283d76094f0c"
 
 namespace wc::str {
 
@@ -50,6 +50,7 @@ inline constexpr const char* MEETING_LABEL_STATE = "%s %s";
 inline constexpr const char* MEETING_ESTIMATED = "추정";
 inline constexpr const char* MEETING_SYNC_HINT = "다르면 길게 눌러 맞추기";
 inline constexpr const char* MEETING_UNKNOWN_HINT = "상태 모름 · 길게 눌러 맞추기";
+inline constexpr const char* SETTINGS_FLICK = "손목 튕김";
 inline constexpr const char* SETTINGS_AIR = "에어마우스";
 inline constexpr const char* SETTINGS_SENS = "감도";
 inline constexpr const char* SETTINGS_OS = "컴퓨터";

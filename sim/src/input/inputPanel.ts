@@ -352,6 +352,8 @@ export function mountInputPanel(slots: InputSlots, app: App): void {
   for (const b of synthBtns) {
     b.addEventListener('click', () => {
       synth?.stop();
+      // 손목 튕김 기본 끔(실기 피드백 10) — 꺼져 있으면 판정 자체를 하지 않는다
+      if (!app.gesture.flick.enabled) showVerdict('손목 튕김 꺼짐 — 시계 설정 「손목 튕김」 을 켜면 판정합니다', 'ignored');
       synth = createReplaySource(app, makeSynth(b.dataset.synth!));
       for (const x of synthBtns) x.setAttribute('aria-busy', String(x === b));
       const off = synth.onProgress((_p, running) => {

@@ -374,7 +374,8 @@ class Work {
       if (r.dx !== 0 || r.dy !== 0) this.emit({ t: 'mouseMove', dx: r.dx, dy: r.dy }, 'air', null);
       return;
     }
-    if (s.mode !== 'present' || s.button) return;
+    // 손목 튕김이 꺼져 있으면(기본 — 실기 피드백 10) 판정하지 않는다
+    if (!this.g.flick.enabled || s.mode !== 'present' || s.button) return;
     const fr = flickStep(s.flick, v, this.g);
     s.flick = fr.state;
     if (fr.rejected) this.events.push(fr.peakG !== undefined ? { t: 'flickRejected', reason: fr.rejected, peakG: fr.peakG } : { t: 'flickRejected', reason: fr.rejected });

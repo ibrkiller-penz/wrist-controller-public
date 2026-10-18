@@ -38,6 +38,7 @@ export function mountToolbar(root: HTMLElement, app: App, handlers: ToolbarHandl
     <button type="button" class="sim-btn sim-theme" title="테마: 자동 → 라이트 → 다크">테마: 자동</button>
     <button type="button" class="sim-btn sim-settings" aria-label="설정"><svg aria-hidden="true"><use href="#i-gear"/></svg></button>
     <a class="sim-link" href="./guide.html">따라 하기</a>
+    <a class="sim-link" href="https://github.com/ibrkiller-penz/wrist-controller-public" target="_blank" rel="noopener">소스(GitHub)</a>
     <a class="sim-link" href="./install.html">시계에 설치 →</a>`;
 
   const brand = root.querySelector<HTMLElement>('.sim-brand')!;

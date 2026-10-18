@@ -23,7 +23,14 @@ const here = fileURLToPath(new URL('.', import.meta.url));
 const sample = (name: string) => readFileSync(resolve(here, '../../public/samples', name), 'utf8');
 
 /** 샘플을 App 에 그대로(원래 시각으로) 넣고 코어 알림을 모은다 */
-function run(samples: ImuSample[], gesture?: GestureConfig) {
+/** 손목 튕김을 켠 기본 설정(기본은 끔 — 실기 피드백 10) */
+const flickOn = (): GestureConfig => {
+  const g = defaultGesture();
+  g.flick.enabled = true;
+  return g;
+};
+
+function run(samples: ImuSample[], gesture: GestureConfig = flickOn()) {
   let now = 0;
   const app = new App({ persist: false, tickMs: 0, clock: () => now, gesture });
   app.dispatch({ t: 'setMode', mode: 'present' }); // 기본 시작 모드는 시계 — 튕김은 발표 모드에서만
@@ -46,7 +53,7 @@ function run(samples: ImuSample[], gesture?: GestureConfig) {
 
 /** 옛 각속도(gyro) 방식 설정 */
 const gyroCfg = (): GestureConfig => {
-  const g = defaultGesture();
+  const g = flickOn();
   g.flick.detector = 'gyro';
   return g;
 };

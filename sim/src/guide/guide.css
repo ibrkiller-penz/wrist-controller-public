@@ -11,6 +11,7 @@ body button, body .gd-nav, body .gd-sub, body td, body .gd-n { font-weight: 400;
 .gd-main { max-width: 760px; margin: 0 auto; padding: 20px 16px 64px; display: flex; flex-direction: column; gap: 16px; font-size: 16px; line-height: 1.65; }
 .gd-main a { color: var(--sim-focus); font-weight: 500; text-decoration: none; }
 .gd-main a:hover { text-decoration: underline; }
+.gd-nav a { white-space: nowrap; }
 .gd-nav { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px; margin: 0; }
 .gd-title { margin: 4px 0 0; font-size: 28px; line-height: 1.25; }
 .gd-lead { margin: 0; color: var(--sim-text-2); }

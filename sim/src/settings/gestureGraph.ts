@@ -334,6 +334,13 @@ export function createGestureGraph(
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
     ctx.fillText(accel ? `${thr.toFixed(2)} g` : `${Math.round(thr)}°/s`, right - 2, y(thr) - 2);
+    if (!app.gesture.flick.enabled) {
+      // 손목 튕김 기본 끔(실기 피드백 10): 그래프는 그대로 그리되(튜닝용) 실제로는 판정하지 않는다
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = colors.key;
+      ctx.fillText('손목 튕김 꺼짐 — flick.enabled = false(시계 설정에서 켜기). 그래프는 튜닝용 미리보기', PLOT.left + 4, PLOT.top + 2);
+    }
 
     // 마커
     for (const m of markers) {

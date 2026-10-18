@@ -63,6 +63,7 @@ MAC 주소는 넷째 바이트를 가렸다(앞 3바이트는 제조사 Espressi
 | 실기 피드백 6·7 | 에어마우스 기본 끔(gesture.json airMouse.enabled, 설정 화면 '에어마우스' 줄·NVS, 꺼지면 감도 흐리게, 에어마우스 벡터는 configPatch 로 켬 + 기본 끔 케이스), 손목 튕김은 다음만(flick.inAction none 기본/prev, 벡터 flick-in-ignored·flick-in-prev, 시뮬레이터 합성 결과 표시) | 구현·빌드 성공(run 39092412210, f649122: bootloader 23,232B·partition-table 3,072B·app 1,503,120B) |
 | 실기 피드백 8 | 손목 튕김 안쪽·바깥 모두 다음(flick.inAction next 기본, 허용 none/prev/next), peakThresholdDps 300→220·rebound.minDps 120→80, 실기 녹화 CSV(sim 재생 목록) + 공유 벡터 imu-real.json(다음 9회·천천히 구간 0회, TS·C++) | 구현·빌드 성공(run 39094014337, cd19130: bootloader 23,232B·partition-table 3,072B·app 1,503,152B) |
 | 실기 피드백 9 | 손목 튕김 판정을 가속도 기준으로(flick.detector accel 기본/gyro, flick.accel lpfTauMs 200·peakG 0.8·maxAboveMs 250·quietWindowMs 300·quietMaxRmsG 0.25, 방향 무관 다음, 이벤트·직렬 로그에 hp 피크). ImuSample 에 가속도(TS·C++), 펌웨어 imuTask → 코어, 벡터 accel.json·imu-real.json(accel)·gesture.json(gyro patch). 시뮬레이터 입력(CSV·폰·합성·드래그) 가속도·설정 그래프·안내서 | 구현·빌드 성공(run 39097922443, 7de3226: bootloader 23,232B·partition-table 3,072B·app 1,512,064B) |
+| 실기 피드백 10 | 손목 튕김 기본 끔(gesture.json flick.enabled false — 꺼지면 판정 자체 없음, IMU 는 손목 들기·녹화용). 시계 설정 맨 위 '손목 튕김' 줄(NVS flick, 설정 줄 46→40px). 튕김 벡터는 configPatch enabled:true, 기본 끔 케이스 flick-off-by-default. 시뮬레이터 설정 화면·입력 패널·그래프 '꺼짐' 표시, README·guide.html, 소스(GitHub) 링크 | 구현·빌드 성공(run 39110297146, 0f2a767: bootloader 23,232B·partition-table 3,072B·app 1,512,960B) |
 | 진행 5 | 파이프라인 완성, v1.0.0 | CI 작성 완료, 태그 빌드는 아직 실행 전 |
 
 ### UI v2 실기 확인 (P0-8, 시계에 올린 뒤)

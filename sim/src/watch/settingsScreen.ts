@@ -37,6 +37,7 @@ export class SettingsScreen {
   readonly picker = el('div', 'watch-a watch-set watch-set--picker is-hidden');
   readonly dialog = el('div', 'watch-a watch-dlg is-hidden');
   private content = el('div', 'watch-set__content');
+  private flickSegs: HTMLDivElement[] = [];
   private airSegs: HTMLDivElement[] = [];
   private sensSegs: HTMLDivElement[] = [];
   private osSegs: HTMLDivElement[] = [];
@@ -80,38 +81,45 @@ export class SettingsScreen {
     ttlIcon.style.top = `${70 - TOP}px`;
     c.appendChild(ttlIcon);
     at(el('div', 'watch-a watch-kr28', t('screen.settings')), 60, 66, 200, 36);
+    // 손목 튕김 켜기/끄기(기본 끔 — 실기 피드백 10)
+    at(el('div', 'watch-a watch-set__sec watch-kr24', t('settings.flick')), 24, 118, 362, 30);
+    [true, false].forEach((on, i) => {
+      const seg = this.segment(`flick:${on ? 1 : 0}`, on ? t('settings.on') : t('settings.off'));
+      at(seg, 16 + i * 195, 156, 183, 88);
+      this.flickSegs.push(seg);
+    });
     // 에어마우스 켜기/끄기(기본 끔 — 실기 피드백 6). 감도는 켰을 때만 의미가 있어 꺼지면 흐리게
-    at(el('div', 'watch-a watch-set__sec watch-kr24', t('settings.air')), 24, 118, 362, 30);
+    at(el('div', 'watch-a watch-set__sec watch-kr24', t('settings.air')), 24, 242, 362, 30);
     [true, false].forEach((on, i) => {
       const seg = this.segment(`air:${on ? 1 : 0}`, on ? t('settings.on') : t('settings.off'));
-      at(seg, 16 + i * 195, 156, 183, 88);
+      at(seg, 16 + i * 195, 280, 183, 88);
       this.airSegs.push(seg);
     });
-    at(el('div', 'watch-a watch-set__sec watch-kr24', t('settings.sensSection')), 24, 242, 362, 30);
+    at(el('div', 'watch-a watch-set__sec watch-kr24', t('settings.sensSection')), 24, 366, 362, 30);
     for (let i = 0; i < 3; i++) {
       const seg = this.segment(`sens:${i}`, '');
-      at(seg, 16 + i * 130, 280, 118, 88);
+      at(seg, 16 + i * 130, 404, 118, 88);
       this.sensSegs.push(seg);
     }
-    at(el('div', 'watch-a watch-set__desc watch-kr20', t('settings.sensDesc')), 24, 376, 362, 26);
-    at(el('div', 'watch-a watch-set__sec watch-kr24', t('settings.osSection')), 24, 422, 362, 30);
+    at(el('div', 'watch-a watch-set__desc watch-kr20', t('settings.sensDesc')), 24, 500, 362, 26);
+    at(el('div', 'watch-a watch-set__sec watch-kr24', t('settings.osSection')), 24, 546, 362, 30);
     OS_LIST.forEach((o, i) => {
       const seg = this.segment(`os:${o.id}`, o.label);
-      at(seg, 16 + i * 195, 460, 183, 88);
+      at(seg, 16 + i * 195, 584, 183, 88);
       this.osSegs.push(seg);
     });
-    at(el('div', 'watch-a watch-set__desc watch-kr20', t('settings.osDesc')), 24, 556, 362, 26);
-    at(el('div', 'watch-a watch-set__sec watch-kr24', t('settings.name')), 24, 602, 362, 30);
+    at(el('div', 'watch-a watch-set__desc watch-kr20', t('settings.osDesc')), 24, 680, 362, 26);
+    at(el('div', 'watch-a watch-set__sec watch-kr24', t('settings.name')), 24, 726, 362, 30);
     this.nameRow.dataset.act = 'name';
     this.nameRow.append(this.nameText, this.nameArrow);
-    at(this.nameRow, 16, 640, 378, 88);
-    at(el('div', 'watch-a watch-set__sec watch-kr24', t('settings.fwSection')), 24, 750, 362, 30);
-    const ver = at(el('div', 'watch-a watch-set__ver'), 24, 788, 362, 64);
+    at(this.nameRow, 16, 764, 378, 88);
+    at(el('div', 'watch-a watch-set__sec watch-kr24', t('settings.fwSection')), 24, 874, 362, 30);
+    const ver = at(el('div', 'watch-a watch-set__ver'), 24, 912, 362, 64);
     ver.append(
       el('div', 'watch-kr28', `v${pkg.version}`),
       el('div', 'watch-kr20 watch-set__desc', t('settings.simBuild')),
     );
-    const close = at(el('div', 'watch-a watch-set__row watch-set__row--c watch-bd watch-kr28', t('settings.close')), 16, 876, 378, 88);
+    const close = at(el('div', 'watch-a watch-set__row watch-set__row--c watch-bd watch-kr28', t('settings.close')), 16, 1000, 378, 88);
     close.dataset.act = 'close';
     this.root.appendChild(this.content);
   }
@@ -217,6 +225,8 @@ export class SettingsScreen {
   update(s: CoreState): void {
     const levels = this.app.gesture.airMouse.sensitivity;
     const air = this.app.gesture.airMouse.enabled;
+    const flick = this.app.gesture.flick.enabled;
+    this.flickSegs.forEach((seg, i) => seg.classList.toggle('is-sel', flick === (i === 0)));
     this.airSegs.forEach((seg, i) => seg.classList.toggle('is-sel', air === (i === 0)));
     this.sensSegs.forEach((seg, i) => {
       seg.classList.toggle('is-dis', !air);
@@ -302,7 +312,12 @@ export class SettingsScreen {
     const t = this.actAt(clientX, clientY);
     const act = t?.dataset.act;
     if (!t || !act || t.classList.contains('is-dis')) return;
-    if (act.startsWith('air:')) {
+    if (act.startsWith('flick:')) {
+      const on = act === 'flick:1';
+      const g = this.app.gesture;
+      if (g.flick.enabled !== on) this.app.setConfig({ gesture: { ...g, flick: { ...g.flick, enabled: on } } });
+      this.update(this.app.state);
+    } else if (act.startsWith('air:')) {
       const on = act === 'air:1';
       const g = this.app.gesture;
       if (g.airMouse.enabled !== on) this.app.setConfig({ gesture: { ...g, airMouse: { ...g.airMouse, enabled: on } } });

@@ -256,6 +256,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "enabled",
         "detector",
         "axis",
         "prefilterTauMs",
@@ -272,6 +273,10 @@
         "accel"
       ],
       "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "손목 튕김 사용(기본 끔 — 실기 피드백 10). 꺼지면 판정 자체를 하지 않는다. 시계 설정 '손목 튕김'으로 켠다(NVS)"
+        },
         "detector": {
           "enum": [
             "accel",

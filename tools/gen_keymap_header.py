@@ -430,6 +430,7 @@ def generate(shared: Path) -> str:
         w(f"  g.airMouse.sensitivity.push_back(SensitivityLevel{{{c_str(lvl['name'])}, {c_num(lvl['gain'])}}});"
           f"  // {lvl['name']}")
     w(f"  g.airMouse.invertY = {c_bool(am['invertY'])};")
+    w(f"  g.flick.enabled = {c_bool(fl['enabled'])};")
     if fl["detector"] not in ("accel", "gyro"):
         raise GenError("flick.detector 는 accel 또는 gyro 여야 합니다")
     w(f"  g.flick.detector = GestureConfig::Flick::Detector::{'Accel' if fl['detector'] == 'accel' else 'Gyro'};")

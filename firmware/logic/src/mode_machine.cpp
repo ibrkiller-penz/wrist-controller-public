@@ -448,7 +448,8 @@ class Work {
       if (ar.dx != 0 || ar.dy != 0) emit(HidEvent::mouseMove(ar.dx, ar.dy), InputSource::Air, std::nullopt);
       return;
     }
-    if (s.mode != ModeId::Present || s.button.has_value()) return;
+    // 손목 튕김이 꺼져 있으면(기본 — 실기 피드백 10) 판정하지 않는다
+    if (!g_.flick.enabled || s.mode != ModeId::Present || s.button.has_value()) return;
     const FlickResult fr = flickStep(s.flick, v, g_);
     s.flick = fr.state;
     if (fr.rejected) {
