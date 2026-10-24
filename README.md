@@ -38,7 +38,12 @@ python tools/gen_keymap_header.py      # shared/keymap.json·gesture.json → �
 2. 화면 암전: 발표 화면 가운데 0.36초 누름 → 마침표 `.`(한글 입력 상태에서도 동작)
 3. 네 모드: 시계(키 안 보냄) / 발표 / 실행(Ctrl+Alt+1~6 앱 실행, 2쪽 캡처·잠금 등) / 회의(마이크·카메라·손 들기)
 4. 에어마우스: BOOT 를 누른 채 손목을 움직이면 포인터 이동(기본 꺼짐, 시계 설정에서 켬)
-5. 음성 명령은 넣지 않았다(ESP32-C6 메모리 부족, PSRAM 없음). 나중 계획: [docs/research/gemini-later.md](docs/research/gemini-later.md)
+5. 연결 모드: 평상시엔 **시계**(BLE 꺼짐, PC 에 안 잡힘), 설정 첫 줄 '연결 모드'를 켜면 광고→연결. 부팅 기본은 꺼짐
+6. 유휴 표정: 시계 모드에서 한동안 터치가 없으면 **눈**이 깜빡·두리번거리고 가끔 **상어**가 헤엄쳐 지나간다(터치하면 시계). 발표 등 다른 모드에선 안 나온다
+7. 전원 끄기: **PWR 3초** → 상어 로고 → 꺼짐(배터리일 때). USB 가 꽂혀 있으면 'USB 빼 주세요' 안내(AXP2101 특성)
+8. 이 컴퓨터 세팅: 설정에서 누르면 연결된 PC 브라우저에 바로 가기 설치 페이지가 열린다(Win+R → 주소)
+9. 시계 페이스: **POCKET FRIEND** 스타일(박스 패널 · BRIGHT 바 · 큰 시안 HH:MM · 요일/날짜)
+10. 음성 명령은 넣지 않았다(ESP32-C6 메모리 부족, PSRAM 없음). 나중 계획: [docs/research/gemini-later.md](docs/research/gemini-later.md)
 
 ## 저장소 구조
 
